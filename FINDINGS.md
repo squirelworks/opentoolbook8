@@ -458,3 +458,7 @@ Each type-10 record is 15 bytes, the class word at −2 is `0x2A`, and the recor
 The word at `+4` of the 15-byte record is not that pointer. On three type-10 records in `nida81.tbk` it names the same address, and that address is in the middle of another handler.
 
 A page whose script-mode byte has low bits 2 stores a word at `+0x2A`. That word minus 1 is one of these type-10 ids, on all three such pages in `9e954d01.tbk` and all four in `nida81.tbk`. Each of those seven words occurs once. The type-9 record with the same id is also 15 bytes and starts `02 02 01 00`. The bytes at its `+9` pointer do not expand to a handler.
+
+## Polygon source rectangle and bounds
+
+On a class `0x10` record the four signed words at `+0x28` are the source rectangle and the four signed words at `+0x0F` are the bounds. Those two rectangles are equal on 3 of the 654 records in `9e954d01.tbk`: (3915, 5190, 5565, 6495), (3615, 3435, 5745, 5985), and (3675, 3480, 5655, 3615). They are equal on 2 of the 76 records in `nida81.tbk`: (4395, 3660, 8040, 4605) and (7740, 3660, 8055, 5805). The other records do not share one relationship between the four edges. That is not a scale.
