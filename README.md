@@ -17,6 +17,8 @@ What works in this tree:
 
 A page is not drawn here, and OpenScript is not run here. Those are what the viewer already does. Reader behavior that is not written in `SETTLED.md` is not implemented.
 
+`SETTLED.md` is the behavior this reader implements. `FINDINGS.md` is what the bytes of `9e954d01.tbk` repeat. `RESEARCH.md` is the product and engine notes, and each claim there names its source.
+
 On a live stop with the lesson already open, handle `0x0C1E` had class word `0x0001`. The lookup returned `0x2BAF:0000`, the live selector of the class dispatcher, and `ECX` was `0x76`. The 412-byte record takes the same path. This boot did not reach that return.
 
 ## From scratch
