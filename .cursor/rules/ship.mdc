@@ -1,0 +1,10 @@
+---
+description: Push opentoolbook8 to main. Do not ask for a review.
+alwaysApply: true
+---
+
+You own this repository. Commit on `main` and push to `origin main`.
+
+Do not open a pull request, do not create a branch, and do not ask the user to check or merge your work.
+
+Run `python3 -m unittest discover -s tests` and get a pass before the push. One settled behavior per push. Anything not in `SETTLED.md` is not implemented.
