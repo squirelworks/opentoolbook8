@@ -16,6 +16,8 @@ from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
 POLYGON = 0x10
 # Length shared by the class 0x10 records in 9e954d01.tbk.
 POLYGON_BYTES = 53
+# `draw polygon` in Instructor 8.1. Same point list, different class.
+DRAW_POLYGON = 0x0F
 PAGE = 5
 
 
@@ -28,6 +30,15 @@ class Polygon:
 
 def stored_polygons(data: bytes) -> tuple[Polygon, ...]:
     """Every class ``0x10`` record whose point list sits in its segment."""
+    return tuple(_of_class(data, POLYGON))
+
+
+def stored_draw_polygons(data: bytes) -> tuple[Polygon, ...]:
+    """Every class ``0x0F`` record of this length. The point list matches class ``0x10``."""
+    return tuple(_of_class(data, DRAW_POLYGON))
+
+
+def _of_class(data: bytes, kind_wanted: int) -> list[Polygon]:
     found: list[Polygon] = []
     for segment in _segments(data):
         end = segment.file_at + segment.size
@@ -35,10 +46,10 @@ def stored_polygons(data: bytes) -> tuple[Polygon, ...]:
         while at + POLYGON_BYTES <= end and at >= 4:
             kind = _u16(data, at - 2)
             size = _u16(data, at - 4) - (at - segment.base)
-            if kind == POLYGON and size == POLYGON_BYTES:
+            if kind == kind_wanted and size == POLYGON_BYTES:
                 found.append(_read(data, segment, at))
             at += 2
-    return tuple(found)
+    return found
 
 
 def polygon_points(data: bytes, page_id: str, object_id: int) -> tuple[tuple[int, int], ...]:

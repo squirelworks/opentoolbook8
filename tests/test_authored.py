@@ -13,7 +13,7 @@ from opentoolbook.ellipse import stored_ellipses
 from opentoolbook.field import field_text, page_ids, stored_field_bounds
 from opentoolbook.line import Line, LineColor, stored_line_colors, stored_lines
 from opentoolbook.page import page_records
-from opentoolbook.polygon import stored_polygons
+from opentoolbook.polygon import Polygon, stored_draw_polygons, stored_polygons
 from opentoolbook.polyline import Polyline, stored_polylines
 from opentoolbook.record import Book
 from opentoolbook.rectangle import Rectangle, stored_rectangles
@@ -100,6 +100,39 @@ class AuthoredButtonTests(unittest.TestCase):
             [(0x9, 0, ""), (0x9, 1, "")],
         )
         self.assertEqual(stored_button_captions(data), ("otb", "go"))
+
+
+POLYGON_BOOK = Path(__file__).parent / "fixtures" / "otb-poly.tbk"
+
+
+class AuthoredPolygonTests(unittest.TestCase):
+    def test_blank_native_page_stores_two_polygons(self):
+        data = POLYGON_BOOK.read_bytes()
+        square = (
+            (1600, 1600),
+            (1599, -800),
+            (-800, -799),
+            (-799, 1600),
+        )
+        other = (
+            (3000, 1700),
+            (2999, -700),
+            (600, -699),
+            (601, 1700),
+        )
+        self.assertEqual(
+            stored_draw_polygons(data),
+            (
+                Polygon(points=square, source=(-800, -800, 1600, 1600), bounds=(-800, -800, 1600, 1600)),
+                Polygon(points=other, source=(600, -700, 3000, 1700), bounds=(600, -700, 3000, 1700)),
+            ),
+        )
+        page = page_records(data, "")
+        self.assertEqual(
+            [(item.kind, item.object_id) for item in page.objects],
+            [(0x0F, 0), (0x0F, 1)],
+        )
+        self.assertEqual(stored_polygons(data), ())
 
 
 LINE_BOOK = Path(__file__).parent / "fixtures" / "otb-line.tbk"

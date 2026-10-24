@@ -63,6 +63,10 @@ A class `0x09` button is 43 bytes. The word at `+0x28` is a near pointer to a gr
 
 A class `0x09` button is 43 bytes. The four signed words at `+0x0F` are a rectangle. The reader returns that rectangle. On `9e954d01.tbk` the Next button on `P300` is (8907, 6210, 9342, 6630) and the A button on `P10210` is (2430, 1635, 2715, 1920). The same read holds for every such button in `nida81.tbk`.
 
+## Draw polygon
+
+A class `0x0F` record is 53 bytes. The count is the word at `+0x30` and the near pointer at `+0x32` names the stored points, four bytes each. The source rectangle is four signed words at `+0x28`. The bounds are four signed words at `+0x0F`. The reader returns those stored points. On `otb-poly.tbk` the two records are the squares `(1600, 1600), (1599, -800), (-800, -799), (-799, 1600)` and `(3000, 1700), (2999, -700), (600, -699), (601, 1700)`. `9e954d01.tbk` has one class `0x0F` record and it is 100 bytes, so this read does not return it. `nida81.tbk` has no class `0x0F` record of this length.
+
 ## Button caption
 
 A class `0x09` button is 43 bytes. The word at `+0x22` is a near pointer to a C string, or 0. The reader returns that string, and it returns an empty string when the word is 0. On `otb-btn.tbk` the two captions are `otb` and `go`. On `9e954d01.tbk` two buttons store `OK` and the other 396 store an empty caption. On `nida81.tbk` the stored captions are `Recheck` and `Check Voltages`, and the other 149 store an empty caption.
