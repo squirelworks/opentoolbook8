@@ -103,6 +103,62 @@ def field_text(data: bytes, page_id: str, field_name: str) -> str:
     raise ValueError(f"no {field_name} field on {page_id}")
 
 
+@dataclass(frozen=True)
+class FieldTextPlace:
+    """The file bytes of one field's text, and the directory body beside them.
+
+    ``body`` is the directory body. ``gap`` is the first byte after it.
+    ``at`` is the capacity word of the text record. ``text`` is the characters
+    that follow the length word.
+    """
+
+    page_id: str
+    name: str
+    body: int
+    gap: int
+    at: int
+    text: str
+
+
+def field_text_places(data: bytes) -> tuple[FieldTextPlace, ...]:
+    """Where each field's text record sits.
+
+    Word 1 of the block at ``+0x24`` names the record. The record is a
+    capacity word, a length word, and the characters. On a page that record
+    is in the gap after the directory body.
+    """
+    found: list[FieldTextPlace] = []
+    segments = _segments(data)
+    by_key = {segment.key: segment for segment in segments}
+    book_segment, book_record = _book(data, segments)
+    for handle in _page_handles(data, by_key, book_segment, book_record):
+        segment = by_key.get(handle >> 16)
+        if segment is None:
+            continue
+        record = segment.base + (handle & 0xFFFF)
+        if record < 2 or record + 8 > len(data) or _u16(data, record - 2) != PAGE:
+            continue
+        trailer = _trailer(data, segment)
+        blobs = _gap_blobs(data, segment)
+        if trailer is None or not blobs:
+            continue
+        page_id = _chars(data, record + 6, 32)
+        gap = segment.file_at + segment.size
+        end = gap
+        at = segment.base + 0x18
+        while at + FIELD_BYTES <= end and at >= 4:
+            kind = _u16(data, at - 2)
+            size = _u16(data, at - 4) - (at - segment.base)
+            if kind == FIELD and size == FIELD_BYTES:
+                place = _text_place(data, segment, trailer, blobs, page_id, at)
+                if place is not None:
+                    found.append(place)
+                at += size
+                continue
+            at += 1
+    return tuple(found)
+
+
 def field_words(data: bytes) -> tuple[tuple[int, int, int, int, int], ...]:
     """The words at ``+0x28``, ``+0x2A``, ``+0x2C``, and ``+0x32``, and the byte at ``+0x36``.
 
@@ -279,6 +335,70 @@ def _trailer(data: bytes, segment: _Segment) -> _Trailer | None:
         return None
     slots = tuple(struct.unpack_from("<HHHH", data, pos + 8 * index) for index in range(slots_n))
     return _Trailer(heaps, slots)
+
+
+def _gap_blobs(data: bytes, segment: _Segment) -> tuple[tuple[int, int, int], ...]:
+    """Heap id, file offset, and prefix of each blob after the directory body."""
+    off = segment.file_at + segment.size
+    if off + 4 > len(data) or _u16(data, off) != 1:
+        return ()
+    count = _u16(data, off + 2)
+    pos = off + 4
+    headers: list[tuple[int, int, int, int, int]] = []
+    for _index in range(count):
+        if pos + 12 > len(data):
+            return ()
+        headers.append(struct.unpack_from("<HHIHH", data, pos))
+        pos += 12
+    blobs: list[tuple[int, int, int]] = []
+    for index, (_mark, prefix, length, _rest, _tail) in enumerate(headers):
+        blobs.append((index + 1, pos, prefix))
+        if pos + length > len(data):
+            return ()
+        pos += length
+    return tuple(blobs)
+
+
+def _text_place(
+    data: bytes,
+    segment: _Segment,
+    trailer: _Trailer,
+    blobs: tuple[tuple[int, int, int], ...],
+    page_id: str,
+    field: int,
+) -> FieldTextPlace | None:
+    heap = trailer.heaps.get(0)
+    pointer = _u16(data, field + 0x24)
+    if heap is None or pointer + 4 > len(heap):
+        return None
+    _runs, handle = struct.unpack_from("<HH", heap, pointer)
+    if handle in (0, 0xFFFF) or handle >= len(trailer.slots):
+        return None
+    heap_id, offset, _one, _two = trailer.slots[handle]
+    if heap_id == 0:
+        at = segment.file_at + (offset - 6)
+    else:
+        at = None
+        for blob_id, start, prefix in blobs:
+            if blob_id == heap_id:
+                at = start + (offset - prefix)
+                break
+        if at is None:
+            return None
+    if at < 0 or at + 4 > len(data):
+        return None
+    _capacity, length = struct.unpack_from("<HH", data, at)
+    if length == 0 or at + 4 + length > len(data):
+        return None
+    text = data[at + 4:at + 4 + length].decode("latin-1")
+    return FieldTextPlace(
+        page_id,
+        _name(trailer, _u16(data, field + 6)),
+        segment.file_at,
+        segment.file_at + segment.size,
+        at,
+        text,
+    )
 
 
 def _name_table(data: bytes) -> tuple[int, int, tuple[int, ...]]:

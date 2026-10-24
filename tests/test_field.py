@@ -8,10 +8,23 @@ import struct
 import unittest
 from pathlib import Path
 
-from opentoolbook.field import field_style_runs, field_text, field_words, page_ids, style_run_names
+from opentoolbook.field import (
+    field_style_runs,
+    field_text,
+    field_text_places,
+    field_words,
+    page_ids,
+    style_run_names,
+)
 
 # The copyright field on page P0 of 9e954d01.tbk.
 COPYRIGHT = 'Copyright ©  Nida Corporation 1997 - 2002  \r\nThis software and its supporting programs are protected by federal copyright law and all            rights are reserved by Nida Corporation.  No part or section of this software or its supporting    programs may be copied, distributed, transmitted in any form or medium electronic or           otherwise, disclosed to third parties, or used in any manner not specified in the  License            Agreement furnished by Nida Corporation.  This courseware was created with Asymetrix ToolBook I I .'
+
+# The character record in the gap after P440, already quoted in FINDINGS.md.
+P440_BODY = (
+    "\r\n\r\nICs are classified into logic families based on voltage requirements, "
+    "speed and the number of circuits they can drive."
+)
 
 
 class FieldTextTests(unittest.TestCase):
@@ -111,6 +124,39 @@ class FieldWordTests(unittest.TestCase):
         self.assertEqual(found.count(common), common_count)
         for row in found:
             self.assertEqual(len(row), 5)
+
+
+class FieldTextPlaceTests(unittest.TestCase):
+    def test_the_gap_record_is_the_field(self):
+        path = os.environ.get("OPENTOOLBOOK_TBK")
+        if not path or not os.path.isfile(path):
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        logic = Path(path).read_bytes()
+        nida = Path(path).with_name("nida81.tbk")
+        self.assertTrue(nida.is_file())
+        self._same_bytes(logic, expect_p440=True)
+        self._same_bytes(nida.read_bytes(), expect_p440=False)
+
+    def _same_bytes(self, data: bytes, expect_p440: bool):
+        places = field_text_places(data)
+        self.assertEqual({place.page_id for place in places}, set(page_ids(data)))
+        self.assertGreater(len(places), len(page_ids(data)))
+        saw_p440 = False
+        for place in places:
+            self.assertLess(place.body, place.gap)
+            self.assertGreaterEqual(place.at, place.gap)
+            capacity, length = struct.unpack_from("<HH", data, place.at)
+            raw = data[place.at + 4:place.at + 4 + length]
+            self.assertEqual(raw.decode("latin-1"), place.text)
+            self.assertGreater(length, 0)
+            self.assertLessEqual(length, capacity)
+            needle = struct.pack("<HH", capacity, length) + raw[:min(12, length)]
+            self.assertNotIn(needle, data[place.body:place.gap])
+            if place.page_id == "P440" and place.name == "Text":
+                saw_p440 = True
+                self.assertEqual(place.at, 0xCBAD7)
+                self.assertEqual(place.text, P440_BODY)
+        self.assertEqual(saw_p440, expect_p440)
 
 
 if __name__ == "__main__":
