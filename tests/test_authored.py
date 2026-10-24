@@ -136,6 +136,8 @@ class AuthoredPolygonTests(unittest.TestCase):
 
 
 LINE_BOOK = Path(__file__).parent / "fixtures" / "otb-line.tbk"
+GAP_BOOK = Path(__file__).parent / "fixtures" / "otb-gap.tbk"
+GAPC_BOOK = Path(__file__).parent / "fixtures" / "otb-gapc.tbk"
 
 
 class AuthoredLineTests(unittest.TestCase):
@@ -160,6 +162,23 @@ class AuthoredLineTests(unittest.TestCase):
                 ),
             ),
         )
+
+
+class AuthoredCompactTests(unittest.TestCase):
+    def test_save_as_keeps_the_line_and_drops_the_cut_record(self):
+        gap = GAP_BOOK.read_bytes()
+        gapc = GAPC_BOOK.read_bytes()
+        line = Line(
+            endpoints=((400, 600), (2400, 600)),
+            bounds=(400, 600, 2400, 600),
+        )
+        self.assertEqual(gap[:0xC00], gapc[:0xC00])
+        self.assertGreater(len(gap), len(gapc))
+        self.assertEqual(stored_lines(gap), (line,))
+        self.assertEqual(stored_lines(gapc), (line,))
+        cut = bytes.fromhex("9001b0046009d007")
+        self.assertIn(cut, gap)
+        self.assertNotIn(cut, gapc)
 
 
 if __name__ == "__main__":

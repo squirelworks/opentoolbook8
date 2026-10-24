@@ -571,6 +571,10 @@ On `9e954d01.tbk` the background `Test` is the one named by pages `P10210` throu
 
 Both are class `0x0E`. The length formula, the end word minus the near offset of the id word, is 53 on line id 0. Line id 1 is the last object in that directory record, so the word before its class does not yield 53. Fifty-two bytes from its id word match line id 0 in the shared slots. The bounds at `+0x0F` are `(400, 1200, 2400, 2000)`. The endpoints at `+0x26` are `(400, 1200)` and `(2400, 2000)`. The colors at `+0x17` and `+0x1B` are `(0, 0, 0)` and `(255, 255, 255)`. That is one last-object example, not a change to the length formula.
 
+## Save As after a cut
+
+`otb-gap.tbk` is that same book after `send cut` removed line id 1 and Ctrl+S saved it in place. It is 19180 bytes. `otb-gapc.tbk` is a Save As of that book. It is 17964 bytes. The first `0xC00` bytes match. The class `0x0E` record the reader returns is the horizontal line in both files, and those 52 bytes match. The words for the cut line, `(400, 1200)` and `(2400, 2000)`, are still in `otb-gap.tbk` and are not in `otb-gapc.tbk`. This is the size difference Save As made. It is not a decompressor.
+
 ## Version FileVersion
 
 The version-resource string `FileVersion` is not one value. `otb-line-rect.tbk` and `nida81.tbk` store `8.1.0.0`. `9e954d01.tbk`, `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk` store `8.1.0.664`. The fixed file-version low dword in that block is 0 for the first pair and 664 for the second. `FileDescription`, `InternalName`, `OriginalFilename`, `ProductVersion`, and `CompanyName` are the same bytes in all seven files.
