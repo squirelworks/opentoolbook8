@@ -280,7 +280,7 @@ The info rows also name a help page. Nineteen question pages contain a length-pr
 
 ## One example, no second record
 
-These class words occur on one object only, so none of their fields is recorded as shared: `0x2`, `0x1C`, `0x20`, `0x25`, `0x27`, `0x31`, `0x33`, `0x3E`.
+These class words occur on one object only, so none of their fields is recorded as shared: `0x2`, `0x1C`, `0x20`, `0x27`, `0x31`, `0x33`, `0x3E`.
 
 ## Small classes in nida81.tbk
 
@@ -472,6 +472,12 @@ On a class `0x10` record the four signed words at `+0x28` are the source rectang
 ## Group entry union
 
 The union of the rectangles stored in the 10-byte entries equals the group's rectangle at `+0x0F` on 188 of the 372 groups in `9e954d01.tbk` and on 44 of the 94 groups in `nida81.tbk`. The union of the rectangles at `+0x0F` of the objects whose word at `+0x04` names the group equals that rectangle on all 372 and all 94. The 10-byte list is left as stored.
+
+## Class `0x25`
+
+Class `0x25` is a 49-byte record in both books, at near `0x14` of the segment whose key is `0x2100`. The byte at object −5 is `0x80`. The 49 bytes are the same in both files. Words `+0x00` through `+0x22` are 0. Word `+0x24` is 20, word `+0x26` is 4352, word `+0x28` is 72, word `+0x2A` is 2, word `+0x2C` is 0, and word `+0x2E` is 65535. The last byte is `0x53`. The two segments are not the same length.
+
+`nida81.tbk` has no second record of class `0x2`, `0x1C`, `0x20`, `0x27`, `0x31`, `0x33`, or `0x3E`. Those stay one example.
 
 ## Pattern bytes
 
