@@ -410,3 +410,13 @@ The seven Wingdings runs in `9e954d01.tbk` store 0 at bytes 4, 5, 7, 8, and 9. `
 Twenty-four words are the same on all five records, as the class note says. The other twenty words vary. Their offsets are `+0x00`, `+0x0A`, `+0x0C`, `+0x0E`, `+0x10`, `+0x12`, `+0x14`, `+0x16`, `+0x22`, `+0x28`, `+0x2A`, `+0x2C`, `+0x2E`, `+0x30`, `+0x32`, `+0x34`, `+0x4C`, `+0x4E`, `+0x50`, and `+0x52`. The last byte varies too. None of those twenty words is a type-1 resource id, and none is a stored id in 101 through 166.
 
 The word at `+0x00` is 2, 16, 20, 16, 20. The two records whose id is 16 share the word `0xA700` at `+0x4E`. The two whose id is 20 share `0x1D00` there. Reading an unaligned word at `+0x4F` on the first pair yields 167, because byte `+0x4F` is `0xA7` and byte `+0x50` is 0. Resource 166 starts `02 02 07 00`. The bytes `01 02 01 00` and `BM` occur later in that resource, at `+18` and `+26`. That unaligned 167 is not a picture field.
+
+## Class `0x19` tail
+
+`nida81.tbk` has 39 records. `9e954d01.tbk` has none. The words that stay the same on all 39, beyond the constants already listed, are `+0x20`, `+0x30`, `+0x32`, `+0x34`, `+0x46`, `+0x48`, `+0x4A`, `+0x4E`, `+0x54`, and `+0x56`, each 0. The byte at `+0x26` is 254 on all 39. The word at `+0x26` is 254 on 38. On object 84 it is `0x78FE`, and the low byte is still 254.
+
+The words that vary are `+0x00`, `+0x04`, `+0x0A`, `+0x0C`, `+0x0E`, `+0x10`, `+0x12`, `+0x14`, `+0x16`, `+0x18`, `+0x1A`, `+0x1C`, `+0x22`, `+0x24`, `+0x26`, `+0x28`, `+0x2A`, `+0x2C`, `+0x2E`, `+0x3A`, `+0x3C`, `+0x3E`, `+0x40`, `+0x42`, `+0x44`, `+0x4C`, `+0x50`, and `+0x52`. The last byte varies. `+0x0E` through `+0x14` are the bounds, different on every record. `+0x4C` is different on every record. `+0x44` is 2048 on 25 records and 2049 on 14.
+
+The word at `+0x04` is the near pointer already recorded: a class 5 page on 31 records and a class `0xB` record of 49 bytes on 8. No other word names one class on more than one record.
+
+The word at `+0x2A` is 144 on 3 records. The word at `+0x2E` is 147 on 6 records and 0 on 6. 144 and 147 are type-1 resource ids in this book. The dword at header `+(144 + 5) * 4` is `0x0F960000`. The dword at header `+(147 + 5) * 4` is `0x01400006`. Both are past the end of the file. The same slots hold other values on the other records, so neither word is a picture id.
