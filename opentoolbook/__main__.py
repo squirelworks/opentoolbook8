@@ -12,8 +12,15 @@ import sys
 from pathlib import Path
 
 from opentoolbook.nida import discs_for, parse_cailt, parse_catalog, read_keydisk, zip_names_for
-from opentoolbook.record import Book
-from opentoolbook.shelf import CALL_BOOKS, find_file, named_calls, named_files, parse_install_list, parse_version, search_roots
+from opentoolbook.shelf import (
+    CALL_BOOKS,
+    find_file,
+    named_calls,
+    open_book,
+    parse_install_list,
+    parse_version,
+    search_roots,
+)
 
 
 def main(argv: list[str]) -> int:
@@ -50,44 +57,30 @@ def main(argv: list[str]) -> int:
 
 
 def _print_book(path: Path, home: Path | None) -> None:
-    data = path.read_bytes()
-    book = Book(data)
+    opened = open_book(path, home)
+    book = opened.book
     follow = [item for item in book.records if item.wants_follow_up]
     print(f"records {len(book.records)}")
     print(f"follow-up reads {len(follow)}")
-    files = named_files(data)
-    calls = named_calls(data)
-    roots = search_roots(path, home)
-    shipped = _shipped_names(home)
-    print(f"named by the book {len(files)}")
-    for name in files:
-        _print_named(name, roots, shipped)
+    calls = named_calls(book.data)
+    print(f"named by the book {len(opened.files)}")
+    for item in opened.files:
+        if item.path is not None:
+            print(f"  {item.name}  {item.path}")
+        elif item.note:
+            print(f"  {item.name}  {item.note}")
+        else:
+            print(f"  {item.name}")
     print(f"calls {len(calls)}")
     for name in calls:
         owner = CALL_BOOKS.get(name)
         print(f"  {name}  {owner}" if owner else f"  {name}")
     if home is not None:
+        roots = search_roots(path, home)
         _print_shipped(home, roots)
         table = _find(home, "CAILT.DAT")
         if table is not None:
             _print_discs(table.read_text(encoding="latin1"), path.stem, roots)
-
-
-def _print_named(name: str, roots: tuple[Path, ...], shipped: dict[str, bool] | None) -> None:
-    found = find_file(roots, name)
-    if found is not None:
-        print(f"  {name}  {found}")
-        return
-    if shipped is None:
-        print(f"  {name}")
-        return
-    if name.lower() not in shipped:
-        print(f"  {name}  named, not shipped")
-        return
-    if shipped[name.lower()]:
-        print(f"  {name}  listed, not shipped")
-        return
-    print(f"  {name}  not found")
 
 
 def _print_catalogs(courses: Path, programs: Path | None) -> None:
@@ -180,17 +173,6 @@ def _print_discs(text: str, lesson: str, roots: tuple[Path, ...]) -> None:
         found = find_file(roots, name)
         if found is not None:
             print(f"  {name}  {found}")
-
-
-def _shipped_names(home: Path | None) -> dict[str, bool] | None:
-    """Map a lower-case install-list name to whether that entry is starred."""
-    if home is None:
-        return None
-    listing = _find(home, "toolbook.lst")
-    if listing is None:
-        return None
-    files = parse_install_list(listing.read_text(encoding="latin1"))
-    return {item.name.lower(): item.optional for item in files}
 
 
 def _catalog_paths(path: Path) -> tuple[Path | None, Path | None]:

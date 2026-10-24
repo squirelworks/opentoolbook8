@@ -11,6 +11,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from opentoolbook.record import Book
+
 _FILE = re.compile(rb"(?<![A-Za-z0-9_.])[A-Za-z0-9_]{3,16}\.(?:sbk|tbk|dll|exe)", re.I)
 _INIT = re.compile(rb"initialize[A-Za-z]+", re.I)
 _ENTRY = ("opensession", "gotopagelist", "entersystem", "enterapplication")
@@ -110,6 +112,56 @@ def find_file(roots: tuple[Path, ...], name: str) -> Path | None:
             if path.is_file() and path.name.lower() == target:
                 return path
     return None
+
+
+@dataclass(frozen=True)
+class FileReport:
+    name: str
+    path: Path | None
+    note: str
+
+
+@dataclass(frozen=True)
+class Opened:
+    book: Book
+    files: tuple[FileReport, ...]
+
+
+def install_flags(home: Path | None) -> dict[str, bool] | None:
+    """Lower-case install-list name to whether that entry is starred.
+
+    ``None`` means this folder has no install list.
+    """
+    if home is None or not home.is_dir():
+        return None
+    listing = find_file((home,), "toolbook.lst")
+    if listing is None:
+        return None
+    files = parse_install_list(listing.read_text(encoding="latin1"))
+    return {item.name.lower(): item.optional for item in files}
+
+
+def open_book(path: Path, home: Path | None = None) -> Opened:
+    """Open ``path``. A file it names and the install does not hold is reported, not fatal."""
+    data = path.read_bytes()
+    book = Book(data)
+    roots = search_roots(path, home)
+    shipped = install_flags(home)
+    files = tuple(_file_report(name, roots, shipped) for name in named_files(data))
+    return Opened(book, files)
+
+
+def _file_report(name: str, roots: tuple[Path, ...], shipped: dict[str, bool] | None) -> FileReport:
+    found = find_file(roots, name)
+    if found is not None:
+        return FileReport(name, found, "")
+    if shipped is None:
+        return FileReport(name, None, "")
+    if name.lower() not in shipped:
+        return FileReport(name, None, "named, not shipped")
+    if shipped[name.lower()]:
+        return FileReport(name, None, "listed, not shipped")
+    return FileReport(name, None, "not found")
 
 
 def on_disk(folder: Path, names: tuple[str, ...]) -> tuple[tuple[str, ...], tuple[str, ...]]:
