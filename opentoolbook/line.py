@@ -23,6 +23,20 @@ class Line:
     bounds: tuple[int, int, int, int]
 
 
+@dataclass(frozen=True)
+class LineColor:
+    """Colors stored beside the endpoints.
+
+    The bytes at ``+0x17`` are a color and the byte at ``+0x1A`` is 0.
+    The bytes at ``+0x1B`` are a color and the byte at ``+0x1E`` is 0.
+    The byte at ``+0x25`` is not this color. The endpoints begin at ``+0x26``.
+    """
+
+    endpoints: tuple[tuple[int, int], tuple[int, int]]
+    first_color: tuple[int, int, int]
+    second_color: tuple[int, int, int]
+
+
 def stored_lines(data: bytes) -> tuple[Line, ...]:
     """Every class ``0x0E`` record of this length. The points are the words at ``+0x26``."""
     found: list[Line] = []
@@ -38,7 +52,31 @@ def stored_lines(data: bytes) -> tuple[Line, ...]:
     return tuple(found)
 
 
+def stored_line_colors(data: bytes) -> tuple[LineColor, ...]:
+    """Every class ``0x0E`` record of this length. The colors are the triples at ``+0x17`` and ``+0x1B``."""
+    found: list[LineColor] = []
+    for segment in _segments(data):
+        end = segment.file_at + segment.size
+        at = segment.base + 0x10
+        while at + LINE_BYTES <= end and at >= 4:
+            kind = _u16(data, at - 2)
+            size = _u16(data, at - 4) - (at - segment.base)
+            if kind == LINE and size == LINE_BYTES:
+                found.append(_color(data, at))
+            at += 2
+    return tuple(found)
+
+
 def _read(data: bytes, record: int) -> Line:
     x1, y1, x2, y2 = struct.unpack_from("<hhhh", data, record + 0x26)
     left, top, right, bottom = struct.unpack_from("<hhhh", data, record + 0x0F)
     return Line(((x1, y1), (x2, y2)), (left, top, right, bottom))
+
+
+def _color(data: bytes, record: int) -> LineColor:
+    x1, y1, x2, y2 = struct.unpack_from("<hhhh", data, record + 0x26)
+    return LineColor(
+        ((x1, y1), (x2, y2)),
+        (data[record + 0x17], data[record + 0x18], data[record + 0x19]),
+        (data[record + 0x1B], data[record + 0x1C], data[record + 0x1D]),
+    )

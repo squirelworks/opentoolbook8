@@ -440,3 +440,11 @@ In `nc81base.sbk` one run of strings is `P10003`, `P10004`, `__lessonMode`, `got
 `nc81recs.sbk` has no page id. The plain names are `initializeRecs()`, `openSession()`, `closeSession()`, `bookmarkSession()`, `StartSession()`, and `RestartSession()`, plus `getFirst()`, `getLast()`, `getId()`, `getClass()`, and `getCurrentPath()`.
 
 `nc81trnr.sbk` has no page id in that kind of list. `P366` occurs once, inside a script, and not beside a name. The plain names are `initializeTrnr()`, `getTrainerType()`, `getTrainerPort()`, `startExperiment()`, `endExperiment()`, `checkComm130()`, `saveSettings130()`, `loadSettings130()`, `checkComm130E()`, `startCai130E()`, `endCai130E()`, `readVoltages130E()`, `saveSettings130E()`, `loadSettings130E()`, `checkCommTd2000()`, `startCaiTd2000()`, `endCaiTd2000()`, `readVoltageTd2000()`, `saveSettingsTd2000()`, `loadSettingsTd2000()`, `checkComm5050()`, `clearFaults5050()`, `readMain5050()`, `verifyMain5050()`, `verifyExternal5050()`, `checkComm205E()`, `readFrequency205E()`, `setFrequency205E()`, `readVolume205E()`, `readCard205E()`, `clearFaults205E()`, `flushMessageQueue()`, `readExternal5050()`, and `readcard205E()`.
+
+## Line colors
+
+The bytes at `+0x17`, `+0x18`, and `+0x19` are a color, and the byte at `+0x1A` is 0, on all 528 class `0x0E` records in `9e954d01.tbk` and all 24 in `nida81.tbk`. The bytes at `+0x1B`, `+0x1C`, and `+0x1D` are a color, and the byte at `+0x1E` is 0, on those same records. The two records in the class `0x0E` section store 255, 252, 240 and 128, 128, 128. In `nida81.tbk` the two records in that section store 64, 64, 64 and 255, 255, 255, and 96, 96, 96 and 255, 255, 255.
+
+In `9e954d01.tbk` the first color is 192, 192, 192 on 154 records and 160, 160, 164 on 154. The second color is 255, 255, 255 on 384. Ten color pairs each occur on more than one endpoint pair. Twelve endpoint pairs are stored with more than one color pair, so the colors are not the endpoints. In `nida81.tbk` five color pairs each occur on more than one endpoint pair. No endpoint pair there is stored with two color pairs.
+
+The byte at `+0x25` is 4 on 372 records, 0 on 91, 10 on 63, and 14 on 2. In `nida81.tbk` it is 4 on 18, 14 on 3, 0 on 2, and 10 on 1. The endpoints begin at `+0x26`. A pattern byte on a class `0x8`, `0xC`, or `0x10` record is not 0. This byte is not that pattern.

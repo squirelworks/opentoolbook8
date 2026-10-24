@@ -134,3 +134,7 @@ An object's `buttonClick` is source text. The reader expands the inline script a
 ## Quoted go to page
 
 A `go to page` line returns the page in double quotes and, when the line has one, the book in double quotes. It returns nothing else. `send next` stays those words. `go to page nextpage of book lastbook` has no quotes, so it is not a page id. On `9e954d01.tbk` page `P300` the quoted page is `P310` and the quoted book is `nida81.tbk`. The same line on `nida81.tbk` names `P20001` of `nida81.tbk`. A quoted page with no quoted book, such as `P400`, returns that page and no book.
+
+## Line colors
+
+A class `0x0E` line is 53 bytes. The bytes at `+0x17`, `+0x18`, and `+0x19` are a color, and the byte at `+0x1A` is 0. The bytes at `+0x1B`, `+0x1C`, and `+0x1D` are a color, and the byte at `+0x1E` is 0. The reader returns those two colors with the endpoints. On `9e954d01.tbk` the two records in `FINDINGS.md` store 255, 252, 240 and 128, 128, 128, and twelve endpoint pairs are stored with more than one color pair. On `nida81.tbk` those two records store 64, 64, 64 and 255, 255, 255, and 96, 96, 96 and 255, 255, 255. The byte at `+0x25` is not returned.

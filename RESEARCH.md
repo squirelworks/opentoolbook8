@@ -87,3 +87,7 @@ From the decompile record, claim G-010. `FUN_1028_218a` in `TB80BAS` reads `OBJG
 From the decompile record, chapter 14, and `TB80CMP`. `FUN_1040_0970` expands a handler. Resource `0x77` is 994 keyword ids. Index 0 is `to`, 1 is `handle`, 564 is `system`. The list in this reader is that id order, transcribed from `openscript_analysis` `core/keywords.py` because the resource binary is not on this machine.
 
 Checked against `9e954d01.tbk`. The `Selection1` script on page `P300` contains the bytes `90 af 80 91 83` immediately before `"P310"`. Those opcodes are keyword `0x0AF` (`go`), keyword `0` (`to`, with the trailing space the clear bit 5 asks for), and keyword `0x183` (`page`). The expanded handler is the sentence in `SETTLED.md`. A back-reference copies from the segment that holds the script, which is the rule in that chapter after the output-stream copy was rejected. The reader does not call the handler.
+
+## Line color bytes
+
+From `tbdecompile/research/paint-20261021.md`. That note calls a draw object's stroke the bytes at `+0x17` and its fill the bytes at `+0x1B`, and its pattern the byte at `+0x25`. On every class `0x0E` record in both books the triples at `+0x17` and `+0x1B` have a 0 in the fourth byte. The byte at `+0x25` is not the pattern that note describes: the values are in `FINDINGS.md`, and the endpoints already occupy `+0x26`. The reader returns the two triples. It does not choose a brush.
