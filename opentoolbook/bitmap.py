@@ -61,6 +61,31 @@ def button_bitmap(data: bytes, resource_id: int) -> Bitmap:
     return Bitmap(resource_id, resource_id + 1, offset, width, height, bpp)
 
 
+def huge_bitmaps(data: bytes) -> tuple[Bitmap, ...]:
+    """Every type-1 resource whose huge-table row is a ``BM`` file.
+
+    The count is however many of those rows the directory names. It is
+    not written down here.
+    """
+    book = Book(data)
+    records = {item.key: item for item in book.records}
+    directory = _u32(data, book.header + 8 + (BITMAP_TYPE + 5) * 4)
+    body = _resolve(records, directory)
+    count = _u16(data, body + 2)
+    table = _resolve(records, (directory & 0xFFFF0000) | _u16(data, body + 0x0E))
+    found: list[Bitmap] = []
+    for index in range(count):
+        entry = table + index * 8
+        if entry + 8 > len(data):
+            break
+        _first, near, segment, ident = struct.unpack_from("<HHHH", data, entry)
+        resource = _resolve(records, (segment << 16) | near)
+        if resource + 9 >= len(data) or data[resource + 8] & 1 == 0:
+            continue
+        found.append(button_bitmap(data, ident))
+    return tuple(found)
+
+
 def _huge_offset(data: bytes, header: int, row_number: int) -> int:
     if row_number < 1:
         raise ValueError("huge-table row is empty")
