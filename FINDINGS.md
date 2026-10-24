@@ -331,3 +331,9 @@ That rectangle is the union of the rectangles at `+0x0F` of the objects in the s
 One class `0xC` record of 43 bytes and one class `0x10` record of 57 bytes in `nida81.tbk` also name a class `0x0B` record. Each length occurs once. Both lie inside, and the union matches without them.
 
 The rectangles stored in the list at `+0x2E` are not this union. That list's union equals `+0x0F` on 188 of the 372 records and on 44 of the 94. The four words at `+0x26` differ from `+0x0F` on 184 of the 372 and on 50 of the 94.
+
+## Class `0xC` colors
+
+The bytes at `+0x17`, `+0x18`, and `+0x19` are a color, and the byte at `+0x1A` is 0. The bytes at `+0x1B`, `+0x1C`, and `+0x1D` are a color, and the byte at `+0x1E` is 0. The byte at `+0x25` is the pattern. That holds for all 45 class `0xC` records of 41 bytes in `9e954d01.tbk` and all 37 in `nida81.tbk`. The two records in the class `0xC` section are pattern 254, colors 128, 128, 128 and 240, 240, 240, and pattern 253, colors 0, 0, 0 and 128, 128, 128.
+
+In `9e954d01.tbk` the pattern is 253 on 23 records and 254 on 22. Each of those two groups uses more than one color. In `nida81.tbk` the pattern is 254 on all 37, and those records use more than one color. On page `P410` both ellipses use pattern 253 and color 0, 0, 0, the same pattern and the same color as that page's background, and color 128, 128, 128. Their bounds are (1035, 4365, 1185, 4530) and (3375, 6105, 3525, 6270). On page `P310` of `nida81.tbk`, five of the ten ellipses use pattern 254 and color 128, 128, 128, the same pattern and the same color as that page's background, and color 255, 255, 255. Two of those five are (6045, 2010, 6120, 2085) and (6045, 2250, 6120, 2325).
