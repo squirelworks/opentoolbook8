@@ -314,3 +314,20 @@ The word at byte 2 of a style run is 1, or it is one of those pointers and the b
 In `nida81.tbk` the word is 1 on 61 of the 131 runs and Arial on 69. One run names Times New Roman, which is one example.
 
 The word at `+0x22` of a class `0xA` field is one of the C-string pointers on every such field. In `9e954d01.tbk` that is Arial on 492 fields, MS Sans Serif on 13, System on 10, and Small Fonts on 3. In `nida81.tbk` it is Arial on 225 fields and MS Sans Serif on 21.
+
+## Class `0x0B` rectangle
+
+The four signed words at `+0x0F` are a rectangle on all 372 class `0x0B` records in `9e954d01.tbk` and all 94 in `nida81.tbk`. The right is past the left and the bottom is past the top. The two records in the class `0x0B` section are (2557, 105, 6322, 1005) and (3202, 360, 6142, 765). Two records in `nida81.tbk`:
+
+```
+300000001400ffffffff000000ffff8f169f062b208a0c000000000000000001000001000c00f816900694207b0c4c08c5
+4c0000001400ffffffff000000ffff5f072d003a1d76020000000000000000010000010002005f072d003a1d7602440b59
+```
+
+Those are (5775, 1695, 8235, 3210) and (1887, 45, 7482, 630).
+
+That rectangle is the union of the rectangles at `+0x0F` of the objects in the same segment whose word at `+0x04` names the record. The objects are class `0x8` (41 bytes), `0x9` (43), `0xA` (61), `0xB` (49), `0xC` (41), `0xE` (53), `0x10` (53), `0x11` (61), and `0x13` (55): 1838 objects in `9e954d01.tbk`, and the union matches on all 372. `nida81.tbk` also names 14 class `0xD` records of 45 bytes and the 8 class `0x19` records above. With those included, the union matches on all 94.
+
+One class `0xC` record of 43 bytes and one class `0x10` record of 57 bytes in `nida81.tbk` also name a class `0x0B` record. Each length occurs once. Both lie inside, and the union matches without them.
+
+The rectangles stored in the list at `+0x2E` are not this union. That list's union equals `+0x0F` on 188 of the 372 records and on 44 of the 94. The four words at `+0x26` differ from `+0x0F` on 184 of the 372 and on 50 of the 94.
