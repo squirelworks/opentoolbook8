@@ -325,3 +325,1188 @@ NE 48 `0x1F1C` is `26 FF 5F 18` after a single `les bx, es:[bx]`. One dereferenc
 NE 10, the file segment: `0x0D86` is `FF 5E 04` and `0x118D` is `FF 5E 06`. Both pointers are arguments. `0x2478` is `FF 5E F6`. The pointer was returned in `DX:AX` by `KERNEL` ordinal 50 at `0x2459` (`9A`, relocation `KERNEL.50`), called with the C string at data `0x0266`, which reads `CnvFileConvert`. The body of that procedure is not in `TB80BAS`.
 
 NE 3, the paint segment: three `jmp word ptr cs:[bx+…]` after `cmp ax, 7` (`0x2A2A`, `0x3795`, `0x52AF`). Each table entry is an arm in the same function (`mov bx, [bp+8]` or a `cmp` of a local), not another call. The one indirect call is `0x5331`, bytes `FF 5E 08`. The pointer is `[bp+8]`, an argument. This function does not choose it.
+
+## Author install and the NIDA name list
+
+Measured 24 October 2026 from the files on this machine. No installer, DLL, or book was copied into this repository.
+
+The author tree is the ToolBook II Instructor 8.1 install under the Wine prefix `/tmp/tb81/wine`:
+
+- `drive_c/Program Files/Common Files/click2learn/TBSystem`
+- `drive_c/Program Files/click2learn/Instructor8`
+- the other click2learn directories beside those two: `Editors`, `Filters`, `Neuron`, `Spelling`
+
+A NIDA distribution directory was not found. Nothing under `/tmp/refs`, `/tmp/nida`, `/tmp/nida-home`, `/tmp/nida98`, or the Wine prefix holds the runtime EXEs and DLLs next to `nida81.tbk`. The shortcut `/tmp/refs/guest/tb80rtm.lnk` names `C:\TBK\TB80RTM.EXE`. That directory was not extracted. The Windows 98 disk image was not opened. The lists below do not invent a runtime directory from a book header.
+
+What was present:
+
+- `/tmp/refs/guest`, a folder of copied books and a few neighbors. It is not `C:\TBK`.
+- `toolbook.lst` in the course home. The copies at `/tmp/nida-home/toolbook.lst`, `/tmp/nida/toolbook.lst`, and `/tmp/nida/home/toolbook.lst` are the same 592 bytes. A leading `*` is on four lines. Those four files were not found on disk. The other 42 lines are the course's name list.
+
+The partition further down is that name list against the author filenames. Sizes are the author copies, except where a guest file is named with its own size. A name in the course list is not a claim that this reader needs that file to open a `.tbk`.
+
+### TBSystem
+
+70 files. `TB80*.DLL` and the EXEs in this directory are marked NE or PE when that magic was read at the offset in the DOS header. NE is the 16-bit mark. PE is the 32-bit mark. No other bytes were decoded.
+
+| Bytes | File | Mark |
+|---:|---|---|
+| 1638 | `asym.ini` |  |
+| 29696 | `Asymgif.ocx` |  |
+| 30544 | `DIB.DRV` |  |
+| 48661 | `DIBUTIL.DLL` |  |
+| 253952 | `dzactx.dll` |  |
+| 802816 | `ISGDI32.DLL` |  |
+| 4338 | `ISGDI32.INI` |  |
+| 119296 | `Oxs.dll` |  |
+| 48661 | `PALOPTX.DLL` |  |
+| 83520 | `PCDLIB.DLL` |  |
+| 2336 | `PCDXBMP.DLL` |  |
+| 33088 | `PHOTO.DLL` |  |
+| 236734 | `PXENGWIN.DLL` |  |
+| 67984 | `TB2FTP.DLL` |  |
+| 66048 | `TB80.EXE` | PE |
+| 1669 | `tb80.ini` |  |
+| 207989 | `tb80actr.sbk` |  |
+| 247296 | `TB80ACX.DLL` | PE |
+| 85719 | `tb80aicc.sbk` |  |
+| 64023 | `tb80anm.sbk` |  |
+| 705824 | `TB80ATH.EXE` | NE |
+| 683872 | `TB80BAS.DLL` | NE |
+| 68640 | `TB80BMP.DLL` | NE |
+| 193216 | `TB80CMP.DLL` | NE |
+| 27552 | `TB80CVT.DLL` | NE |
+| 106432 | `TB80EDT.DLL` | NE |
+| 219872 | `TB80ENU1.DLL` | NE |
+| 79360 | `TB80ENU2.DLL` | PE |
+| 551968 | `TB80ENU3.DLL` | NE |
+| 397824 | `TB80ENU4.DLL` | PE |
+| 78848 | `TB80F32L.dll` | PE |
+| 101152 | `TB80FLT.DLL` | NE |
+| 242983 | `tb80ftp.sbk` |  |
+| 140613 | `tb80hyp.sbk` |  |
+| 63872 | `TB80JPG.DLL` | NE |
+| 97792 | `TB80LNL.DLL` | NE |
+| 23552 | `TB80MAIN.EXE` | PE |
+| 24800 | `TB80MM.DLL` | NE |
+| 3352 | `TB80MM.INI` |  |
+| 67360 | `TB80NET.EXE` | NE |
+| 206528 | `TB80OCX.DLL` | NE |
+| 85952 | `TB80OLE.DLL` | NE |
+| 953705 | `tb80r.sbk` |  |
+| 169760 | `TB80RCA.DLL` | NE |
+| 67824 | `TB80RCR.DLL` | NE |
+| 109056 | `TB80RMT.DLL` | PE |
+| 462080 | `TB80RTM.EXE` | NE |
+| 65536 | `TB80RUN.EXE` | PE |
+| 64128 | `TB80UTL.DLL` | NE |
+| 75328 | `TB80VBX.DLL` | NE |
+| 76512 | `TB80W16.DLL` | NE |
+| 83456 | `TB80W32.DLL` | PE |
+| 41783 | `TB80XTR.DLL` | NE |
+| 31616 | `TBCBT.DLL` |  |
+| 53248 | `TBCOM.DLL` |  |
+| 66560 | `TBDB3.DLL` |  |
+| 36800 | `TBDLG.DLL` |  |
+| 15616 | `TBDOS.DLL` |  |
+| 21952 | `TBFILE32.DLL` |  |
+| 532480 | `TBINET32.DLL` |  |
+| 57344 | `TBKSLICE.DLL` |  |
+| 87040 | `Tbload.exe` | PE |
+| 30880 | `TBPDX.DLL` |  |
+| 19552 | `TBREG.DLL` |  |
+| 40960 | `TBUTIL32.dll` |  |
+| 40608 | `TBWIN.DLL` |  |
+| 267264 | `Tlist16p.ocx` |  |
+| 460744 | `TList4.ocx` |  |
+| 204562 | `VEAMAA51.LEX` |  |
+| 86496 | `WINSOX.EXE` | NE |
+
+`TB80.EXE` is in this directory (66048 bytes, PE). `TB80ATH.EXE` (705824, NE), `TB80MAIN.EXE` (23552, PE), `TB80NET.EXE` (67360, NE), `TB80RTM.EXE` (462080, NE), `TB80RUN.EXE` (65536, PE), and `Tbload.exe` (87040, PE) are the other EXEs here. `WINSOX.EXE` is 86496 bytes, NE.
+
+### Instructor8
+
+349 files. This is the author program directory. `Inst80.exe` is the Instructor program. `Packager/PACKAGER.exe` and `Packager/PACKLIST.EXE` are the distribution builder. The other EXEs in this tree are `AUTORUN.EXE`, `decrypt.exe`, `impulse.exe`, `logread.exe`, `remover.exe`, `Repair80.exe`, `tb80ftp.exe`, `Packager/SETUP.EXE`, `Packager/Regsvr.exe`, and `Packager/_ISDEL.EXE`.
+
+
+#### Instructor8 root
+
+35 files.
+
+| Bytes | File | Mark |
+|---:|---|---|
+| 421888 | `AUTORUN.EXE` | PE |
+| 8798 | `Autorun.ICO` |  |
+| 56969 | `axf.dtd` |  |
+| 17648 | `blank.tbk` |  |
+| 121249 | `decrypt.exe` | NE |
+| 24615 | `DECRYPT.HLP` |  |
+| 5183 | `distrib.wri` |  |
+| 139487 | `impulse.exe` | NE |
+| 18419 | `INST80.CNT` |  |
+| 441344 | `Inst80.exe` | PE |
+| 6354973 | `INST80.HLP` |  |
+| 980 | `inst80.ini` |  |
+| 1032 | `Inst80.pal` |  |
+| 70132 | `INST80.SBK` |  |
+| 545071 | `logread.exe` | PE |
+| 43362 | `logread.hlp` |  |
+| 902550 | `mercury.jar` |  |
+| 184830 | `PATHANIM.HLP` |  |
+| 95927 | `remover.exe` | PE |
+| 766 | `remover.ico` |  |
+| 426209 | `Repair80.exe` | PE |
+| 766 | `scrwalk.ico` |  |
+| 178875 | `scrwalk.tbk` |  |
+| 480 | `startup.ini` |  |
+| 3086352 | `tb80.sbk` |  |
+| 2392403 | `tb80a.sbk` |  |
+| 2120361 | `tb80acta.sbk` |  |
+| 617740 | `tb80axf.sbk` |  |
+| 74386 | `tb80ftp.exe` | PE |
+| 100533 | `TB80FTP.HLP` |  |
+| 619201 | `tb80i.sbk` |  |
+| 62053 | `tb80lmx.sbk` |  |
+| 1130973 | `tb80web.sbk` |  |
+| 256257 | `tb80x.sbk` |  |
+| 342145 | `UnInst80.isu` |  |
+
+#### Instructor8/Catalog
+
+126 files.
+
+| Bytes | File | Mark |
+|---:|---|---|
+| 108155 | `Catalog/abullet.spb` |  |
+| 109910 | `Catalog/actdelay.spb` |  |
+| 8581 | `Catalog/Action Objects.ini` |  |
+| 237707 | `Catalog/Action Objects.wbk` |  |
+| 457027 | `Catalog/Action Objects.wbx` |  |
+| 153701 | `Catalog/acttimer.spb` |  |
+| 288063 | `Catalog/allmedia.spb` |  |
+| 136983 | `Catalog/automenu.spb` |  |
+| 101816 | `Catalog/bullets.spb` |  |
+| 87495 | `Catalog/butnedit.spb` |  |
+| 4113 | `Catalog/Buttons.ini` |  |
+| 109543 | `Catalog/Buttons.wbk` |  |
+| 297239 | `Catalog/Buttons.wbx` |  |
+| 104363 | `Catalog/callout.spb` |  |
+| 57947 | `Catalog/Catalog Blank Cache.tbk` |  |
+| 16259 | `Catalog/Catalog Blank Category.tbk` |  |
+| 16259 | `Catalog/Catalog Blank Spec Cache.tbk` |  |
+| 441408 | `Catalog/Catalog Spec Cache.tbk` |  |
+| 1760 | `Catalog/catalog.ini` |  |
+| 24500 | `Catalog/CATOBJT.HLP` |  |
+| 6759 | `Catalog/click2learn.author.ini` |  |
+| 372565 | `Catalog/click2learn.author.wbk` |  |
+| 455813 | `Catalog/click2learn.author.wbx` |  |
+| 1048 | `Catalog/click2learn.pal` |  |
+| 12196 | `Catalog/CLIPWID.HLP` |  |
+| 87355 | `Catalog/clipwid.spb` |  |
+| 8206 | `Catalog/Draw Objects.ini` |  |
+| 149063 | `Catalog/Draw Objects.wbk` |  |
+| 452985 | `Catalog/Draw Objects.wbx` |  |
+| 283967 | `Catalog/dropbin.spb` |  |
+| 12497 | `Catalog/EVALBOOK.HLP` |  |
+| 108138 | `Catalog/evalbook.spb` |  |
+| 11733 | `Catalog/EVALPAGE.HLP` |  |
+| 116375 | `Catalog/evalpage.spb` |  |
+| 62029 | `Catalog/extjava.spb` |  |
+| 154884 | `Catalog/fldglist.spb` |  |
+| 175266 | `Catalog/fldolist.spb` |  |
+| 56859 | `Catalog/genedit.spb` |  |
+| 11814 | `Catalog/IMAGEMAP.HLP` |  |
+| 170730 | `Catalog/imagemap.spb` |  |
+| 11398 | `Catalog/IMGEDIT.HLP` |  |
+| 96467 | `Catalog/imgedit.spb` |  |
+| 82699 | `Catalog/inetauto.spb` |  |
+| 80368 | `Catalog/liblogin.spb` |  |
+| 107076 | `Catalog/listedit.spb` |  |
+| 120468 | `Catalog/marquee.spb` |  |
+| 1721 | `Catalog/Media (Animated).ini` |  |
+| 190404 | `Catalog/Media (Animated).wbk` |  |
+| 218557 | `Catalog/Media (Animated).wbx` |  |
+| 16259 | `Catalog/Media (Backdrops).ini` |  |
+| 18613209 | `Catalog/Media (Backdrops).wbk` |  |
+| 1063909 | `Catalog/Media (Backdrops).wbx` |  |
+| 45418 | `Catalog/Media (Clipart).ini` |  |
+| 5188295 | `Catalog/Media (Clipart).wbk` |  |
+| 3826933 | `Catalog/Media (Clipart).wbx` |  |
+| 35164 | `Catalog/Media (Icons).ini` |  |
+| 357795 | `Catalog/Media (Icons).wbk` |  |
+| 3476871 | `Catalog/Media (Icons).wbx` |  |
+| 13288 | `Catalog/Media (Tiled Backdrops).ini` |  |
+| 1930465 | `Catalog/Media (Tiled Backdrops).wbk` |  |
+| 1044433 | `Catalog/Media (Tiled Backdrops).wbx` |  |
+| 16596 | `Catalog/Media Players.ini` |  |
+| 658231 | `Catalog/Media Players.wbk` |  |
+| 941911 | `Catalog/Media Players.wbx` |  |
+| 50275 | `Catalog/mediabtn.spb` |  |
+| 268283 | `Catalog/mtchitem.spb` |  |
+| 271729 | `Catalog/mtchobj.spb` |  |
+| 293037 | `Catalog/multdrop.spb` |  |
+| 278057 | `Catalog/multiobj.spb` |  |
+| 272641 | `Catalog/multline.spb` |  |
+| 288093 | `Catalog/multwid.spb` |  |
+| 136 | `Catalog/My Objects.ini` |  |
+| 19016 | `Catalog/My Objects.wbk` |  |
+| 84849 | `Catalog/My Objects.wbx` |  |
+| 272519 | `Catalog/namepart.spb` |  |
+| 32862 | `Catalog/Navigation Objects.ini` |  |
+| 2777159 | `Catalog/Navigation Objects.wbk` |  |
+| 1500039 | `Catalog/Navigation Objects.wbx` |  |
+| 149770 | `Catalog/neuron.spb` |  |
+| 280045 | `Catalog/orderobj.spb` |  |
+| 242801 | `Catalog/orderwid.spb` |  |
+| 115230 | `Catalog/pagemenu.spb` |  |
+| 3511 | `Catalog/Pages.ini` |  |
+| 14289261 | `Catalog/Pages.wbk` |  |
+| 776449 | `Catalog/Pages.wbx` |  |
+| 6737 | `Catalog/Placeholder Objects.ini` |  |
+| 179077 | `Catalog/Placeholder Objects.wbk` |  |
+| 368015 | `Catalog/Placeholder Objects.wbx` |  |
+| 347473 | `Catalog/popupump.spb` |  |
+| 11565 | `Catalog/POPVID.HLP` |  |
+| 235308 | `Catalog/popvid.spb` |  |
+| 84081 | `Catalog/questext.spb` |  |
+| 63165 | `Catalog/QUESTION.HLP` |  |
+| 42103 | `Catalog/Questions (Multiple Choice).ini` |  |
+| 1295499 | `Catalog/Questions (Multiple Choice).wbk` |  |
+| 1702455 | `Catalog/Questions (Multiple Choice).wbx` |  |
+| 26094 | `Catalog/Questions (True-False).ini` |  |
+| 869947 | `Catalog/Questions (True-False).wbk` |  |
+| 1428887 | `Catalog/Questions (True-False).wbx` |  |
+| 14278 | `Catalog/Questions (Various).ini` |  |
+| 540745 | `Catalog/Questions (Various).wbk` |  |
+| 731987 | `Catalog/Questions (Various).wbx` |  |
+| 182935 | `Catalog/realplay.spb` |  |
+| 115419 | `Catalog/reset.spb` |  |
+| 119229 | `Catalog/rptactn.spb` |  |
+| 7865 | `Catalog/Scoring and Tracking.ini` |  |
+| 192399 | `Catalog/Scoring and Tracking.wbk` |  |
+| 509499 | `Catalog/Scoring and Tracking.wbx` |  |
+| 282861 | `Catalog/seltext.spb` |  |
+| 289965 | `Catalog/slider.spb` |  |
+| 7477 | `Catalog/Text Fields.ini` |  |
+| 281853 | `Catalog/Text Fields.wbk` |  |
+| 690829 | `Catalog/Text Fields.wbx` |  |
+| 59215 | `Catalog/textedit.spb` |  |
+| 11301 | `Catalog/TIMER.HLP` |  |
+| 130461 | `Catalog/timer.spb` |  |
+| 15984 | `Catalog/TRIGGER.HLP` |  |
+| 105809 | `Catalog/trigger.spb` |  |
+| 254039 | `Catalog/truefals.spb` |  |
+| 294983 | `Catalog/typein.spb` |  |
+| 94720 | `Catalog/usejava.spb` |  |
+| 302262 | `Catalog/vidsynch.spb` |  |
+| 11801 | `Catalog/VIDWID.HLP` |  |
+| 200140 | `Catalog/vidwid.spb` |  |
+| 136309 | `Catalog/winmedia.spb` |  |
+| 175204 | `Catalog/xmedit.spb` |  |
+
+#### Instructor8/Media
+
+46 files.
+
+| Bytes | File | Mark |
+|---:|---|---|
+| 68734 | `Media/cbt/female/Almost.wav` |  |
+| 77022 | `Media/cbt/female/Correct.wav` |  |
+| 42364 | `Media/cbt/female/Excuseme.wav` |  |
+| 44028 | `Media/cbt/female/Givebrk.wav` |  |
+| 32636 | `Media/cbt/female/Groovy.wav` |  |
+| 179582 | `Media/cbt/female/Incrrct.wav` |  |
+| 30268 | `Media/cbt/female/No.wav` |  |
+| 37948 | `Media/cbt/female/Nokiddng.wav` |  |
+| 23228 | `Media/cbt/female/Ouch.wav` |  |
+| 32492 | `Media/cbt/female/Partlyrt.wav` |  |
+| 43132 | `Media/cbt/female/Righton.wav` |  |
+| 57086 | `Media/cbt/female/Rusure.wav` |  |
+| 39804 | `Media/cbt/female/Tryagain.wav` |  |
+| 71806 | `Media/cbt/female/Trythis.wav` |  |
+| 36860 | `Media/cbt/female/Urright.wav` |  |
+| 43132 | `Media/cbt/female/Waycool.wav` |  |
+| 26044 | `Media/cbt/female/Woops.wav` |  |
+| 71934 | `Media/cbt/female/Wow.wav` |  |
+| 75902 | `Media/cbt/female/Wrngagn.wav` |  |
+| 31868 | `Media/cbt/female/Yes.wav` |  |
+| 31804 | `Media/cbt/female/Yougotit.wav` |  |
+| 13788 | `Media/cbt/female/Yup.wav` |  |
+| 42364 | `Media/cbt/male/Almost1.wav` |  |
+| 31228 | `Media/cbt/male/Correct1.wav` |  |
+| 41340 | `Media/cbt/male/Excuse1.wav` |  |
+| 57724 | `Media/cbt/male/Givebrk1.wav` |  |
+| 41724 | `Media/cbt/male/Groovy1.wav` |  |
+| 29244 | `Media/cbt/male/No1.wav` |  |
+| 48252 | `Media/cbt/male/Nokid1.wav` |  |
+| 80808 | `Media/cbt/male/Notcrct1.wav` |  |
+| 35260 | `Media/cbt/male/Ouch1.wav` |  |
+| 29500 | `Media/cbt/male/Partly1.wav` |  |
+| 48252 | `Media/cbt/male/Righton1.wav` |  |
+| 34364 | `Media/cbt/male/Rusure1.wav` |  |
+| 37500 | `Media/cbt/male/Tryagai1.wav` |  |
+| 34236 | `Media/cbt/male/Trythis1.wav` |  |
+| 33704 | `Media/cbt/male/Urright1.wav` |  |
+| 41724 | `Media/cbt/male/Waycoo1l.wav` |  |
+| 27004 | `Media/cbt/male/Woops1.wav` |  |
+| 23292 | `Media/cbt/male/Wow1.wav` |  |
+| 38140 | `Media/cbt/male/Wrngag1.wav` |  |
+| 23228 | `Media/cbt/male/Yes1.wav` |  |
+| 27004 | `Media/cbt/male/Yougot1.wav` |  |
+| 11292 | `Media/cbt/male/Yup1.wav` |  |
+| 5473 | `Media/Flash/CORRECT.SWF` |  |
+| 2770 | `Media/Flash/incorrect.swf` |  |
+
+#### Instructor8/Packager
+
+24 files.
+
+| Bytes | File | Mark |
+|---:|---|---|
+| 322026 | `Packager/_INST32I.EX_` |  |
+| 8192 | `Packager/_ISDEL.EXE` | NE |
+| 6128 | `Packager/_SETUP.DLL` |  |
+| 195925 | `Packager/_SETUP.LIB` |  |
+| 72794 | `Packager/COMPRESS.INS` |  |
+| 109056 | `Packager/ole2/COMPOBJ.DLL` |  |
+| 536048 | `Packager/ole2/OC25.DLL` |  |
+| 304640 | `Packager/ole2/OLE2.DLL` |  |
+| 28113 | `Packager/ole2/OLE2.REG` |  |
+| 57328 | `Packager/ole2/OLE2CONV.DLL` |  |
+| 164960 | `Packager/ole2/OLE2DISP.DLL` |  |
+| 152976 | `Packager/ole2/OLE2NLS.DLL` |  |
+| 51712 | `Packager/ole2/OLE2PROX.DLL` |  |
+| 12976 | `Packager/ole2/SCP.DLL` |  |
+| 5472 | `Packager/ole2/STDOLE.TLB` |  |
+| 157696 | `Packager/ole2/STORAGE.DLL` |  |
+| 177824 | `Packager/ole2/TYPELIB.DLL` |  |
+| 902744 | `Packager/PACKAGER.exe` | PE |
+| 87552 | `Packager/PACKLIST.EXE` | PE |
+| 995 | `Packager/PACKLIST.PIF` |  |
+| 7216 | `Packager/Regsvr.exe` | NE |
+| 45568 | `Packager/SETUP.EXE` | NE |
+| 122452 | `Packager/SETUP.INS` |  |
+| 40448 | `Packager/Tbisx32.dll` |  |
+
+#### Instructor8/Welcome
+
+2 files.
+
+| Bytes | File | Mark |
+|---:|---|---|
+| 28633 | `Welcome/RelNotes.WRI` |  |
+| 1359335 | `Welcome/Walkthrough.tbk` |  |
+
+#### Instructor8/spclst
+
+84 files.
+
+| Bytes | File | Mark |
+|---:|---|---|
+| 213 | `spclst/OUTLINES/catalog.aof` |  |
+| 246 | `spclst/OUTLINES/generic1.aof` |  |
+| 283 | `spclst/OUTLINES/generic2.aof` |  |
+| 307 | `spclst/OUTLINES/generic3.aof` |  |
+| 228 | `spclst/OUTLINES/present.aof` |  |
+| 278 | `spclst/OUTLINES/quiz1.aof` |  |
+| 275 | `spclst/OUTLINES/quiz2.aof` |  |
+| 329 | `spclst/OUTLINES/skill1.aof` |  |
+| 371 | `spclst/OUTLINES/train1.aof` |  |
+| 737031 | `spclst/spclst.spb` |  |
+| 824415 | `spclst/spclstld.spb` |  |
+| 677836 | `spclst/spclstqs.spb` |  |
+| 1081229 | `spclst/styles/angled.ptp` |  |
+| 1082937 | `spclst/styles/angledh.ptp` |  |
+| 725193 | `spclst/styles/art_deco.ptp` |  |
+| 512741 | `spclst/styles/bluebr1i.ptp` |  |
+| 1056937 | `spclst/styles/blueintersection.ptp` |  |
+| 1057947 | `spclst/styles/blueintersectionh.ptp` |  |
+| 1110513 | `spclst/styles/bluelines.ptp` |  |
+| 1097085 | `spclst/styles/bluelinesh.ptp` |  |
+| 1062329 | `spclst/styles/coralsea.ptp` |  |
+| 1062359 | `spclst/styles/coralseah.ptp` |  |
+| 1064957 | `spclst/styles/earth.ptp` |  |
+| 1064651 | `spclst/styles/earthh.ptp` |  |
+| 1016511 | `spclst/styles/fall1i.ptp` |  |
+| 890481 | `spclst/styles/finan1.ptp` |  |
+| 791167 | `spclst/styles/finan1h.ptp` |  |
+| 487039 | `spclst/styles/finan1i.ptp` |  |
+| 746583 | `spclst/styles/granite.ptp` |  |
+| 909063 | `spclst/styles/gray1.ptp` |  |
+| 911183 | `spclst/styles/gray1h.ptp` |  |
+| 538173 | `spclst/styles/gray1i.ptp` |  |
+| 617233 | `spclst/styles/grayck1i.ptp` |  |
+| 914809 | `spclst/styles/indust1.ptp` |  |
+| 817577 | `spclst/styles/indust1h.ptp` |  |
+| 575719 | `spclst/styles/indust1i.ptp` |  |
+| 1543741 | `spclst/styles/inter1i.ptp` |  |
+| 929965 | `spclst/styles/mil1.ptp` |  |
+| 931067 | `spclst/styles/mil1h.ptp` |  |
+| 509171 | `spclst/styles/mil1i.ptp` |  |
+| 860125 | `spclst/styles/mod_offc.ptp` |  |
+| 715595 | `spclst/styles/paint.ptp` |  |
+| 1067185 | `spclst/styles/peacock.ptp` |  |
+| 1067267 | `spclst/styles/peacockh.ptp` |  |
+| 785391 | `spclst/styles/present.ptp` |  |
+| 1074597 | `spclst/styles/rainbow.ptp` |  |
+| 1074863 | `spclst/styles/rainbowh.ptp` |  |
+| 1063159 | `spclst/styles/sky.ptp` |  |
+| 1063159 | `spclst/styles/skyh.ptp` |  |
+| 1072665 | `spclst/styles/space.ptp` |  |
+| 1072905 | `spclst/styles/spaceh.ptp` |  |
+| 856267 | `spclst/styles/stageb1.ptp` |  |
+| 765425 | `spclst/styles/stageb1h.ptp` |  |
+| 472213 | `spclst/styles/stageb1i.ptp` |  |
+| 855969 | `spclst/styles/stager1.ptp` |  |
+| 765943 | `spclst/styles/stager1h.ptp` |  |
+| 474719 | `spclst/styles/stager1i.ptp` |  |
+| 1065529 | `spclst/styles/strongline.ptp` |  |
+| 1065611 | `spclst/styles/stronglineh.ptp` |  |
+| 6281 | `spclst/styles/tbkcache.ini` |  |
+| 909151 | `spclst/styles/tech1.ptp` |  |
+| 799533 | `spclst/styles/tech1h.ptp` |  |
+| 521769 | `spclst/styles/tech1i.ptp` |  |
+| 918137 | `spclst/styles/tech2.ptp` |  |
+| 790505 | `spclst/styles/tech2h.ptp` |  |
+| 499089 | `spclst/styles/tech2i.ptp` |  |
+| 2487623 | `spclst/styles/tech3.ptp` |  |
+| 2322703 | `spclst/styles/tech3h.ptp` |  |
+| 492071 | `spclst/styles/tech3i.ptp` |  |
+| 1221271 | `spclst/styles/tech_4h.ptp` |  |
+| 1229531 | `spclst/styles/tech_b4h.ptp` |  |
+| 1235323 | `spclst/styles/tech_g4h.ptp` |  |
+| 1081923 | `spclst/styles/tornedge.ptp` |  |
+| 1081595 | `spclst/styles/tornedgeh.ptp` |  |
+| 614057 | `spclst/styles/triang1i.ptp` |  |
+| 904893 | `spclst/styles/usgov1.ptp` |  |
+| 909751 | `spclst/styles/usgov1h.ptp` |  |
+| 587763 | `spclst/styles/usgov1i.ptp` |  |
+| 951983 | `spclst/styles/usgov2.ptp` |  |
+| 877581 | `spclst/styles/usgov2h.ptp` |  |
+| 549133 | `spclst/styles/usgov2i.ptp` |  |
+| 922529 | `spclst/styles/usmil1.ptp` |  |
+| 927027 | `spclst/styles/usmil1h.ptp` |  |
+| 564949 | `spclst/styles/usmil1i.ptp` |  |
+
+#### Instructor8/template
+
+32 files.
+
+| Bytes | File | Mark |
+|---:|---|---|
+| 573554 | `template/catalog.tbk` |  |
+| 567736 | `template/catalogh.tbk` |  |
+| 91798 | `template/default.tbk` |  |
+| 91836 | `template/defaulth.tbk` |  |
+| 590470 | `template/gen1ch.tbk` |  |
+| 590576 | `template/gen1chh.tbk` |  |
+| 603756 | `template/gen2ch.tbk` |  |
+| 603864 | `template/gen2chh.tbk` |  |
+| 517424 | `template/generic.tbk` |  |
+| 517884 | `template/generich.tbk` |  |
+| 661570 | `template/hr.tbk` |  |
+| 660810 | `template/hrh.tbk` |  |
+| 622974 | `template/learn1.tbk` |  |
+| 623126 | `template/learn1h.tbk` |  |
+| 357136 | `template/learn1i.tbk` |  |
+| 228456 | `template/ppointi.tbk` |  |
+| 648112 | `template/present.tbk` |  |
+| 648172 | `template/presenth.tbk` |  |
+| 577620 | `template/quiz1.tbk` |  |
+| 575086 | `template/quiz1h.tbk` |  |
+| 507610 | `template/quiz1i.tbk` |  |
+| 548644 | `template/roi.tbk` |  |
+| 548374 | `template/roih.tbk` |  |
+| 976814 | `template/sales1.tbk` |  |
+| 625684 | `template/sales1h.tbk` |  |
+| 859786 | `template/sales2.tbk` |  |
+| 860572 | `template/sales2h.tbk` |  |
+| 583410 | `template/simquiz.tbk` |  |
+| 583510 | `template/simquizh.tbk` |  |
+| 6704 | `template/tbkcache.ini` |  |
+| 597418 | `template/train1.tbk` |  |
+| 596850 | `template/train1h.tbk` |  |
+
+### Editors, Filters, Neuron, Spelling
+
+These sit beside `TBSystem` in `Common Files/click2learn`. The Editors EXEs are author utilities: bitmap, icon, menu, palette, palette optimizer, and wave. `tb80RED.DLL` is in Editors and not in `TBSystem`.
+
+
+#### Editors
+
+23 files.
+
+| Bytes | File | Mark |
+|---:|---|---|
+| 154144 | `BITED80.EXE` | NE |
+| 131404 | `Bited80.hlp` |  |
+| 30544 | `DIB.DRV` |  |
+| 117280 | `ICONED80.EXE` | NE |
+| 67383 | `Iconed80.hlp` |  |
+| 16544 | `medimpt.m80` |  |
+| 43968 | `MEDMANT.DLL` |  |
+| 73760 | `medwavet.m80` |  |
+| 63840 | `MENUED80.EXE` | NE |
+| 67323 | `Menued80.hlp` |  |
+| 83520 | `PALED80.EXE` | NE |
+| 79127 | `Paled80.hlp` |  |
+| 123296 | `PALOPT.EXE` | NE |
+| 13932 | `PALOPT.HLP` |  |
+| 48661 | `PALOPTX.DLL` |  |
+| 99440 | `tb80bit.m80` |  |
+| 169760 | `tb80RCA.DLL` | NE |
+| 67824 | `tb80RCR.DLL` | NE |
+| 46560 | `tb80RED.DLL` | NE |
+| 121728 | `WAVEED80.EXE` | NE |
+| 86217 | `Waveed80.hlp` |  |
+| 40288 | `WINCOMT.DLL` |  |
+| 39200 | `WRKBNCHT.DLL` |  |
+
+#### Filters
+
+27 files.
+
+| Bytes | File | Mark |
+|---:|---|---|
+| 83968 | `IBGIF2.FLT` |  |
+| 103424 | `IBJPG2.FLT` |  |
+| 202240 | `IBPCD2.FLT` |  |
+| 760 | `IBPCD2.INI` |  |
+| 80896 | `IBPCX2.FLT` |  |
+| 79360 | `IBTGA2.FLT` |  |
+| 105472 | `IBTIF2.FLT` |  |
+| 158208 | `IMCD32.FLT` |  |
+| 173056 | `IMCD42.FLT` |  |
+| 68096 | `IMCDR2.FLT` |  |
+| 453 | `IMCDR2.INI` |  |
+| 146944 | `IMDRW2.FLT` |  |
+| 556 | `IMDRW2.INI` |  |
+| 227328 | `IMDXF2.FLT` |  |
+| 4719 | `IMDXF2.INI` |  |
+| 160768 | `IMHG32.FLT` |  |
+| 5839 | `IMHG32.INI` |  |
+| 155648 | `IMPCT2.FLT` |  |
+| 1303 | `IMPCT2.INI` |  |
+| 84992 | `IMPIC2.FLT` |  |
+| 1183 | `IMPIC2.INI` |  |
+| 120832 | `IMPIF2.FLT` |  |
+| 1228 | `IMPIF2.INI` |  |
+| 155648 | `IMPS_2.FLT` |  |
+| 6321 | `IMPS_2.INI` |  |
+| 229888 | `IPHGW2.FLT` |  |
+| 247 | `IPHGW2.INI` |  |
+
+#### Neuron
+
+9 files.
+
+| Bytes | File | Mark |
+|---:|---|---|
+| 141 | `CONFIRM.REG` |  |
+| 1391 | `NEURON.CNT` |  |
+| 77848 | `NEURON.HLP` |  |
+| 191488 | `NEURON.OCX` |  |
+| 140 | `NONSEC.REG` |  |
+| 119360 | `NP16NEUR.DLL` |  |
+| 296960 | `NP32NEUR.DLL` |  |
+| 2322 | `relnotes.wri` |  |
+| 135 | `SECURE.REG` |  |
+
+#### Spelling
+
+1 files.
+
+| Bytes | File | Mark |
+|---:|---|---|
+| 204562 | `VEAMAA51.LEX` |  |
+
+Seven basenames occur twice. The sizes below are the two copies.
+
+| Name | Paths |
+|---|---|
+| `DIB.DRV` | `Editors/DIB.DRV`, `TBSystem/DIB.DRV` |
+| `PALOPTX.DLL` | `Editors/PALOPTX.DLL`, `TBSystem/PALOPTX.DLL` |
+| `RelNotes.WRI` | `Neuron/relnotes.wri`, `Instructor8/Welcome/RelNotes.WRI` |
+| `TB80RCA.DLL` | `Editors/tb80RCA.DLL`, `TBSystem/TB80RCA.DLL` |
+| `TB80RCR.DLL` | `Editors/tb80RCR.DLL`, `TBSystem/TB80RCR.DLL` |
+| `tbkcache.ini` | `Instructor8/spclst/styles/tbkcache.ini`, `Instructor8/template/tbkcache.ini` |
+| `VEAMAA51.LEX` | `Spelling/VEAMAA51.LEX`, `TBSystem/VEAMAA51.LEX` |
+
+479 files, 472 unique basenames.
+
+### Files beside the copied books
+
+`/tmp/refs/guest`:
+
+| Bytes | File |
+|---:|---|
+| 2327983 | `9e954d01.tbk` |
+| 457 | `instructor.lnk` |
+| 67938 | `nc81base.sbk` |
+| 34538 | `nc81recs.sbk` |
+| 98408 | `nc81test.sbk` |
+| 66728 | `nc81trnr.sbk` |
+| 5829208 | `nida81.tbk` |
+| 1238 | `seg1180.bin` |
+| 683872 | `TB80BAS.DLL` |
+| 1163488 | `TB80BAS.unpacked.dll` |
+| 263 | `tb80rtm.lnk` |
+
+`TB80BAS.DLL` in that folder is the same 683872 bytes as `TBSystem/TB80BAS.DLL`. The other ten names are not in the author tree. `TB80BAS.unpacked.dll`, `seg1180.bin`, `instructor.lnk`, and `tb80rtm.lnk` are in the folder and are not lines in `toolbook.lst`. `9e954d01.tbk` is the lesson copy. `instructor.lnk` names `C:\Program Files\click2learn\Instructor8\Inst80.exe`.
+
+`/tmp/nida-home/TB80ANM.SBK` is 1 byte, and `/tmp/nida-home/courses/93954302.tbk` is 1 byte. Those are not the books.
+
+### Course name list
+
+`toolbook.lst`, 42 names, then the four starred lines:
+
+```
+NC81BASE.SBK
+NC81TEST.SBK
+NC81RECS.SBK
+NC81TRNR.SBK
+NC81INT.DLL
+NC81REC.DLL
+*NC81IMVS.TBK
+NIDA81.TBK
+*NIDA81S.TBK
+*NIDA81F.TBK
+*LOGO81.TBK
+TB80F32L.DLL
+TB80MAIN.EXE
+TB80OCX.DLL
+TB80RMT.DLL
+TB80VBX.DLL
+TB80ACX.DLL
+TB80ANM.SBK
+TB80BAS.DLL
+TB80BMP.DLL
+TB80CMP.DLL
+TB80ENU1.DLL
+TB80ENU2.DLL
+TB80FLT.DLL
+TB80HYP.SBK
+TB80JPG.DLL
+TB80LNL.DLL
+TB80MM.DLL
+TB80NET.EXE
+TB80OLE.DLL
+TB80R.SBK
+TB80RCR.DLL
+TB80RTM.EXE
+TB80RUN.EXE
+TB80UTL.DLL
+TB80W16.DLL
+TB80W32.DLL
+TBCBT.DLL
+TBDB3.DLL
+TBDLG.DLL
+TBDOS.DLL
+TBFILE32.DLL
+TBLOAD.EXE
+TBPDX.DLL
+TBREG.DLL
+TBWIN.DLL
+```
+
+### Partition
+
+Author names are the 472 basenames above. Distribution names are the 42 unstarred lines of `toolbook.lst`. Comparison ignores case.
+
+**In both** (35), in course-list order. The left column is the author filename. The right column is the course-list spelling. The sizes for these names are the author copies in the tables above. `TB80BAS.DLL` is the one name in this table that was also a file in `/tmp/refs/guest`, and the two copies are the same bytes. `TB80MM.DLL` is in both lists. `TB80MM.INI` (3352 bytes, in `TBSystem`) is only in the author install.
+
+| Author file | Course list |
+|---|---|
+| `TB80F32L.dll` | `TB80F32L.DLL` |
+| `TB80MAIN.EXE` | `TB80MAIN.EXE` |
+| `TB80OCX.DLL` | `TB80OCX.DLL` |
+| `TB80RMT.DLL` | `TB80RMT.DLL` |
+| `TB80VBX.DLL` | `TB80VBX.DLL` |
+| `TB80ACX.DLL` | `TB80ACX.DLL` |
+| `tb80anm.sbk` | `TB80ANM.SBK` |
+| `TB80BAS.DLL` | `TB80BAS.DLL` |
+| `TB80BMP.DLL` | `TB80BMP.DLL` |
+| `TB80CMP.DLL` | `TB80CMP.DLL` |
+| `TB80ENU1.DLL` | `TB80ENU1.DLL` |
+| `TB80ENU2.DLL` | `TB80ENU2.DLL` |
+| `TB80FLT.DLL` | `TB80FLT.DLL` |
+| `tb80hyp.sbk` | `TB80HYP.SBK` |
+| `TB80JPG.DLL` | `TB80JPG.DLL` |
+| `TB80LNL.DLL` | `TB80LNL.DLL` |
+| `TB80MM.DLL` | `TB80MM.DLL` |
+| `TB80NET.EXE` | `TB80NET.EXE` |
+| `TB80OLE.DLL` | `TB80OLE.DLL` |
+| `tb80r.sbk` | `TB80R.SBK` |
+| `TB80RCR.DLL` | `TB80RCR.DLL` |
+| `TB80RTM.EXE` | `TB80RTM.EXE` |
+| `TB80RUN.EXE` | `TB80RUN.EXE` |
+| `TB80UTL.DLL` | `TB80UTL.DLL` |
+| `TB80W16.DLL` | `TB80W16.DLL` |
+| `TB80W32.DLL` | `TB80W32.DLL` |
+| `TBCBT.DLL` | `TBCBT.DLL` |
+| `TBDB3.DLL` | `TBDB3.DLL` |
+| `TBDLG.DLL` | `TBDLG.DLL` |
+| `TBDOS.DLL` | `TBDOS.DLL` |
+| `TBFILE32.DLL` | `TBFILE32.DLL` |
+| `Tbload.exe` | `TBLOAD.EXE` |
+| `TBPDX.DLL` | `TBPDX.DLL` |
+| `TBREG.DLL` | `TBREG.DLL` |
+| `TBWIN.DLL` | `TBWIN.DLL` |
+
+**Only in the course list** (7). Five of these were copied into `/tmp/refs/guest`. `NC81INT.DLL` and `NC81REC.DLL` were not found as files, so they have no size.
+
+| Course list | Guest bytes |
+|---|---|
+| `NC81BASE.SBK` | 67938 |
+| `NC81TEST.SBK` | 98408 |
+| `NC81RECS.SBK` | 34538 |
+| `NC81TRNR.SBK` | 66728 |
+| `NC81INT.DLL` | not found |
+| `NC81REC.DLL` | not found |
+| `NIDA81.TBK` | 5829208 |
+
+**Only in the author install** (437). Every other basename in the tables above.
+
+```
+_INST32I.EX_
+_ISDEL.EXE
+_SETUP.DLL
+_SETUP.LIB
+abullet.spb
+actdelay.spb
+Action Objects.ini
+Action Objects.wbk
+Action Objects.wbx
+acttimer.spb
+allmedia.spb
+Almost.wav
+Almost1.wav
+angled.ptp
+angledh.ptp
+art_deco.ptp
+asym.ini
+Asymgif.ocx
+automenu.spb
+AUTORUN.EXE
+Autorun.ICO
+axf.dtd
+BITED80.EXE
+Bited80.hlp
+blank.tbk
+bluebr1i.ptp
+blueintersection.ptp
+blueintersectionh.ptp
+bluelines.ptp
+bluelinesh.ptp
+bullets.spb
+butnedit.spb
+Buttons.ini
+Buttons.wbk
+Buttons.wbx
+callout.spb
+Catalog Blank Cache.tbk
+Catalog Blank Category.tbk
+Catalog Blank Spec Cache.tbk
+Catalog Spec Cache.tbk
+catalog.aof
+catalog.ini
+catalog.tbk
+catalogh.tbk
+CATOBJT.HLP
+click2learn.author.ini
+click2learn.author.wbk
+click2learn.author.wbx
+click2learn.pal
+CLIPWID.HLP
+clipwid.spb
+COMPOBJ.DLL
+COMPRESS.INS
+CONFIRM.REG
+coralsea.ptp
+coralseah.ptp
+CORRECT.SWF
+Correct.wav
+Correct1.wav
+decrypt.exe
+DECRYPT.HLP
+default.tbk
+defaulth.tbk
+DIB.DRV
+DIBUTIL.DLL
+distrib.wri
+Draw Objects.ini
+Draw Objects.wbk
+Draw Objects.wbx
+dropbin.spb
+dzactx.dll
+earth.ptp
+earthh.ptp
+EVALBOOK.HLP
+evalbook.spb
+EVALPAGE.HLP
+evalpage.spb
+Excuse1.wav
+Excuseme.wav
+extjava.spb
+fall1i.ptp
+finan1.ptp
+finan1h.ptp
+finan1i.ptp
+fldglist.spb
+fldolist.spb
+gen1ch.tbk
+gen1chh.tbk
+gen2ch.tbk
+gen2chh.tbk
+genedit.spb
+generic.tbk
+generic1.aof
+generic2.aof
+generic3.aof
+generich.tbk
+Givebrk.wav
+Givebrk1.wav
+granite.ptp
+gray1.ptp
+gray1h.ptp
+gray1i.ptp
+grayck1i.ptp
+Groovy.wav
+Groovy1.wav
+hr.tbk
+hrh.tbk
+IBGIF2.FLT
+IBJPG2.FLT
+IBPCD2.FLT
+IBPCD2.INI
+IBPCX2.FLT
+IBTGA2.FLT
+IBTIF2.FLT
+ICONED80.EXE
+Iconed80.hlp
+IMAGEMAP.HLP
+imagemap.spb
+IMCD32.FLT
+IMCD42.FLT
+IMCDR2.FLT
+IMCDR2.INI
+IMDRW2.FLT
+IMDRW2.INI
+IMDXF2.FLT
+IMDXF2.INI
+IMGEDIT.HLP
+imgedit.spb
+IMHG32.FLT
+IMHG32.INI
+IMPCT2.FLT
+IMPCT2.INI
+IMPIC2.FLT
+IMPIC2.INI
+IMPIF2.FLT
+IMPIF2.INI
+IMPS_2.FLT
+IMPS_2.INI
+impulse.exe
+incorrect.swf
+Incrrct.wav
+indust1.ptp
+indust1h.ptp
+indust1i.ptp
+inetauto.spb
+INST80.CNT
+Inst80.exe
+INST80.HLP
+inst80.ini
+Inst80.pal
+INST80.SBK
+inter1i.ptp
+IPHGW2.FLT
+IPHGW2.INI
+ISGDI32.DLL
+ISGDI32.INI
+learn1.tbk
+learn1h.tbk
+learn1i.tbk
+liblogin.spb
+listedit.spb
+logread.exe
+logread.hlp
+marquee.spb
+Media (Animated).ini
+Media (Animated).wbk
+Media (Animated).wbx
+Media (Backdrops).ini
+Media (Backdrops).wbk
+Media (Backdrops).wbx
+Media (Clipart).ini
+Media (Clipart).wbk
+Media (Clipart).wbx
+Media (Icons).ini
+Media (Icons).wbk
+Media (Icons).wbx
+Media (Tiled Backdrops).ini
+Media (Tiled Backdrops).wbk
+Media (Tiled Backdrops).wbx
+Media Players.ini
+Media Players.wbk
+Media Players.wbx
+mediabtn.spb
+medimpt.m80
+MEDMANT.DLL
+medwavet.m80
+MENUED80.EXE
+Menued80.hlp
+mercury.jar
+mil1.ptp
+mil1h.ptp
+mil1i.ptp
+mod_offc.ptp
+mtchitem.spb
+mtchobj.spb
+multdrop.spb
+multiobj.spb
+multline.spb
+multwid.spb
+My Objects.ini
+My Objects.wbk
+My Objects.wbx
+namepart.spb
+Navigation Objects.ini
+Navigation Objects.wbk
+Navigation Objects.wbx
+NEURON.CNT
+NEURON.HLP
+NEURON.OCX
+neuron.spb
+No.wav
+No1.wav
+Nokid1.wav
+Nokiddng.wav
+NONSEC.REG
+Notcrct1.wav
+NP16NEUR.DLL
+NP32NEUR.DLL
+OC25.DLL
+OLE2.DLL
+OLE2.REG
+OLE2CONV.DLL
+OLE2DISP.DLL
+OLE2NLS.DLL
+OLE2PROX.DLL
+orderobj.spb
+orderwid.spb
+Ouch.wav
+Ouch1.wav
+Oxs.dll
+PACKAGER.exe
+PACKLIST.EXE
+PACKLIST.PIF
+pagemenu.spb
+Pages.ini
+Pages.wbk
+Pages.wbx
+paint.ptp
+PALED80.EXE
+Paled80.hlp
+PALOPT.EXE
+PALOPT.HLP
+PALOPTX.DLL
+Partly1.wav
+Partlyrt.wav
+PATHANIM.HLP
+PCDLIB.DLL
+PCDXBMP.DLL
+peacock.ptp
+peacockh.ptp
+PHOTO.DLL
+Placeholder Objects.ini
+Placeholder Objects.wbk
+Placeholder Objects.wbx
+popupump.spb
+POPVID.HLP
+popvid.spb
+ppointi.tbk
+present.aof
+present.ptp
+present.tbk
+presenth.tbk
+PXENGWIN.DLL
+questext.spb
+QUESTION.HLP
+Questions (Multiple Choice).ini
+Questions (Multiple Choice).wbk
+Questions (Multiple Choice).wbx
+Questions (True-False).ini
+Questions (True-False).wbk
+Questions (True-False).wbx
+Questions (Various).ini
+Questions (Various).wbk
+Questions (Various).wbx
+quiz1.aof
+quiz1.tbk
+quiz1h.tbk
+quiz1i.tbk
+quiz2.aof
+rainbow.ptp
+rainbowh.ptp
+realplay.spb
+Regsvr.exe
+RelNotes.WRI
+remover.exe
+remover.ico
+Repair80.exe
+reset.spb
+Righton.wav
+Righton1.wav
+roi.tbk
+roih.tbk
+rptactn.spb
+Rusure.wav
+Rusure1.wav
+sales1.tbk
+sales1h.tbk
+sales2.tbk
+sales2h.tbk
+Scoring and Tracking.ini
+Scoring and Tracking.wbk
+Scoring and Tracking.wbx
+SCP.DLL
+scrwalk.ico
+scrwalk.tbk
+SECURE.REG
+seltext.spb
+SETUP.EXE
+SETUP.INS
+simquiz.tbk
+simquizh.tbk
+skill1.aof
+sky.ptp
+skyh.ptp
+slider.spb
+space.ptp
+spaceh.ptp
+spclst.spb
+spclstld.spb
+spclstqs.spb
+stageb1.ptp
+stageb1h.ptp
+stageb1i.ptp
+stager1.ptp
+stager1h.ptp
+stager1i.ptp
+startup.ini
+STDOLE.TLB
+STORAGE.DLL
+strongline.ptp
+stronglineh.ptp
+TB2FTP.DLL
+TB80.EXE
+tb80.ini
+tb80.sbk
+tb80a.sbk
+tb80acta.sbk
+tb80actr.sbk
+tb80aicc.sbk
+TB80ATH.EXE
+tb80axf.sbk
+tb80bit.m80
+TB80CVT.DLL
+TB80EDT.DLL
+TB80ENU3.DLL
+TB80ENU4.DLL
+tb80ftp.exe
+TB80FTP.HLP
+tb80ftp.sbk
+tb80i.sbk
+tb80lmx.sbk
+TB80MM.INI
+TB80RCA.DLL
+tb80RED.DLL
+tb80web.sbk
+tb80x.sbk
+TB80XTR.DLL
+TBCOM.DLL
+TBINET32.DLL
+Tbisx32.dll
+tbkcache.ini
+TBKSLICE.DLL
+TBUTIL32.dll
+tech1.ptp
+tech1h.ptp
+tech1i.ptp
+tech2.ptp
+tech2h.ptp
+tech2i.ptp
+tech3.ptp
+tech3h.ptp
+tech3i.ptp
+tech_4h.ptp
+tech_b4h.ptp
+tech_g4h.ptp
+Text Fields.ini
+Text Fields.wbk
+Text Fields.wbx
+textedit.spb
+TIMER.HLP
+timer.spb
+Tlist16p.ocx
+TList4.ocx
+tornedge.ptp
+tornedgeh.ptp
+train1.aof
+train1.tbk
+train1h.tbk
+triang1i.ptp
+TRIGGER.HLP
+trigger.spb
+truefals.spb
+Tryagai1.wav
+Tryagain.wav
+Trythis.wav
+Trythis1.wav
+typein.spb
+TYPELIB.DLL
+UnInst80.isu
+Urright.wav
+Urright1.wav
+usejava.spb
+usgov1.ptp
+usgov1h.ptp
+usgov1i.ptp
+usgov2.ptp
+usgov2h.ptp
+usgov2i.ptp
+usmil1.ptp
+usmil1h.ptp
+usmil1i.ptp
+VEAMAA51.LEX
+vidsynch.spb
+VIDWID.HLP
+vidwid.spb
+Walkthrough.tbk
+WAVEED80.EXE
+Waveed80.hlp
+Waycoo1l.wav
+Waycool.wav
+WINCOMT.DLL
+winmedia.spb
+WINSOX.EXE
+Woops.wav
+Woops1.wav
+Wow.wav
+Wow1.wav
+WRKBNCHT.DLL
+Wrngag1.wav
+Wrngagn.wav
+xmedit.spb
+Yes.wav
+Yes1.wav
+Yougot1.wav
+Yougotit.wav
+Yup.wav
+Yup1.wav
+```
+
+The four starred lines, `NC81IMVS.TBK`, `NIDA81S.TBK`, `NIDA81F.TBK`, and `LOGO81.TBK`, are not in the author install and were not found as files.
+
+Of the files that were actually in a directory, the only basename in both the author install and `/tmp/refs/guest` is `TB80BAS.DLL`. The ten guest names listed above are the ones present only beside those copied books.
