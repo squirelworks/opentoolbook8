@@ -11,6 +11,8 @@ from opentoolbook.bitmap import (
     button_bounds,
     button_checked_ids,
     button_checked_picture,
+    button_disabled_ids,
+    button_disabled_picture,
     button_invert_ids,
     button_invert_picture,
     button_picture_ids,
@@ -155,6 +157,26 @@ class ButtonInvertPictureTests(unittest.TestCase):
         self.assertGreaterEqual(sum(1 for item in found if item), 2)
         resources = _type1_resource_ids(data)
         self.assertTrue(all(item == 0 or (item - 1) in resources for item in found))
+
+
+class ButtonDisabledPictureTests(unittest.TestCase):
+    def test_disabled_picture_is_the_word_at_block_0x39(self):
+        path = os.environ.get("OPENTOOLBOOK_TBK")
+        if not path or not os.path.isfile(path):
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        data = Path(path).read_bytes()
+        self.assertEqual(button_disabled_picture(data, "P10301", "A"), 128)
+        self.assertEqual(button_disabled_picture(data, "P300", "MenuFrame"), 0)
+        found = button_disabled_ids(data)
+        self.assertGreaterEqual(found.count(0), 2)
+        self.assertGreaterEqual(sum(1 for item in found if item), 2)
+        resources = _type1_resource_ids(data)
+        self.assertTrue(all(item == 0 or (item - 1) in resources for item in found))
+        nida = Path(path).with_name("nida81.tbk")
+        self.assertTrue(nida.is_file())
+        other = button_disabled_ids(nida.read_bytes())
+        self.assertGreaterEqual(len(other), 2)
+        self.assertTrue(all(item == 0 for item in other))
 
 
 def _type1_resource_ids(data: bytes) -> set[int]:
