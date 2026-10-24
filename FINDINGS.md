@@ -62,6 +62,23 @@ Word `+0x02` is 0 and word `+0x20` is 0. The four signed words at `+0x0F` are an
 0b0000005001ffff0f00080000fffffd096900b218ed0300000000ffffff000300000000e20f0a01ca0119
 ```
 
+Word `+0x28` is a near pointer from the segment base. All 398 land inside the file. The first word of that block is `0x0202` on 396 of the 398. The other two are 194 and 130, one example each. Both pointers are 0. The bytes at the segment base contain `80650005` and a page id (`P30000`, `P30010`). Those two pointers did not land on a block that starts `0x0202`.
+
+The huge-table resource ids are 148, 150, 155, and 164. The stored ids are one more: 149, 151, 156, and 165. No resource id in that list is a stored id. The unaligned word at block `+0x15` is a stored id 49 times and a resource id 21 times. The unaligned word at `+0x4b` is resource 148 six times, and on those six the word at `+0x15` is 146. No other offset in the first `0x60` bytes has 3 or more huge-id hits. The word at `+0x15` is 134 on 91 blocks, 131 on 84, and 116 on 23. The bitmap directory lists 134, 131, and 116, and none of the three is in the huge table. Seven blocks have 167 there. The directory does not list 167. Picture ids sit at `+0x15`, including ids that are not one of the four huge bitmaps.
+
+Inside the 43-byte button, a huge id occurs twice. The word at `+4` is 156 on those two buttons. The picture id is the word at `+0x15` of the block.
+
+Two blocks, first word `0x0202`, id at `+0x15`:
+
+```
+02020100000000000000000100fc21ad160000000097000000000000000000000000000000000000
+02020000000000000000000100c40e93030000000096000000000000000000000000000000000000
+```
+
+The first id is 151, the stored id of resource 150. The second is 150, the resource id. Both kinds of id occur at that word.
+
+`nida81.tbk` has 156 class `0x9` records of 43 bytes. Its huge-table resource ids are 132, 136, 137, 140, 142, 143, 148, 149, and 151. Stored ids are the resource id plus one, so 137, 143, and 149 are each a resource id and another bitmap's stored id. Those hits cannot separate resource from stored. The first word of the block is `0x0202` on 149. The other seven pointers are 0. The first word at the segment base is 2398 twice, 206 twice, 788 twice, and 0 once. The bytes there contain `80650005` and a page id. The word at `+0x15` is a resource id 21 times, a stored id 16 times, and one of 137, 143, or 149 eight times. `+0x4b` is a resource id 3 times. `+0x52` matches a huge id 4 times. `+0x40` is a resource id 7 times and `+0x5f` is a stored id 7 times, on the seven pointer-0 blocks.
+
 ### Class `0xA`, 61 bytes, 515 records
 
 Word `+0x02` is 0, word `+0x20` is 0, word `+0x2E` is 720, and word `+0x34` is 0. The four signed words at `+0x0F` are an ordered rectangle in all 515. The text of a field is word 1 of the block named by the word at `+0x24`. That read returns both `Copyright ©  Nida Corporation 1997 - 2002` and `Filename: 93954d01.TBK`. Offset `+0x42` is past byte 61, so it is not a field of this record. Two records:
