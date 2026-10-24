@@ -233,7 +233,7 @@ Word `+0x06` is 11, word `+0x08` is 65535, and words `+0x02` and `+0x0E` are 0. 
 
 ### Class `0x26`, 83 bytes, 2 records
 
-The second record's bytes at `+0x04` are the C string `Key Map`. The first record is zero there. The shared words include `+0x00` = 517, `+0x28` = 65535, `+0x2C` = 5, and `+0x2E` = 5. The name is one example until a third record carries one. Two records:
+The second record's bytes at `+0x06` are the C string `Key Map`. The first record is zero there. The shared words include `+0x00` = 517, `+0x28` = 65535, `+0x2C` = 5, and `+0x2E` = 5. One class `0x26` record in `nida81.tbk` carries the same string. Two records:
 
 ```
 0502000000000000000000000000000000000000000000000000000000000000000000000000c800ffff0000050005002025701a11012640200358027702d501ba0014000000000000008400000000008000b7
