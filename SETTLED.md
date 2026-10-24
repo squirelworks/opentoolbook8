@@ -37,4 +37,4 @@ On open, those filenames are looked up in this order: the book's directory, `--h
 
 ## Missing files are reported, not fatal
 
-Logic Families names `minstb32.dll`. That file is not shipped. Opening the book reports it and still returns the book. Any other file the book names and the folders do not hold is reported the same way. The open does not stop.
+Logic Families names `minstb32.dll`. That file is not in the install list. Opening the book reports `named, not shipped` and still returns the book. A name that is in the install list but absent is `not found`. A starred install-list entry that is absent is `listed, not shipped`. None of the three stops the open.
