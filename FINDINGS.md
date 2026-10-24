@@ -34,6 +34,8 @@ c3382281650005000202c1030000503239323000
 
 Both names are in the page-id walk. No other byte of the 81-byte object is shared by these two and absent from the `0x80` pages. `nida81.tbk` has the same split: 43 pages use `0x80`, and `P22100` uses `0x81`, still followed by `65 00 05`. Which page that is in `nida81.tbk` is one example.
 
+`TB80BAS` does not compare those four bytes. The page test in that image is the class word at object −2 equal to 5. The flag byte is outside that compare. The view-page function and the other compares are in `RESEARCH.md`.
+
 The sentence `ICs are classified into logic families based on voltage requirements` is one example of text in the gap after `P440`'s body and before the next directory record. It is not in the `P430` body.
 
 ### Class `0x4`, 103 bytes, 14 records that agree

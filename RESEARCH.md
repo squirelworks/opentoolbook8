@@ -62,6 +62,16 @@ A lesson can be walked when Next, Back, the menus, and the quiz follow the handl
 
 A lesson can be run when the system books load, the initialize calls do what the DLLs imply, pictures land on their widgets, and the unnamed reader is implemented. That is not started. There is no window, no script engine, and no GDI.
 
+## Where ToolBook checks for a page
+
+From the unpacked `TB80BAS` image on this machine, searched 24 October 2026. The four bytes `80 65 00 05` and `81 65 00 05` do not occur in `TB80BAS.DLL` or in the unpacked image. No code compare uses the immediate `0x6580` or `0x6581`, and no code compare tests the size word against the constant `0x65`.
+
+A page is the object whose class word, at object −2, is 5. The instruction is `cmp word [reg−2], 5`. It occurs 14 times in the unpacked code. The view path is one of them: `CDBVIEWPAGE` (ordinal 15) calls `FUN_1040_13c4`, which calls `FUN_1040_1420`, which calls `FUN_1040_18e4`. There the class word is compared with 5, and on a match the background is the far pointer at object `+0x47`. That is the same dword the specimen's background read uses.
+
+The same class word is what this reader already tests. `page_ids` keeps a record when the word at −2 is 5. It does not require the flag byte to be `0x80`, so `P440` and `P2920` stay in the list. The size word at −4 is the object's end, measured from the segment base. On both books here that word is `0x65` and the page object is 81 bytes. A later TB80 book is a page when its class word is 5, with the length taken from its own size word.
+
+Other class-5 branches in the same image, each a separate use of that compare: `FUN_1020_0e18` picks one of two pointers; `FUN_10c8_137e` does extra work when a page is destroyed; `FUN_1230_180c` returns before a draw when a parent is a page; `FUN_1578_1d34` changes a size when the class is 5 and the selector is `0x16`; `FUN_1450_06ce` requires class 5 and the words at `+2` and `+4` equal to `0xFFFF`, which is a narrower case than "any page." `FUN_10e0_0e8e` treats class 4 and class 5 alike and reads the list at `+0x2e`.
+
 ## Still open
 
-The disk-to-object reader has no export name. The property that points a widget at a bitmap, other than the four huge-table pictures, is not settled. Fill, stroke, parent, and z-order are not a settled paint. OpenScript in the file is not expanded or run by this reader. The low bit that makes a page header `81 65` instead of `80 65` has no meaning recorded yet.
+The disk-to-object reader has no export name. The property that points a widget at a bitmap, other than the four huge-table pictures, is not settled. Fill, stroke, parent, and z-order are not a settled paint. OpenScript in the file is not expanded or run by this reader. The low bit that makes the byte at object −5 into `0x81` has no compare in `TB80BAS` and no meaning recorded yet. Only two TB80 books are on this machine, so "any TB80 book" is the rule above, checked on those two.
