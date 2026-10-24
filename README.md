@@ -17,31 +17,30 @@ On a live stop with the lesson already open, handle `0x0C1E` had class word `0x0
 
 ## From scratch
 
-You need Git and Python 3.11 or newer. Check both:
+You need Python 3.11 or newer. The repository is private, so download it from the GitHub page while you are logged in. That is the Code button, then Download ZIP. The file is `opentoolbook8-main.zip`. Put that file in `~/FU`.
+
+Check Python:
 
 ```bash
-git --version
 python3 --version
 ```
 
-If `python3 --version` is older than 3.11, install a newer Python before the block below. On Debian or Ubuntu, `python3 -m venv` also needs the venv package:
+If that is older than 3.11, install a newer Python before the block below. On Debian or Ubuntu, `python3 -m venv` also needs the venv package:
 
 ```bash
 sudo apt install python3-venv python3-pip
 ```
 
-Paste this into a terminal. It clones the repo if `~/FU/opentoolbook8` is not already a checkout, stays on `main`, makes a virtualenv, installs, and prints the command list.
+Paste this into a terminal after the zip is in `~/FU`. It unpacks the zip, renames the folder to `opentoolbook8`, makes a virtualenv, installs, and prints the command list. If the zip is still in Downloads, move it first: `mkdir -p ~/FU && mv ~/Downloads/opentoolbook8-main.zip ~/FU/`.
 
 ```bash
 mkdir -p ~/FU
 cd ~/FU
-if [ ! -d opentoolbook8/.git ]; then
-  git clone https://github.com/squirelworks/opentoolbook8.git
-fi
+rm -rf opentoolbook8-main
+python3 -m zipfile -e opentoolbook8-main.zip ~/FU
+rm -rf opentoolbook8
+mv opentoolbook8-main opentoolbook8
 cd opentoolbook8
-git fetch origin
-git checkout -B main origin/main
-git pull --ff-only origin main
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install -U pip
@@ -68,34 +67,30 @@ The tests use synthetic books and a synthetic menu. `OPENTOOLBOOK_TBK` points th
 OPENTOOLBOOK_TBK=path/to/book.tbk python3 -m unittest discover -s tests
 ```
 
-Later, from the same folder, with the virtualenv activated:
+A newer zip, with the virtualenv already in place:
 
 ```bash
-git pull --ff-only origin main
+cd ~/FU
+rm -rf opentoolbook8-main
+python3 -m zipfile -e opentoolbook8-main.zip ~/FU
+cp -a opentoolbook8-main/. opentoolbook8/
+cd opentoolbook8
+source .venv/bin/activate
 python3 -m pip install -e .
 ```
 
 ### Windows
 
-In PowerShell, check Git and Python:
-
-```powershell
-git --version
-py -3 --version
-```
-
-`py -3 --version` needs to say 3.11 or newer. Then paste this. It clones into `%USERPROFILE%\FU\opentoolbook8`.
+In PowerShell, `py -3 --version` needs to say 3.11 or newer. Download the same zip while logged in, and leave it in Downloads. Then paste this. It unpacks into `%USERPROFILE%\FU\opentoolbook8`.
 
 ```powershell
 New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\FU" | Out-Null
 Set-Location "$env:USERPROFILE\FU"
-if (-not (Test-Path opentoolbook8\.git)) {
-  git clone https://github.com/squirelworks/opentoolbook8.git
-}
+if (Test-Path opentoolbook8-main) { Remove-Item -Recurse -Force opentoolbook8-main }
+if (Test-Path opentoolbook8) { Remove-Item -Recurse -Force opentoolbook8 }
+Expand-Archive -Path "$env:USERPROFILE\Downloads\opentoolbook8-main.zip" -DestinationPath .
+Rename-Item opentoolbook8-main opentoolbook8
 Set-Location opentoolbook8
-git fetch origin
-git checkout -B main origin/main
-git pull --ff-only origin main
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -U pip
@@ -119,3 +114,33 @@ python -m opentoolbook --home path\to\TBK path\to\book.tbk
 python -m opentoolbook --keydisk path\to\rating
 python -m unittest discover -s tests
 ```
+
+A newer zip on Windows, with the virtualenv already in place:
+
+```powershell
+Set-Location "$env:USERPROFILE\FU"
+if (Test-Path opentoolbook8-main) { Remove-Item -Recurse -Force opentoolbook8-main }
+Expand-Archive -Path "$env:USERPROFILE\Downloads\opentoolbook8-main.zip" -DestinationPath .
+Get-ChildItem -Force opentoolbook8-main | Copy-Item -Destination opentoolbook8 -Recurse -Force
+Set-Location opentoolbook8
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e .
+```
+
+### Git
+
+If Git is already signed in, this is the same install with clone instead of the zip:
+
+```bash
+mkdir -p ~/FU
+cd ~/FU
+git clone https://github.com/squirelworks/opentoolbook8.git
+cd opentoolbook8
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -U pip
+python3 -m pip install -e .
+python3 -m opentoolbook --help
+```
+
+Later: `git pull --ff-only origin main`, then `python3 -m pip install -e .` with the virtualenv activated.
