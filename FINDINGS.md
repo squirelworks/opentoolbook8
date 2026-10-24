@@ -428,3 +428,15 @@ The low two bits of the byte at `+0x30` are 0 on 128 pages of `9e954d01.tbk` and
 ## nida71.tbk is named, not opened
 
 `nida81.tbk` names `nida71.tbk` from pages `P12000`, `P12001`, `P12002`, and `P12003`. On each of those pages the button `Retry` has the line `go to page "P12060" of book "nida71.tbk"`. Page `P12001` also has `go to page "P12000" of book "nida71.tbk"`. The file is not in this read.
+
+## Names in the four nc81 books
+
+None of `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, or `nc81trnr.sbk` stores the words `to handle`. The names below are plain text.
+
+In `nc81base.sbk` one run of strings is `P10003`, `P10004`, `__lessonMode`, `gotoQuizPage`, then `__quizPreTest`, `__quizAssessment`, `P10002`, `P900`, `__lessonMode`, `__quizDisableMenuKey`, `P10001`, `getMenuPage`, then `getMenuPage`, `setupMenuPage`, `gotoMenuPage`, then `P902`, `P904`, `P901`, `__lessonMode`, `setupMenuPage`, `P903`, `setupMenuPageLocal`. A later catalog, with no page id on the same line, names `gotoMenuPage()`, `setupMenuPage(`, `clearMenuFlags()`, `setMenuFlag(`, and `getMenuFlag(`. `gotoNextQuestionEx` occurs beside `__lessonMode` and the text `nc81test.sbk`, not beside those page ids. The same page ids occur again as quoted text beside `getMenuPage`. That second copy is not copied out here as a condition tree.
+
+`nc81test.sbk` stores `handleQuizClick` beside `__quizReviewPage`, and again beside `gotoNextQuestionEx`. The catalog that names `gotoNextQuestionEx()` also names `__quizAssessment` and `__quizPreTest`, and it does not put a page id on those lines. `P10301`, `P10302`, and `P10303` sit beside `__quizStartPage`. `P19999` sits beside `getNextQuestion` and `gotoNextQuestion`.
+
+`nc81recs.sbk` has no page id. The plain names are `initializeRecs()`, `openSession()`, `closeSession()`, `bookmarkSession()`, `StartSession()`, and `RestartSession()`, plus `getFirst()`, `getLast()`, `getId()`, `getClass()`, and `getCurrentPath()`.
+
+`nc81trnr.sbk` has no page id in that kind of list. `P366` occurs once, inside a script, and not beside a name. The plain names are `initializeTrnr()`, `getTrainerType()`, `getTrainerPort()`, `startExperiment()`, `endExperiment()`, `checkComm130()`, `saveSettings130()`, `loadSettings130()`, `checkComm130E()`, `startCai130E()`, `endCai130E()`, `readVoltages130E()`, `saveSettings130E()`, `loadSettings130E()`, `checkCommTd2000()`, `startCaiTd2000()`, `endCaiTd2000()`, `readVoltageTd2000()`, `saveSettingsTd2000()`, `loadSettingsTd2000()`, `checkComm5050()`, `clearFaults5050()`, `readMain5050()`, `verifyMain5050()`, `verifyExternal5050()`, `checkComm205E()`, `readFrequency205E()`, `setFrequency205E()`, `readVolume205E()`, `readCard205E()`, `clearFaults205E()`, `flushMessageQueue()`, `readExternal5050()`, and `readcard205E()`.
