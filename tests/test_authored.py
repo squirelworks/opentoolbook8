@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 from opentoolbook.ellipse import stored_ellipses
-from opentoolbook.field import page_ids
+from opentoolbook.field import field_text, page_ids, stored_field_bounds
 from opentoolbook.line import stored_lines
 from opentoolbook.page import page_records
 from opentoolbook.polygon import stored_polygons
@@ -65,6 +65,22 @@ class AuthoredLineRectTests(unittest.TestCase):
         self.assertEqual(stored_lines(data), ())
         self.assertEqual(stored_ellipses(data), ())
         self.assertEqual(stored_polygons(data), ())
+
+
+FIELD_BOOK = Path(__file__).parent / "fixtures" / "otb-fld.tbk"
+
+
+class AuthoredFieldTests(unittest.TestCase):
+    def test_blank_native_page_stores_a_field(self):
+        data = FIELD_BOOK.read_bytes()
+        self.assertEqual(page_ids(data), ("",))
+        self.assertEqual(stored_field_bounds(data), ((500, 500, 2500, 1400),))
+        self.assertEqual(field_text(data, "", "otb"), "otb field")
+        page = page_records(data, "")
+        self.assertEqual(
+            [(item.kind, item.object_id, item.name) for item in page.objects],
+            [(0xA, 0, "otb")],
+        )
 
 
 if __name__ == "__main__":
