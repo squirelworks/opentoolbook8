@@ -14,6 +14,19 @@ from pathlib import Path
 _FILE = re.compile(rb"(?<![A-Za-z0-9_.])[A-Za-z0-9_]{3,16}\.(?:sbk|tbk|dll|exe)", re.I)
 _INIT = re.compile(rb"initialize[A-Za-z]+", re.I)
 _ENTRY = ("opensession", "gotopagelist", "entersystem", "enterapplication")
+# These belong to a key disk, not to a book report.
+KEYDISK_NAMES = frozenset({"class.s3", "id.s3", "criteria.s4", "m00001.s3", "login.m3"})
+# The four initialize calls are the four nc81 books. The other four are the shell.
+CALL_BOOKS = {
+    "initializebase": "nc81base.sbk",
+    "initializerecs": "nc81recs.sbk",
+    "initializetest": "nc81test.sbk",
+    "initializetrnr": "nc81trnr.sbk",
+    "enterapplication": "nida81.tbk",
+    "entersystem": "nida81.tbk",
+    "gotopagelist": "nida81.tbk",
+    "opensession": "nida81.tbk",
+}
 
 
 @dataclass(frozen=True)
@@ -25,6 +38,7 @@ class InstallFile:
 def named_files(data: bytes) -> tuple[str, ...]:
     """File names a book mentions, in lower case, without the version fragment."""
     found = {match.group().decode("latin1").lower() for match in _FILE.finditer(data)}
+    found -= KEYDISK_NAMES
     return tuple(sorted(found))
 
 
@@ -67,9 +81,39 @@ def parse_version(text: str) -> tuple[str, str]:
     return version, date
 
 
+def search_roots(book: Path | None, home: Path | None) -> tuple[Path, ...]:
+    """Folders that can hold a file the book names, in the order to try them."""
+    roots: list[Path] = []
+    if book is not None:
+        roots.append(book if book.is_dir() else book.parent)
+    if home is not None:
+        roots.append(home)
+        roots.append(home / "courses")
+        roots.append(home / "Nida98" / "Lessons")
+        roots.append(home / "Nida98" / "Student")
+    unique: list[Path] = []
+    for root in roots:
+        if root not in unique:
+            unique.append(root)
+    return tuple(unique)
+
+
+def find_file(roots: tuple[Path, ...], name: str) -> Path | None:
+    """First file whose name matches ``name`` regardless of case."""
+    target = name.lower()
+    if target in KEYDISK_NAMES:
+        return None
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for path in root.iterdir():
+            if path.is_file() and path.name.lower() == target:
+                return path
+    return None
+
+
 def on_disk(folder: Path, names: tuple[str, ...]) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Split ``names`` into those present in ``folder`` and those absent."""
-    have = {path.name.lower() for path in folder.iterdir() if path.is_file()}
-    present = tuple(name for name in names if name.lower() in have)
-    missing = tuple(name for name in names if name.lower() not in have)
+    present = tuple(name for name in names if find_file((folder,), name) is not None)
+    missing = tuple(name for name in names if find_file((folder,), name) is None)
     return present, missing

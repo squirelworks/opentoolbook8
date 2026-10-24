@@ -4,8 +4,8 @@ import os
 import unittest
 from pathlib import Path
 
-from opentoolbook.nida import discs_for, parse_cailt, parse_catalog, parse_settings, parse_shifts, read_keydisk
-from opentoolbook.shelf import named_calls, named_files, on_disk, parse_install_list
+from opentoolbook.nida import discs_for, parse_cailt, parse_catalog, parse_settings, parse_shifts, read_keydisk, zip_names_for
+from opentoolbook.shelf import find_file, named_calls, named_files, on_disk, parse_install_list
 
 MENU = """<?xml version="1.0"?>
 <Document type="nida:m3search" version="1.0">
@@ -116,6 +116,69 @@ class ShelfTests(unittest.TestCase):
             present, missing = on_disk(root, ("NC81BASE.SBK", "nida81.tbk"))
         self.assertEqual(present, ("NC81BASE.SBK",))
         self.assertEqual(missing, ("nida81.tbk",))
+
+
+class FixtureTests(unittest.TestCase):
+    def test_names_calls_catalog_directory_and_die_zip(self):
+        files = (
+            "93954302.tbk",
+            "93954d01.tbk",
+            "minstb32.dll",
+            "nc81base.sbk",
+            "nc81recs.sbk",
+            "nc81test.sbk",
+            "nc81trnr.sbk",
+            "nida81.tbk",
+            "tb80anm.sbk",
+            "tb80r.sbk",
+        )
+        calls = (
+            "enterapplication",
+            "entersystem",
+            "gotopagelist",
+            "initializebase",
+            "initializerecs",
+            "initializetest",
+            "initializetrnr",
+            "opensession",
+        )
+        blob = b"\x00".join(name.encode("ascii") for name in files + calls)
+        blob += b"\x00Version: 2.004.TBK\x00class.s3\x00id.s3\x00criteria.s4\x00m00001.s3\x00login.m3\x00"
+        self.assertEqual(named_files(blob), files)
+        self.assertEqual(named_calls(blob), calls)
+        book = os.environ.get("OPENTOOLBOOK_TBK")
+        if book and os.path.isfile(book):
+            data = Path(book).read_bytes()
+            self.assertEqual(named_files(data), files)
+            self.assertEqual(named_calls(data), calls)
+        rules = parse_cailt("9E954??* DIE??V03\n")
+        self.assertEqual(discs_for(rules, "9E954D01"), ("DIE??V03",))
+        self.assertEqual(zip_names_for(rules, "9E954D01"), ("die0dv03.zip",))
+        import contextlib
+        import io
+        import tempfile
+
+        from opentoolbook.__main__ import main
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "courses.xml").write_text(MENU, encoding="latin1")
+            (root / "programs.xml").write_text(
+                MENU.replace('lessonid="9E954D01"', 'lessonid="93950199"'),
+                encoding="latin1",
+            )
+            (root / "TB80ANM.SBK").write_bytes(b"")
+            found = find_file((root,), "tb80anm.sbk")
+            self.assertEqual(found, root / "TB80ANM.SBK")
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                code = main(["opentoolbook", "--catalog", str(root)])
+            text = buf.getvalue()
+        self.assertEqual(code, 0)
+        self.assertIn("courses.xml unique lesson ids 2", text)
+        self.assertIn("programs.xml unique lesson ids 2", text)
+        self.assertIn("only in programs.xml 1", text)
+        self.assertIn("93950199", text)
 
 
 class SpecimenNidaTests(unittest.TestCase):

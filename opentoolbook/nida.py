@@ -10,7 +10,8 @@ are courses. Nested menus are modules. ``Item`` elements are lessons.
 
 ``CAILT.DAT`` maps a lesson id to Navy disc codes. ``?`` is one
 character, the match is on the front of the id, and the most specific
-pattern wins. ``9E954D01`` meets ``9E954??`` and that line names ``DIE``.
+pattern wins. ``9E954D01`` meets ``9E954??`` and that line names
+``DIE??V03``, which is the zip ``die0dv03.zip``. The zip is named, not opened.
 
 A key-disk rating folder holds a plain description, a shift calendar,
 an encoded settings line, and three versioned binary records.
@@ -18,7 +19,6 @@ an encoded settings line, and three versioned binary records.
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from xml.etree import ElementTree
@@ -105,18 +105,48 @@ def parse_catalog(text: str) -> Catalog:
 
 def discs_for(rules: tuple[DiscRule, ...], lesson_id: str) -> tuple[str, ...]:
     """Disc codes for one lesson id. The longest literal pattern wins."""
+    match = match_discs(rules, lesson_id)
+    if match is None:
+        return ()
+    return match[0].discs
+
+
+def zip_names_for(rules: tuple[DiscRule, ...], lesson_id: str) -> tuple[str, ...]:
+    """Zip file for each disc code. ``DIE??V03`` for lesson ``9E954D01`` is ``die0dv03.zip``.
+
+    ``?`` in the lesson pattern captures those characters. They fill the
+    disc code's ``?`` slots from the right. A code with no ``?`` is the
+    zip name as written.
+    """
+    match = match_discs(rules, lesson_id)
+    if match is None:
+        return ()
+    rule, captured = match
+    names: list[str] = []
+    for disc in rule.discs:
+        name = _zip_name(disc, captured)
+        if name is not None:
+            names.append(name)
+    return tuple(names)
+
+
+def match_discs(rules: tuple[DiscRule, ...], lesson_id: str) -> tuple[DiscRule, str] | None:
     lesson = _lesson_key(lesson_id)
     best: DiscRule | None = None
+    best_captured = ""
     best_score = -1
     for rule in rules:
-        if _pattern_matches(rule.pattern, lesson):
-            score = sum(ch != "?" for ch in rule.pattern)
-            if score > best_score:
-                best = rule
-                best_score = score
+        captured = _capture(rule.pattern, lesson)
+        if captured is None:
+            continue
+        score = sum(ch != "?" for ch in rule.pattern)
+        if score > best_score:
+            best = rule
+            best_captured = captured
+            best_score = score
     if best is None:
-        return ()
-    return best.discs
+        return None
+    return best, best_captured
 
 
 def parse_cailt(text: str) -> tuple[DiscRule, ...]:
@@ -222,9 +252,32 @@ def _lesson_key(lesson_id: str) -> str:
     return name.upper()
 
 
-def _pattern_matches(pattern: str, lesson: str) -> bool:
-    regex = "^" + "".join("." if ch == "?" else re.escape(ch) for ch in pattern.upper())
-    return re.match(regex, lesson) is not None
+def _capture(pattern: str, lesson: str) -> str | None:
+    pattern = pattern.upper()
+    if len(pattern) > len(lesson):
+        return None
+    captured: list[str] = []
+    for index, ch in enumerate(pattern):
+        if ch == "?":
+            captured.append(lesson[index])
+        elif ch != lesson[index]:
+            return None
+    return "".join(captured)
+
+
+def _zip_name(disc: str, captured: str) -> str | None:
+    fill = captured[::-1]
+    index = 0
+    out: list[str] = []
+    for ch in disc:
+        if ch == "?":
+            if index >= len(fill):
+                return None
+            out.append(fill[index])
+            index += 1
+        else:
+            out.append(ch)
+    return "".join(out).lower() + ".zip"
 
 
 def _find(folder: Path, name: str) -> Path | None:
