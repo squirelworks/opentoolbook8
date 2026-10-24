@@ -394,3 +394,13 @@ The other eleven combinations occur once. Of the 85 fields on the row 360, 360, 
 | 2 | 144 | 144 | 144 | 82 | 1 |
 
 The other five combinations occur once. Of the 19 fields on the row 360, 360, 310, 50, 5, two are named `text` and the other seventeen have no name.
+
+## Style run bytes 4, 5, 7, 8, and 9
+
+`9e954d01.tbk` has 224 runs. `nida81.tbk` has 131.
+
+Byte 4 in the first book is 0 on 219 runs, 238 on 3, and 146 on 2. Byte 5 is 0 on 222 and 2 on 2. The two runs with byte 5 equal to 2 are the two with byte 4 equal to 146, so the word at byte 4 is `0x0292` on those two and 238 on the three. All five have the face word 1. In `nida81.tbk` byte 4 is 0 and byte 5 is 0 on all 131 runs.
+
+Byte 7 in the first book is 255 on 111, 0 on 84, 240 on 20, and 64 on 9. Byte 8 is 0 on 84, 252 on 62, 255 on 49, 240 on 20, and 64 on 9. Byte 9 is 0 on 128, 240 on 82, 255 on 9, 64 on 3, and 191 on 2. In `nida81.tbk` byte 7 is 0 on 81, 255 on 37, and 64 on 13. Byte 8 is 0 on 79, 255 on 27, 252 on 14, 64 on 9, and 128 on 2. Byte 9 is 0 on 93, 255 on 20, 240 on 14, 191 on 2, and 64 on 2.
+
+The seven Wingdings runs in `9e954d01.tbk` store 0 at bytes 4, 5, 7, 8, and 9. `nida81.tbk` has no Wingdings run. The word at byte 4 of an Arial run is 0 on all 74 Arial runs in the first book and all 69 in the second. That is the same word the Wingdings runs store. The word at byte 7 is not one value on the Arial runs. No point size is read from these bytes.
