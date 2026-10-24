@@ -92,7 +92,6 @@ def search_roots(book: Path | None, home: Path | None) -> tuple[Path, ...]:
         roots.append(home)
         roots.append(home / "courses")
         roots.append(home / "Nida98" / "Lessons")
-        roots.append(home / "Nida98" / "Student")
     unique: list[Path] = []
     for root in roots:
         if root not in unique:

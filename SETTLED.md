@@ -31,6 +31,10 @@ The other four calls are `nida81.tbk`.
 - `gotopagelist` is `nida81.tbk`
 - `opensession` is `nida81.tbk`
 
+## Resolve on open
+
+On open, those filenames are looked up in this order: the book's directory, `--home`, `--home/courses`, then `--home/Nida98/Lessons`. The match ignores case. The report prints the path that was found. The book still opens when `minstb32.dll`, `93954302.tbk`, or `93954d01.tbk` is absent.
+
 ## Missing files are reported, not fatal
 
 Logic Families names `minstb32.dll`. That file is not shipped. Opening the book reports it and still returns the book. Any other file the book names and the folders do not hold is reported the same way. The open does not stop.
