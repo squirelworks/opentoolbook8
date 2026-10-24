@@ -198,3 +198,11 @@ A handler whose body is in an `.sbk` is a column-0 line `to get` or `to handle` 
 ## Handler split
 
 Each of those handler lines splits into a name, an argument list, and the start of the body. The name is the word after `to get` or `to handle`. The argument list is the rest of that line, with the spaces around it removed. Nothing left is no arguments. The body starts on the next line. The reader returns that split. It does not call the handler. `initializeBase` in `nc81base.sbk` takes `cmdLine`, and `specifyMenuColors` takes `color1, color2`. `writeResponse` in `nc81recs.sbk` takes `int testno, int questionno, string response, int score`. `timerNotify` in `nc81test.sbk` takes `timerId`, `clearRandomSetX` takes `int numbers[] by reference`, and `getNextQuestion` takes no arguments. `linkMemFunctions32` in `nc81trnr.sbk` takes no arguments, and `sendFaults130` takes `string faults`. `getExternalValue` is followed by a blank line, and that blank line is where its body starts.
+
+## Export module name
+
+The bytes before the object store are a PE file. Data directory 0 is the export directory. The reader returns the C string its Name field points at. On `otb-line-rect.tbk` that string is `MINSTB32.dll` at file offset `0x258`, and the directory lists zero exports. `nida81.tbk` and `9e954d01.tbk` store the same name at that offset. `nida81.tbk` has no other `.dll` name.
+
+## Version strings
+
+Resource type 16 in the PE resource directory is a version resource. The reader returns `FileDescription`, `InternalName`, `OriginalFilename`, `ProductVersion`, and `CompanyName` from that resource. On `otb-line-rect.tbk`, `nida81.tbk`, and `9e954d01.tbk` those strings are `Toolbook II`, `TB80`, `TB80.EXE`, `8.10.131`, and `Click2learn, Inc.`. The same five strings are in `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk`.

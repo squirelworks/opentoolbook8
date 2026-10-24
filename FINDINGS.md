@@ -578,3 +578,8 @@ The four signed words at `+0x0F` are the bounds. Pie id 0 is `(600, 600, 3000, 3
 The bytes at `+0x25` through `+0x35` are not the same in the two records. Pie id 0, drawn `from 1500,1500 to 3500,3500 to 1500,3500` and then given the bounds above, stores signed words `1500, 3500, 1500, 1500, 1500, 3500, 0, 2000` from `+0x25`. Pie id 2, drawn `from 2400,500 to 1500,2200 to 500,500`, stores `500, 500, 2400, 500, 500, 500, 1900, 0`. The second `to` point of pie id 2, `1500, 2200`, is not one of those words. That region is two examples, not a settled point list.
 
 An ellipse in the same book is 41 bytes and puts its pattern byte at `+0x25`. A pie is longer, and `+0x25` is the first of the words above, not that pattern byte. Class `0x11` is 61 bytes and class `0x10` is 53. Neither length is 59.
+
+## Version FileVersion
+
+The version-resource string `FileVersion` is not one value. `otb-line-rect.tbk` and `nida81.tbk` store `8.1.0.0`. `9e954d01.tbk`, `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk` store `8.1.0.664`. The fixed file-version low dword in that block is 0 for the first pair and 664 for the second. `FileDescription`, `InternalName`, `OriginalFilename`, `ProductVersion`, and `CompanyName` are the same bytes in all seven files.
+
