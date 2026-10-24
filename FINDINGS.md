@@ -255,3 +255,14 @@ These class words occur on one object only, so none of their fields is recorded 
 `nida81.tbk` has no class `0x17` record of 17 bytes. On each of the five records in `9e954d01.tbk`, the word at `+0x04` is a near pointer to a 61-byte class `0xA` field, and that field is named `Text`. On page `P1080` the word is `0x240`. On page `P1082` it is `0x9C`.
 
 `nida81.tbk` has two class `0x26` records of 83 bytes, and those records use the same constant words. One of the two carries the C string `Key Map`. That is a second record with the string.
+
+## Class `0x19`
+
+`nida81.tbk` has 39 class `0x19` records of 89 bytes. `9e954d01.tbk` has none. Word `+0x02` is 0. Words `+0x06` and `+0x08` are 65535. Word `+0x1E` is 256, word `+0x36` is 768, and word `+0x38` is 512. The byte at `+0x26` is 254. The four signed words at `+0x0F` are an ordered rectangle in all 39. The word at `+0x04` is a near pointer to an object. On 31 records it is 20 and names the page. On the other 8 it names a class `0xB` record of 49 bytes. Page `P370` object 38 is one of those eight: the word is `0x9C`. Two records whose pointer is the page:
+
+```
+240000001400ffffffff080000ffff3804b103f519f41a00000000ffffff000100000f010000fe0000e08a0400be2902000000000000000300020000000000000073018d01080000000000000006000001f800000000000021
+250000001400ffffffff080000ffff28050a05681f801600000000ffffff000100000f010000fe0000a01f04006a83020000000000000003000200000000000000c0012a01080000000000000007000001ec03000000000015
+```
+
+The first is object 36 on page `P310`, bounds (1080, 945, 6645, 6900). The second is object 37 on page `P320`, bounds (1320, 1290, 8040, 5760).
