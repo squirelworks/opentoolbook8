@@ -1,9 +1,11 @@
-"""The characters stored in a field.
+"""The characters stored in a field, and the runs stored beside them.
 
 A field is class ``0xA``. The word at the record's ``+0x24`` is a near
 pointer to a short block in that segment. Word 1 of the block is the
 trailer handle of the text. The text is a capacity word, a length word,
-and then the characters. The word at ``+0x42`` is not the text.
+and then the characters. The word at ``+0x42`` is not the text. Word 0
+is a trailer handle to a run list: the second word there is a count,
+then that many 11-byte runs.
 """
 
 from __future__ import annotations
@@ -16,8 +18,18 @@ from opentoolbook.record import Book
 FIELD = 0xA
 # Measured length of a class 0xA field. The copyright field on page P0 is one.
 FIELD_BYTES = 61
+# One style run. The count word is at byte 2 of the run block; the runs follow it.
+RUN_BYTES = 11
 PAGE = 5
 BOOK = 1
+
+
+@dataclass(frozen=True)
+class FieldStyle:
+    """Text from word 1 of the ``+0x24`` block, and the runs from word 0."""
+
+    text: str
+    runs: tuple[bytes, ...]
 
 
 @dataclass(frozen=True)
@@ -75,6 +87,34 @@ def field_text(data: bytes, page_id: str, field_name: str) -> str:
                 continue
             return _field_text(trailer, _u16(data, field + 0x24))
     raise ValueError(f"no {field_name} field on {page_id}")
+
+
+def field_style_runs(data: bytes) -> tuple[FieldStyle, ...]:
+    """Runs named by word 0 of the block at record ``+0x24``.
+
+    That word is a trailer handle. The second word of the run list is a
+    count, and each run is the next 11 bytes, read from the heap for the
+    whole count. The first word of a run is an offset into the field text.
+    """
+    found: list[FieldStyle] = []
+    for segment in _segments(data):
+        trailer = _trailer(data, segment)
+        if trailer is None:
+            continue
+        end = segment.file_at + segment.size
+        at = segment.base + 0x18
+        while at + FIELD_BYTES <= end and at >= 4:
+            kind = _u16(data, at - 2)
+            size = _u16(data, at - 4) - (at - segment.base)
+            if kind == FIELD and size == FIELD_BYTES:
+                pointer = _u16(data, at + 0x24)
+                runs = _style_runs(trailer, pointer)
+                if runs:
+                    found.append(FieldStyle(_field_text(trailer, pointer), runs))
+                at += size
+                continue
+            at += 1
+    return tuple(found)
 
 
 def _segments(data: bytes) -> tuple[_Segment, ...]:
@@ -176,6 +216,32 @@ def _trailer(data: bytes, segment: _Segment) -> _Trailer | None:
         return None
     slots = tuple(struct.unpack_from("<HHHH", data, pos + 8 * index) for index in range(slots_n))
     return _Trailer(heaps, slots)
+
+
+def _style_runs(trailer: _Trailer, pointer: int) -> tuple[bytes, ...]:
+    """The runs named by word 0 of the field block.
+
+    ``_item`` takes its end from the word at ``offset - 6`` and otherwise
+    keeps 64 bytes. That cut a run list short of its count, so the bytes
+    here are ``count * 11`` from the heap.
+    """
+    heap = trailer.heaps.get(0)
+    if heap is None or pointer + 4 > len(heap):
+        return ()
+    handle = _u16(heap, pointer)
+    if handle in (0, 0xFFFF) or handle >= len(trailer.slots):
+        return ()
+    heap_id, offset, _one, _two = trailer.slots[handle]
+    blob = trailer.heaps.get(heap_id)
+    if blob is None or offset + 4 > len(blob):
+        return ()
+    count = _u16(blob, offset + 2)
+    start = offset + 4
+    need = count * RUN_BYTES
+    if count == 0 or start + need > len(blob):
+        return ()
+    raw = blob[start:start + need]
+    return tuple(raw[index:index + RUN_BYTES] for index in range(0, need, RUN_BYTES))
 
 
 def _field_text(trailer: _Trailer, pointer: int) -> str:
