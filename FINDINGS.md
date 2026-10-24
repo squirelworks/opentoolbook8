@@ -109,14 +109,32 @@ Words `+0x06` and `+0x08` are 65535. Words `+0x02`, `+0x20`, and `+0x26` are 0. 
 180000008402ffffffff08000033000b040d11a104b2110000000080808000010000040000fd000059
 ```
 
-### Class `0xE`, 53 bytes, 526 records
+### Class `0xE`, 53 bytes, 528 records
 
-Same length as class `0x10`, and a different record. Words `+0x06` and `+0x08` are 65535. Words `+0x02` and `+0x20` are 0. Word `+0x32` is 15 in every one of the 526. The four words at `+0x0F` are an ordered rectangle in 12 of them, so that rectangle is not a field of this class. Two records:
+Same length as class `0x10`, and a different record. Words `+0x06` and `+0x08` are 65535. Words `+0x02` and `+0x20` are 0. Word `+0x32` is 15 in every one of the 528. The four words at `+0x0F` are an ordered rectangle in 12 of them, so that rectangle is not a field of this class. Two records:
 
 ```
 270000001400ffffffff0800001400fa05e10f6108e10ffffcf00080808000210000040000006108e10ffa05e10f00000f000f00a7
 290000001400ffffffff0800001300970ee10f4911e10ffffcf00080808000210000040000004911e10f970ee10f00000f000f00e7
 ```
+
+The four signed words at `+0x26` are the two endpoints. In the first record they are (2145, 4065) and (1530, 4065). In the second they are (4425, 4065) and (3735, 4065). On 520 records the words at `+0x0F` are those endpoints written as bounds, and the flat side is equal. Four of those 520 are diagonal: two lines, each stored in two records, with the endpoints on opposite corners. On the other 8 the long side matches the endpoints and the flat side is 37 past each endpoint. Two of those 8:
+
+```
+c90000001400ffffffff0800000a00281c690f721c3b10ffff0000808080000100000400000a4d1c690f4d1c3b1001000f100f00db
+0e0000001400ffffffff080000120074138d116216d711fffcf00080808000210000040000006216b2117413b21101100f000f0095
+```
+
+The first endpoints are (7245, 3945) and (7245, 4155). The second are (5730, 4530) and (4980, 4530).
+
+`nida81.tbk` has 24 class `0xE` records of 53 bytes. Word `+0x32` is 15, and words `+0x02` and `+0x20` are 0, on all 24. The endpoints are the four signed words at `+0x26`. Nineteen match the bounds. Five keep the long side and put 37 past the endpoints on the flat side. Two records:
+
+```
+b10000009003ffffffff000000ffff4803c111301bc11140404000ffffff00010000040000044803c111301bc11100000f000f007b
+b20000009003ffffffff000000ffff4803b211301bb21160606000ffffff00010000040000044803b211301bb21100000f000f00b3
+```
+
+The first endpoints are (840, 4545) and (6960, 4545). The second are (840, 4530) and (6960, 4530).
 
 ### Class `0x10`, 53 bytes, 654 records
 
