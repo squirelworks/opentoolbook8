@@ -459,6 +459,16 @@ The word at `+4` of the 15-byte record is not that pointer. On three type-10 rec
 
 A page whose script-mode byte has low bits 2 stores a word at `+0x2A`. That word minus 1 is one of these type-10 ids, on all three such pages in `9e954d01.tbk` and all four in `nida81.tbk`. Each of those seven words occurs once. The type-9 record with the same id is also 15 bytes and starts `02 02 01 00`. The bytes at its `+9` pointer do not expand to a handler.
 
+## Lesson zip directory
+
+`die0dv03.zip` is one byte, `78`. It has no second record. It does not contain `50 4b 01 02` or `50 4b 05 06`. That file is one example. It is not a directory, and it is not opened.
+
+Two other archives do contain a central directory. `att-cd.zip` has 449 records and `toolbook-files.zip` has 120. Every record in both begins with the 46-byte header whose shared constant bytes are `50 4b 01 02` at 0, `14 03 14 00` at 4, `00` at 9 and at 11, `5d` at 15, `00` at 23 and at 29, and `18 00 00 00 00 00 00 00 00 00` at 30. Each archive ends with 22 bytes that begin `50 4b 05 06 00 00 00 00` and end `00 00`. The bytes between those differ. `att-cd.zip` names `Nida98/Lessons/nida81.tbk` and does not name a `.zip`. `toolbook-files.zip` names `.c` and `.html` files. Neither archive is `die0dv03.zip`. The directory in those two archives does not repeat in the lesson file.
+
 ## Polygon source rectangle and bounds
 
 On a class `0x10` record the four signed words at `+0x28` are the source rectangle and the four signed words at `+0x0F` are the bounds. Those two rectangles are equal on 3 of the 654 records in `9e954d01.tbk`: (3915, 5190, 5565, 6495), (3615, 3435, 5745, 5985), and (3675, 3480, 5655, 3615). They are equal on 2 of the 76 records in `nida81.tbk`: (4395, 3660, 8040, 4605) and (7740, 3660, 8055, 5805). The other records do not share one relationship between the four edges. That is not a scale.
+
+## Group entry union
+
+The union of the rectangles stored in the 10-byte entries equals the group's rectangle at `+0x0F` on 188 of the 372 groups in `9e954d01.tbk` and on 44 of the 94 groups in `nida81.tbk`. The union of the rectangles at `+0x0F` of the objects whose word at `+0x04` names the group equals that rectangle on all 372 and all 94. The 10-byte list is left as stored.
