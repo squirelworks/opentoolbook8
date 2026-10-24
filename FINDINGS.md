@@ -515,6 +515,10 @@ A class `0x13` count is the number of pairs in `Vertices`, on all 66. Those pair
 
 Type 19 resources 100, 101, 102, and 103 are the four shared scripts. Each record is 15 bytes, class `0x2A`, and starts with `0x0202`. The word at `+9` names a payload that starts `01 02 13 00`. The first `80 81` in that payload expands to the script. Resource 102 is `response = answer of this page`, then `score = 100` or `score = 0`.
 
+A button `BorderStyle` is the byte at `+0x27`, on all 382 buttons. `none` is 1, `radioButton3d` is 9, and `pushButton` is 7. `nida81.tbk` stores 1 on 149 of these buttons and 7 on 7.
+
+A field `BorderStyle` is the byte at `+0x36`, on 496 fields. `none` is 1, `scrolling` is 2, `shadowed` is 3, `raised` is 4, `inset` is 5, and `rectangle` is 0. One export field is not that record. That field is one example. `nida81.tbk` stores 1 on 222 of these fields, 5 on 22, and 4 on 2.
+
 The export arc `Vertices` are not the stored pairs at `+0x25` and `+0x29`, on any of the 62 arcs.
 
 The words `0x0013` and `0x0068` sit in the 55 bytes after the page record on all twenty quiz pages, and on none of the 91 other pages with that same gap. `0x0068` is 104. The export calls the shared script id 103. That pair occurs once. `HelpPage` is not the `0x0009` value slot. `SourceLesson` is that slot on 19 pages. On `P10210` the word in that place is `0x0004`. That page is one example. Line `LineStyle` is not the byte at `+0x25`.

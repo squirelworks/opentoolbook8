@@ -7,9 +7,11 @@ from pathlib import Path
 
 from opentoolbook.bitmap import (
     button_bitmap,
+    button_border,
     button_bounds,
     button_picture_ids,
     huge_bitmaps,
+    stored_button_borders,
     stored_button_bounds,
 )
 from opentoolbook.record import Book
@@ -86,6 +88,27 @@ class ButtonBoundsTests(unittest.TestCase):
         for left, top, right, bottom in found:
             self.assertLessEqual(left, right)
             self.assertLessEqual(top, bottom)
+
+
+class ButtonBorderTests(unittest.TestCase):
+    def test_border_is_the_byte_at_0x27(self):
+        path = os.environ.get("OPENTOOLBOOK_TBK")
+        if not path or not os.path.isfile(path):
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        data = Path(path).read_bytes()
+        self.assertEqual(button_border(data, "P300", "Next"), 1)
+        self.assertEqual(button_border(data, "P10210", "A"), 9)
+        self.assertNotEqual(button_border(data, "P300", "Next"), button_border(data, "P10210", "A"))
+        lesson = stored_button_borders(data)
+        self.assertGreaterEqual(lesson.count(1), 2)
+        self.assertGreaterEqual(lesson.count(9), 2)
+        self.assertGreaterEqual(lesson.count(7), 2)
+        nida = Path(path).with_name("nida81.tbk")
+        self.assertTrue(nida.is_file())
+        other = stored_button_borders(nida.read_bytes())
+        self.assertGreaterEqual(other.count(1), 2)
+        self.assertGreaterEqual(other.count(7), 2)
+        self.assertTrue(set(other) <= {1, 7})
 
 
 def _type1_resource_ids(data: bytes) -> set[int]:
