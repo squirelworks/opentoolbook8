@@ -103,6 +103,33 @@ def field_text(data: bytes, page_id: str, field_name: str) -> str:
     raise ValueError(f"no {field_name} field on {page_id}")
 
 
+def field_words(data: bytes) -> tuple[tuple[int, int, int, int, int], ...]:
+    """The words at ``+0x28``, ``+0x2A``, ``+0x2C``, and ``+0x32``, and the byte at ``+0x36``.
+
+    One tuple per class ``0xA`` field of the shared length, in the order
+    the records are stored.
+    """
+    found: list[tuple[int, int, int, int, int]] = []
+    for segment in _segments(data):
+        end = segment.file_at + segment.size
+        at = segment.base + 0x18
+        while at + FIELD_BYTES <= end and at >= 4:
+            kind = _u16(data, at - 2)
+            size = _u16(data, at - 4) - (at - segment.base)
+            if kind == FIELD and size == FIELD_BYTES:
+                found.append((
+                    _u16(data, at + 0x28),
+                    _u16(data, at + 0x2A),
+                    _u16(data, at + 0x2C),
+                    _u16(data, at + 0x32),
+                    data[at + 0x36],
+                ))
+                at += size
+                continue
+            at += 1
+    return tuple(found)
+
+
 def field_style_runs(data: bytes) -> tuple[FieldStyle, ...]:
     """Runs named by word 0 of the block at record ``+0x24``.
 

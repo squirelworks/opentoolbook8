@@ -8,7 +8,7 @@ import struct
 import unittest
 from pathlib import Path
 
-from opentoolbook.field import field_style_runs, field_text, page_ids, style_run_names
+from opentoolbook.field import field_style_runs, field_text, field_words, page_ids, style_run_names
 
 # The copyright field on page P0 of 9e954d01.tbk.
 COPYRIGHT = 'Copyright ©  Nida Corporation 1997 - 2002  \r\nThis software and its supporting programs are protected by federal copyright law and all            rights are reserved by Nida Corporation.  No part or section of this software or its supporting    programs may be copied, distributed, transmitted in any form or medium electronic or           otherwise, disclosed to third parties, or used in any manner not specified in the  License            Agreement furnished by Nida Corporation.  This courseware was created with Asymetrix ToolBook I I .'
@@ -90,6 +90,27 @@ class StyleRunNameTests(unittest.TestCase):
         self.assertGreaterEqual(max(seen.count(name) for name in set(seen)), 2)
         for names in by_word.values():
             self.assertEqual(len(names), 1)
+
+
+class FieldWordTests(unittest.TestCase):
+    def test_the_five_numbers_repeat(self):
+        path = os.environ.get("OPENTOOLBOOK_TBK")
+        if not path or not os.path.isfile(path):
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        logic = Path(path).read_bytes()
+        nida = Path(path).with_name("nida81.tbk")
+        self.assertTrue(nida.is_file())
+        self._words(logic, 518, (360, 360, 310, 50, 5), 85, (0, 0, 0, 50, 1), 258)
+        self._words(nida.read_bytes(), 246, (360, 360, 310, 50, 5), 19, (0, 0, 0, 50, 1), 100)
+
+    def _words(self, data: bytes, total: int, body, body_count: int, common, common_count: int):
+        found = field_words(data)
+        self.assertEqual(len(found), total)
+        self.assertGreaterEqual(len(set(found)), 2)
+        self.assertEqual(found.count(body), body_count)
+        self.assertEqual(found.count(common), common_count)
+        for row in found:
+            self.assertEqual(len(row), 5)
 
 
 if __name__ == "__main__":

@@ -351,3 +351,46 @@ The type-1 directory is the dword at header `+8 + (1 + 5) * 4`. The same shape o
 Resource 133 is stored id 134. `(133 + 5) * 4` is `0x228`. The dword at header `+0x228` is 0, and the dword at header `+8 + 0x228` is 0. Resource 130 is stored id 131. The dword at header `+0x21C` is 0. The dword at header `+8 + 0x21C` is `0x01400006`, past the end of the file.
 
 In `nida81.tbk`, resource 116 is not in the huge table. The dword at header `+(116 + 5) * 4` is `0x00040000`. The 16 bytes at that offset are `74 20 6c 61 77 20 61 6e 64 20 61 6c 6c 20 20 20`. Byte 8 of those is `0x64`, not `BM`. The dword at header `+8 + (116 + 5) * 4` is 0. The same `0x00040000` is the slot for resources 126, 131, 141, and 146, so it is not an offset of resource 116.
+
+## Field words at +0x28, +0x2A, +0x2C, +0x32, and byte +0x36
+
+The field scan finds 518 class `0xA` records of 61 bytes in `9e954d01.tbk`. The class note above says 515. Word `+0x2E` is 720 and word `+0x34` is 0 on all 518. The five values are not one combination. Twenty-seven combinations occur. The ones shared by more than one field:
+
+| count | +0x28 | +0x2A | +0x2C | +0x32 | +0x36 |
+|---|---|---|---|---|---|
+| 258 | 0 | 0 | 0 | 50 | 1 |
+| 86 | 187 | 187 | 0 | 50 | 1 |
+| 85 | 360 | 360 | 310 | 50 | 5 |
+| 18 | 360 | 360 | 360 | 50 | 4 |
+| 16 | 720 | 720 | 720 | 50 | 1 |
+| 9 | 144 | 144 | 144 | 50 | 1 |
+| 6 | 0 | 0 | 0 | 50 | 5 |
+| 6 | 360 | 360 | 360 | 50 | 3 |
+| 4 | 0 | 0 | 0 | 82 | 1 |
+| 4 | 0 | 0 | 0 | 562 | 1 |
+| 3 | 0 | 0 | 0 | 48 | 0 |
+| 3 | 144 | 144 | 144 | 82 | 1 |
+| 3 | 360 | 360 | 0 | 50 | 1 |
+| 2 | 0 | 0 | 0 | 434 | 1 |
+| 2 | 360 | 360 | 360 | 58 | 1 |
+| 2 | 720 | 720 | 720 | 58 | 3 |
+
+The other eleven combinations occur once. Of the 85 fields on the row 360, 360, 310, 50, 5, 84 are named `Text` and one is named `text`. The `Text` field on `P400` and the `Text` field on `P440` are that row.
+
+`nida81.tbk` has 246 fields of this length. Word `+0x2E` is 720 and word `+0x34` is 0 on all 246. Sixteen combinations occur. The ones shared by more than one field:
+
+| count | +0x28 | +0x2A | +0x2C | +0x32 | +0x36 |
+|---|---|---|---|---|---|
+| 100 | 0 | 0 | 0 | 50 | 1 |
+| 74 | 0 | 0 | 0 | 434 | 1 |
+| 19 | 360 | 360 | 310 | 50 | 5 |
+| 18 | 144 | 144 | 144 | 50 | 1 |
+| 8 | 360 | 360 | 360 | 50 | 1 |
+| 7 | 0 | 0 | 0 | 58 | 1 |
+| 7 | 360 | 0 | 0 | 82 | 1 |
+| 2 | 0 | 0 | 0 | 48 | 1 |
+| 2 | 0 | 0 | 0 | 50 | 4 |
+| 2 | 0 | 0 | 0 | 50 | 5 |
+| 2 | 144 | 144 | 144 | 82 | 1 |
+
+The other five combinations occur once. Of the 19 fields on the row 360, 360, 310, 50, 5, two are named `text` and the other seventeen have no name.

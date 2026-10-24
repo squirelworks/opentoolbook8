@@ -114,3 +114,7 @@ A page names its background with the far reference at `+0x47`. The objects on th
 ## Background second color
 
 A class 4 background stores a second color at `+0x57`, `+0x58`, and `+0x59`. The byte at `+0x5A` is 0. The reader returns that triple. On `9e954d01.tbk` twelve of the backgrounds store 0, 0, 0 and two store 255, 255, 0. On `nida81.tbk` every background stores 0, 0, 0.
+
+## Field words
+
+A class `0xA` field is 61 bytes. The reader returns the word at `+0x28`, the word at `+0x2A`, the word at `+0x2C`, the word at `+0x32`, and the byte at `+0x36`. On `9e954d01.tbk` the values 360, 360, 310, 50, 5 occur together on 85 fields, and 0, 0, 0, 50, 1 occur together on 258. On `nida81.tbk` those two combinations occur on 19 fields and on 100 fields. The other combinations are in `FINDINGS.md`.
