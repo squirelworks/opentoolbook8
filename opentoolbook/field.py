@@ -33,6 +33,20 @@ class FieldStyle:
 
 
 @dataclass(frozen=True)
+class StyleNames:
+    """C strings named by the word at byte 2 of each style run.
+
+    ``base`` is the book segment base. ``table`` is the file offset of the
+    pointer list at the book record's ``+0x28``. ``names`` lines up with
+    ``field_style_runs``: ``None`` where that word is 1.
+    """
+
+    base: int
+    table: int
+    names: tuple[tuple[str | None, ...], ...]
+
+
+@dataclass(frozen=True)
 class _Segment:
     key: int
     file_at: int
@@ -115,6 +129,28 @@ def field_style_runs(data: bytes) -> tuple[FieldStyle, ...]:
                 continue
             at += 1
     return tuple(found)
+
+
+def style_run_names(data: bytes) -> StyleNames:
+    """The C string named by the word at byte 2 of each style run.
+
+    The word 1 is not an entry. Any other word is a near pointer in the
+    list at the book record's ``+0x28``, and the bytes at that pointer
+    are a C string.
+    """
+    base, table, pointers = _name_table(data)
+    known = set(pointers)
+    rows: list[tuple[str | None, ...]] = []
+    for item in field_style_runs(data):
+        row: list[str | None] = []
+        for run in item.runs:
+            word = _u16(run, 2)
+            if word == 1 or word not in known:
+                row.append(None)
+                continue
+            row.append(_cstring(data, base + word))
+        rows.append(tuple(row))
+    return StyleNames(base, table, tuple(rows))
 
 
 def _segments(data: bytes) -> tuple[_Segment, ...]:
@@ -216,6 +252,32 @@ def _trailer(data: bytes, segment: _Segment) -> _Trailer | None:
         return None
     slots = tuple(struct.unpack_from("<HHHH", data, pos + 8 * index) for index in range(slots_n))
     return _Trailer(heaps, slots)
+
+
+def _name_table(data: bytes) -> tuple[int, int, tuple[int, ...]]:
+    """Book segment base, file offset of the ``+0x28`` list, and its pointers."""
+    segments = _segments(data)
+    segment, record = _book(data, segments)
+    table = segment.base + _u16(data, record + 0x28)
+    if table + 2 > len(data):
+        return segment.base, table, ()
+    count = _u16(data, table)
+    if table + 4 + 2 * count > len(data):
+        return segment.base, table, ()
+    pointers = tuple(_u16(data, table + 4 + 2 * index) for index in range(count))
+    return segment.base, table, pointers
+
+
+def _cstring(data: bytes, offset: int) -> str | None:
+    if offset < 0 or offset >= len(data):
+        return None
+    end = data.find(b"\x00", offset, offset + 64)
+    if end <= offset:
+        return None
+    raw = data[offset:end]
+    if any(byte < 32 or byte > 126 for byte in raw):
+        return None
+    return raw.decode("latin-1")
 
 
 def _style_runs(trailer: _Trailer, pointer: int) -> tuple[bytes, ...]:

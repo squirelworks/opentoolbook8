@@ -294,3 +294,17 @@ These class words occur on one object only, so none of their fields is recorded 
 ```
 
 The first is object 36 on page `P310`, bounds (1080, 945, 6645, 6900). The second is object 37 on page `P320`, bounds (1320, 1290, 8040, 5760).
+
+## The word at byte 2 of a style run
+
+The book record's word at `+0x28` is a near pointer. The first word of that block is a count, and that many near pointers follow. The count is 63 in `9e954d01.tbk` and 30 in `nida81.tbk`. The second word is 63 in the first book and 24 in the second, so it is not the count.
+
+62 of the 63 pointers in `9e954d01.tbk` address a C string. The strings stored more than once are Arial (28), Nida (9), System (5), MS Sans Serif (5), Times New Roman (4), WP Greek Helve (3), ShelleyAllegro BT (2), and Symbol (2). Pointer `0xe8a` does not start with a C string. That pointer is one example.
+
+26 of the 30 pointers in `nida81.tbk` address a C string. Arial is stored 13 times, MS Sans Serif 5 times, System 3 times, and Nida twice. The other four slots are the pointers `0x620` and `0xb9c`, each stored twice. Neither starts with a C string.
+
+The word at byte 2 of a style run is 1, or it is one of those pointers and the bytes there are a C string. The value 1 is not a pointer in the table. In `9e954d01.tbk` it is 1 on 134 of the 224 runs. Of the other 90, 74 name Arial, 8 name MS Sans Serif, and 7 name Wingdings. One run names MS Shell Dlg, which is one example. The two runs in the first block quoted under class `0xA` name Arial (`0x0734`) and MS Sans Serif (`0x0444`).
+
+In `nida81.tbk` the word is 1 on 61 of the 131 runs and Arial on 69. One run names Times New Roman, which is one example.
+
+The word at `+0x22` of a class `0xA` field is one of the C-string pointers on every such field. In `9e954d01.tbk` that is Arial on 492 fields, MS Sans Serif on 13, System on 10, and Small Fonts on 3. In `nida81.tbk` it is Arial on 225 fields and MS Sans Serif on 21.

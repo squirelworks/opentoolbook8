@@ -73,3 +73,7 @@ Other class-5 branches in the same image, each a separate use of that compare: `
 ## Still open
 
 The disk-to-object reader has no export name. The property that points a widget at a bitmap, other than the four huge-table pictures, is not settled. Fill, stroke, parent, and z-order are not a settled paint. OpenScript in the file is not expanded or run by this reader. The low bit that makes the byte at object −5 into `0x81` has no compare in `TB80BAS` and no meaning recorded yet. Only two TB80 books are on this machine, so "any TB80 book" is the rule above, checked on those two.
+
+## The word at byte 2 of a style run
+
+From `tbdecompile/research/paint-20261021.md`. That note calls the list at book `+0x28` a font table, and it says a style run's word at `+2` is an entry pointer, with the value 1 meaning the field's font at `+0x22`. The bytes agree that the word is 1 or a pointer in that list, and that the pointer addresses a C string. They do not show that 1 is replaced by the word at field `+0x22`. The reader returns the C string.
