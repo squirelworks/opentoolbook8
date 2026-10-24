@@ -39,6 +39,10 @@ On open, those filenames are looked up in this order: the book's directory, `--h
 
 A field is class `0xA`. Its text is word 1 of the block at record `+0x24`: a trailer handle, then a capacity word, a length word, and the characters. The copyright field on page P0 of `9e954d01.tbk` is read that way. The word at `+0x42` is not the text.
 
+## Polygon
+
+A class `0x10` polygon stores its count at `+0x30` and a near pointer to the points at `+0x32`. The source rectangle is four words at `+0x28` and the bounds are four words at `+0x0F`. A point maps as `x' = (x − src.left) × dstW / srcW + dst.left`, and the same for y. Page P430 object 136 has 11 points. Those points are the polygon. They are not the bounds rectangle.
+
 ## Missing files are reported, not fatal
 
 Logic Families names `minstb32.dll`. That file is not in the install list. Opening the book reports `named, not shipped` and still returns the book. A name that is in the install list but absent is `not found`. A starred install-list entry that is absent is `listed, not shipped`. None of the three stops the open.
