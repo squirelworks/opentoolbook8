@@ -505,7 +505,7 @@ A class `0x10` count is the number of pairs in `Vertices`, on all 654. Those pai
 
 A class `0x0E` line's endpoints are `Vertices`, on all 528. The color at `+0x17` is `RgbStroke` and the color at `+0x1B` is `RgbFill`, on all 528.
 
-A button `NormalGraphic` of `bitmap id N` stores N + 1, on all 380 buttons that name a graphic. A `CheckedGraphic` of `bitmap id N` stores N + 1 at byte `0x4b` of that block, on all 301 buttons that name one. The word is 0 on the other 95 blocks. `nida81.tbk` stores a picture id there on 79 blocks and 0 on 70.
+A button `NormalGraphic` of `bitmap id N` stores N + 1, on all 380 buttons that name a graphic. A `CheckedGraphic` of `bitmap id N` stores N + 1 at byte `0x4b` of that block, on all 301 buttons that name one. The word is 0 on the other 95 blocks. `nida81.tbk` stores a picture id there on 79 blocks and 0 on 70. An `InvertGraphic` of `bitmap id N` stores N + 1 at byte `0x27` of that block, on all 311 buttons that name one. The word is 0 on the other 85 blocks. `nida81.tbk` stores a picture id there on 79 blocks and 0 on 70.
 
 Background `RgbFill` is the first color and `RgbStroke` is the second color, on all 131 pages. `solidFill` is pattern byte 254 and `none` is pattern byte 253.
 
