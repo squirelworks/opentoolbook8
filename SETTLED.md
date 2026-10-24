@@ -190,3 +190,7 @@ A type 19 resource is 15 bytes. It starts with the word `0x0202`. The word at `+
 ## Quiz start
 
 A `buttonClick` handler that contains the line `end buttonClick` ends on that line. The reader returns the handler through that line. It does not call it. On `9e954d01.tbk` the group `selection1` on pages `P10001`, `P10002`, `P10003`, and `P10004` ends that way. Each calls `setupQuizEx` with `2`, `"P10301"`, `"P10302"`, and `"P10303"`, then `get clearpool()`, `addObjectiveToPool(1, 110, 119, 6)`, `addObjectiveToPool(2, 120, 129, 4)`, `setuppool()`, and `get gotoNextQuestionEx()`. The first argument is `Assessment`, `Pre-Test`, `Post-Test`, or `Quiz`.
+
+## Open handlers
+
+A handler whose body is in an `.sbk` is a column-0 line `to get` or `to handle` in that book's type 10 source. The reader returns the handler name and the book. It does not call the handler, and it does not read a DLL. `nc81base.sbk` holds 46 `to get` handlers, from `initializeBase` through `getCurrentPath`. `nc81recs.sbk` holds 17 `to get` handlers, from `initializeRecs` through `GetVar`. `nc81test.sbk` holds 89 `to get` handlers and `to handle timerNotify`. `nc81trnr.sbk` holds 63 `to get` handlers, plus `to handle linkMemFunctions32` and `to handle unlinkMemFunctions32`. None of the four books has a `to set` line.

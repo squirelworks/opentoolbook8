@@ -251,6 +251,37 @@ def resource_scripts(data: bytes) -> tuple[ResourceScript, ...]:
 
 
 @dataclass(frozen=True)
+class OpenHandler:
+    """One handler defined in an .sbk. ``name`` is not a call."""
+
+    book: str
+    kind: str
+    name: str
+
+
+# A column-0 handler header in a system-book script.
+_OPEN_HEADER = re.compile(r"^to\s+(handle|get|set)\s+(\S+)", re.IGNORECASE)
+
+
+def open_handlers(book: str, source: str) -> tuple[OpenHandler, ...]:
+    """Handler names in one system-book script.
+
+    ``source`` is the type 10 text the reader already expanded. A column-0
+    line ``to handle``, ``to get``, or ``to set`` names a handler whose
+    body is in ``book``. The reader does not call the handler.
+    """
+    found: list[OpenHandler] = []
+    for line in source.splitlines():
+        if not line or line[0].isspace():
+            continue
+        match = _OPEN_HEADER.match(line)
+        if match is None:
+            continue
+        found.append(OpenHandler(book, match.group(1).lower(), match.group(2)))
+    return tuple(found)
+
+
+@dataclass(frozen=True)
 class SharedScript:
     """One type 19 shared script, as source text. ``source`` is not a call."""
 
