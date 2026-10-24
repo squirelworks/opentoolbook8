@@ -15,7 +15,7 @@ What works in this tree:
 - The NIDA menu export (`nida:m3search`), the disc table (`CAILT.DAT`), the install list (`toolbook.lst`), and the system books a lesson names.
 - One rating folder from the key-disk creator: the description, the shift calendar, the encoded settings line, and the three versioned records.
 
-A page is not drawn here, and OpenScript is not run here. Those are what the viewer already does.
+A page is not drawn here, and OpenScript is not run here. Those are what the viewer already does. Reader behavior that is not written in `SETTLED.md` is not implemented.
 
 On a live stop with the lesson already open, handle `0x0C1E` had class word `0x0001`. The lookup returned `0x2BAF:0000`, the live selector of the class dispatcher, and `ECX` was `0x76`. The 412-byte record takes the same path. This boot did not reach that return.
 
