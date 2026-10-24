@@ -71,6 +71,17 @@ Word `+0x02` is 0, word `+0x20` is 0, word `+0x2E` is 720, and word `+0x34` is 0
 0000000014000600ffff0800000d0000001e00fb044a01e0e0e0000000bf0003000004066e010000900090009000d002b6495200000001000000000073
 ```
 
+Word 0 of the block at `+0x24` is a run list on the fields where it is a trailer handle. On the even scan, 518 of these records sit in a segment that has a trailer. That word is `0xFFFF` on 432 of them and 0 on 4, and those 436 have no run list. The other 82 name a block whose second word is a count, followed by that many 11-byte runs. The same shape holds for all 52 handled fields in `nida81.tbk` (190 of its fields are `0xFFFF`, and 4 are 0).
+
+The first word of each run is an offset into that field's text. Inside one block the offsets strictly increase, and each offset is at most the text length. The byte at run `+6` is 0 or 4. The byte at run `+10` is 0. That is all 224 runs in `9e954d01.tbk` and all 131 runs in `nida81.tbk`. The word at run `+2` is not a single value. The word in front of the count is not the count. Two blocks from `9e954d01.tbk`:
+
+```
+0300020000003407000000000000001200440400000000000000
+080006000000920f0000000000000001002609000000f0f0f0001900920f000000000000001a002609000000f0f0f0003000920f0000000000000031002609000000f0f0f000
+```
+
+The first has offsets 0 and 18. The second has offsets 0, 1, 25, 26, 48, and 49.
+
 ### Class `0xB`, 49 bytes, 369 records
 
 Words `+0x02`, `+0x1A`, `+0x1C`, and `+0x20` are 0. Word `+0x08` is 65535. Word `+0x22` is 1. Two records:
