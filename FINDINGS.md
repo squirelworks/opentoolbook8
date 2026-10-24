@@ -565,6 +565,20 @@ On `9e954d01.tbk` the background `Test` is the one named by pages `P10210` throu
 
 `to get getquizResponse` is one function. It walks `ansiToChar(96 + i)` and keeps the name of a checked button. `to get processQuizScore` in `nc81base.sbk` is one function. It writes the score into `NIDAREC.INI`. `to get handleQuizKey` is one function.
 
+## Class `0x12` in otb-pie.tbk
+
+`otb-pie.tbk` is a blank native book saved by ToolBook II Instructor 8.1. The page id is empty. Instructor reports two pie objects on that page, ids 0 and 2, and one ellipse, id 1. `9e954d01.tbk` and `nida81.tbk` have no class `0x12` record of this length. The ellipse is the class `0xC` record already described. These notes are the pie records only.
+
+Both pies are class `0x12`. The length formula used for the other draw objects, the end word minus the near offset of the id word, is 59 on pie id 0. Pie id 2 is the last object in that directory record, so it has no following end word inside the record. Its bytes match the first 58 bytes of pie id 0 in the slots below. The 59th byte of pie id 0 is `0x0D`, which is the low byte of the next object's end word.
+
+The two records use the same bytes at `+0x02` through `+0x0E`: `00 00 14 00 ff ff ff ff 08 00 00 ff ff`. Word `+0x04` is `0x14`, the page's near offset. They use the same bytes at `+0x17` through `+0x24`: `00 00 00 00 00 00 00 00 01 00 00 04 32 0f`. They use the same bytes at `+0x36` through `+0x39`: `fe 3e 07 00`.
+
+The four signed words at `+0x0F` are the bounds. Pie id 0 is `(600, 600, 3000, 3000)`. Pie id 2 is `(-1400, 500, 2400, 500)`. Those two rectangles are not the same, so the slot is the one that changes with the object. The top and bottom of pie id 2 are both 500.
+
+The bytes at `+0x25` through `+0x35` are not the same in the two records. Pie id 0, drawn `from 1500,1500 to 3500,3500 to 1500,3500` and then given the bounds above, stores signed words `1500, 3500, 1500, 1500, 1500, 3500, 0, 2000` from `+0x25`. Pie id 2, drawn `from 2400,500 to 1500,2200 to 500,500`, stores `500, 500, 2400, 500, 500, 500, 1900, 0`. The second `to` point of pie id 2, `1500, 2200`, is not one of those words. That region is two examples, not a settled point list.
+
+An ellipse in the same book is 41 bytes and puts its pattern byte at `+0x25`. A pie is longer, and `+0x25` is the first of the words above, not that pattern byte. Class `0x11` is 61 bytes and class `0x10` is 53. Neither length is 59.
+
 ## Version FileVersion
 
 The version-resource string `FileVersion` is not one value. `otb-line-rect.tbk` and `nida81.tbk` store `8.1.0.0`. `9e954d01.tbk`, `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk` store `8.1.0.664`. The fixed file-version low dword in that block is 0 for the first pair and 664 for the second. `FileDescription`, `InternalName`, `OriginalFilename`, `ProductVersion`, and `CompanyName` are the same bytes in all seven files.
