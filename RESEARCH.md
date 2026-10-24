@@ -102,6 +102,10 @@ From `nc81test.sbk` type 10 resource 741, expanded by this reader on 24 October 
 
 `processQuizScore` in `nc81base.sbk` is one function. It writes `NIDAREC.INI` through `WritePrivateProfileStringA`. That write is not a score the reader computes. `getquizResponse` is one function. The comparison that repeats is the two handlers in `FINDINGS.md`, which call it and test `answer of this page`.
 
+## Schema element spelling
+
+The SumTotal objects schema names one element `IrregularPloygon`. The TB115 export of `9e954d01` names that object `IrregularPolygon`, and the class `0x10` records are that object. This reader uses `IrregularPolygon`. The schema file is left as it was shipped.
+
 ## Pattern bytes 0xFD, 0xFE, and 0xFF
 
 From `tbdecompile/research/paint-20261021.md`. `LOCKPATTERN` in `TB80BAS` is `1098:0876`. That note says `0xFD` is hollow, `0xFE` is solid paper, and `0xFF` is solid ink, and that `1` through `0x80` is a pattern. `0xFE` is stored on backgrounds and on class `0x8`, `0xC`, and `0x10` in both books. `0xFD` is stored on class `0x8` in both books. `0xFF` is not stored on those fields in either book, so that name is not applied here. The counts are in `FINDINGS.md`.

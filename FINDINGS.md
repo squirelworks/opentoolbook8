@@ -491,6 +491,32 @@ The pattern on a class `0x8`, `0xC`, or `0x10` record is the byte at `+0x25`. Cl
 
 `0xFE` occurs in both books on all four of those fields. `0xFD` occurs in both books on class `0x8`. `0xFF` does not occur on any of those fields in either book. The other values stay numbers.
 
+## TBKX export of this book
+
+The export is a TB115 naming of `9e954d01`. The bytes below are the TB80 file. A field is listed here when the export name and the bytes already read are the same value on more than one record.
+
+The export object id is the word at the start of the record. Rectangle is class `0x8`, button `0x9`, field `0xA`, group `0xB`, ellipse `0xC`, line `0xE`, irregular polygon `0x10`, arc `0x11`, and angled line `0x13`. Five hotwords are class `0x17`. The field `Review 2` on `P10410` is not in that page walk. That field is one example.
+
+Field `Text`, with the `{...}` tokens removed, is the character record on 230 named fields. `InfoText` on `PINFO` stores one newline the export does not. That newline is one example. A token such as `{size:18}` is not a character in the record.
+
+On all twenty quiz pages the export `Stem`, `A`, `B`, `C`, `D`, `Answer`, `QuestionNo`, and `TestNo` are the values the reader returns. `SourceQuestionNo`, `SourceTestNo`, and `sourcepage` are those same characters.
+
+A class `0x10` count is the number of pairs in `Vertices`, on all 654. Those pairs are the stored points on 3 records, where the source rectangle equals the bounds. The other stored points are not the export vertices.
+
+A class `0x0E` line's endpoints are `Vertices`, on all 528. The color at `+0x17` is `RgbStroke` and the color at `+0x1B` is `RgbFill`, on all 528.
+
+A button `NormalGraphic` of `bitmap id N` stores N + 1, on all 380 buttons that name a graphic.
+
+Background `RgbFill` is the first color and `RgbStroke` is the second color, on all 131 pages. `solidFill` is pattern byte 254 and `none` is pattern byte 253.
+
+Field `Indents` are the words at `+0x28`, `+0x2A`, and `+0x2C`, on 386 fields. The rectangle at `+0x0F` is `Bounds` on those 386 fields, on 382 buttons, on 45 ellipses, and on 243 rectangles.
+
+A class `0x13` count is the number of pairs in `Vertices`, on all 66. Those pairs are the stored points on 4 records.
+
+The export arc `Vertices` are not the stored pairs at `+0x25` and `+0x29`, on any of the 62 arcs.
+
+The words `0x0013` and `0x0068` sit in the 55 bytes after the page record on all twenty quiz pages, and on none of the 91 other pages with that same gap. `0x0068` is 104. The export calls the shared script id 103. That pair occurs once. `HelpPage` is not the `0x0009` value slot. `SourceLesson` is that slot on 19 pages. On `P10210` the word in that place is `0x0004`. That page is one example. Line `LineStyle` is not the byte at `+0x25`.
+
 ## Quiz handlers
 
 `nc81test.sbk` type 10 resource 741 is one script of `to get` handlers. `nida81.tbk` does not store these names. The lesson stores the calls.

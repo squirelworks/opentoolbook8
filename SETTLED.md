@@ -39,6 +39,10 @@ On open, those filenames are looked up in this order: the book's directory, `--h
 
 A field is class `0xA` and the record is 61 bytes. Its text is word 1 of the block at record `+0x24`: a trailer handle, then a capacity word, a length word, and the characters. On `9e954d01.tbk` that reads the Copyright field and the Filename field. Offset `+0x42` is past the end of the record.
 
+## Field bounds
+
+A class `0xA` field is 61 bytes. The four signed words at `+0x0F` are a rectangle. The reader returns that rectangle. On `9e954d01.tbk` the Copyright field on `P0` is (248, 4500, 9638, 6300) and the Stem field on `P10210` is (2430, 690, 7050, 1545). The same read holds for every such field in `nida81.tbk`.
+
 ## Polygon
 
 A class `0x10` polygon is 53 bytes. The count is the word at `+0x30` and the near pointer at `+0x32` names the stored points, four bytes each. Every such point list in `9e954d01.tbk` lies inside the source rectangle at `+0x28`. The bounds are four words at `+0x0F`. The reader returns the stored points.

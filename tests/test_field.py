@@ -9,11 +9,13 @@ import unittest
 from pathlib import Path
 
 from opentoolbook.field import (
+    field_bounds,
     field_style_runs,
     field_text,
     field_text_places,
     field_words,
     page_ids,
+    stored_field_bounds,
     style_run_names,
 )
 
@@ -157,6 +159,31 @@ class FieldTextPlaceTests(unittest.TestCase):
                 self.assertEqual(place.at, 0xCBAD7)
                 self.assertEqual(place.text, P440_BODY)
         self.assertEqual(saw_p440, expect_p440)
+
+
+class FieldBoundsTests(unittest.TestCase):
+    def test_bounds_are_the_rectangle_at_0x0f(self):
+        path = os.environ.get("OPENTOOLBOOK_TBK")
+        if not path or not os.path.isfile(path):
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        data = Path(path).read_bytes()
+        copyright_bounds = field_bounds(data, "P0", "Copyright")
+        stem_bounds = field_bounds(data, "P10210", "Stem")
+        self.assertEqual(copyright_bounds, (248, 4500, 9638, 6300))
+        self.assertEqual(stem_bounds, (2430, 690, 7050, 1545))
+        self.assertNotEqual(copyright_bounds, stem_bounds)
+        self._ordered(data)
+        nida = Path(path).with_name("nida81.tbk")
+        self.assertTrue(nida.is_file())
+        self._ordered(nida.read_bytes())
+
+    def _ordered(self, data: bytes):
+        found = stored_field_bounds(data)
+        self.assertGreaterEqual(len(found), 2)
+        self.assertGreaterEqual(len(set(found)), 2)
+        for left, top, right, bottom in found:
+            self.assertLessEqual(left, right)
+            self.assertLessEqual(top, bottom)
 
 
 if __name__ == "__main__":

@@ -159,6 +159,53 @@ def field_text_places(data: bytes) -> tuple[FieldTextPlace, ...]:
     return tuple(found)
 
 
+def field_bounds(data: bytes, page_id: str, field_name: str) -> tuple[int, int, int, int]:
+    """The four signed words at ``+0x0F`` of the named field.
+
+    They are a rectangle. The text at ``+0x24`` is not this rectangle.
+    """
+    segments = _segments(data)
+    by_key = {segment.key: segment for segment in segments}
+    book_segment, book_record = _book(data, segments)
+    for handle in _page_handles(data, by_key, book_segment, book_record):
+        segment = by_key.get(handle >> 16)
+        if segment is None:
+            continue
+        record = segment.base + (handle & 0xFFFF)
+        if record < 2 or record + 8 > len(data) or _u16(data, record - 2) != PAGE:
+            continue
+        if _chars(data, record + 6, 32) != page_id:
+            continue
+        trailer = _trailer(data, segment)
+        for field in _fields(data, segment, record):
+            if trailer is None or _name(trailer, _u16(data, field + 6)) != field_name:
+                continue
+            return _bounds(data, field)
+    raise ValueError(f"no {field_name} field on {page_id}")
+
+
+def stored_field_bounds(data: bytes) -> tuple[tuple[int, int, int, int], ...]:
+    """The rectangle at ``+0x0F`` of every class ``0xA`` field of this length."""
+    found: list[tuple[int, int, int, int]] = []
+    for segment in _segments(data):
+        end = segment.file_at + segment.size
+        at = segment.base + 0x18
+        while at + FIELD_BYTES <= end and at >= 4:
+            kind = _u16(data, at - 2)
+            size = _u16(data, at - 4) - (at - segment.base)
+            if kind == FIELD and size == FIELD_BYTES:
+                found.append(_bounds(data, at))
+                at += size
+                continue
+            at += 1
+    return tuple(found)
+
+
+def _bounds(data: bytes, record: int) -> tuple[int, int, int, int]:
+    left, top, right, bottom = struct.unpack_from("<hhhh", data, record + 0x0F)
+    return left, top, right, bottom
+
+
 def field_words(data: bytes) -> tuple[tuple[int, int, int, int, int], ...]:
     """The words at ``+0x28``, ``+0x2A``, ``+0x2C``, and ``+0x32``, and the byte at ``+0x36``.
 
