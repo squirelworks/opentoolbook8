@@ -9,6 +9,7 @@ from opentoolbook.bitmap import (
     button_bitmap,
     button_border,
     button_bounds,
+    button_checked,
     button_checked_ids,
     button_checked_picture,
     button_disabled_ids,
@@ -20,6 +21,7 @@ from opentoolbook.bitmap import (
     huge_bitmaps,
     stored_button_borders,
     stored_button_bounds,
+    stored_button_checked,
     stored_button_enabled,
 )
 from opentoolbook.record import Book
@@ -197,6 +199,24 @@ class ButtonEnabledTests(unittest.TestCase):
         other = stored_button_enabled(nida.read_bytes())
         self.assertGreaterEqual(other.count(1), 2)
         self.assertGreaterEqual(other.count(0), 2)
+
+
+class ButtonCheckedTests(unittest.TestCase):
+    def test_checked_is_bit_4_at_0x26(self):
+        path = os.environ.get("OPENTOOLBOOK_TBK")
+        if not path or not os.path.isfile(path):
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        data = Path(path).read_bytes()
+        self.assertEqual(button_checked(data, "P10211", "B"), 1)
+        self.assertEqual(button_checked(data, "P10210", "A"), 0)
+        lesson = stored_button_checked(data)
+        self.assertGreaterEqual(lesson.count(1), 2)
+        self.assertGreaterEqual(lesson.count(0), 2)
+        nida = Path(path).with_name("nida81.tbk")
+        self.assertTrue(nida.is_file())
+        other = stored_button_checked(nida.read_bytes())
+        self.assertGreaterEqual(len(other), 2)
+        self.assertTrue(all(item == 0 for item in other))
 
 
 def _type1_resource_ids(data: bytes) -> set[int]:
