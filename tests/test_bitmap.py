@@ -21,6 +21,7 @@ from opentoolbook.bitmap import (
     huge_bitmaps,
     stored_button_borders,
     stored_button_bounds,
+    stored_button_captions,
     stored_button_checked,
     stored_button_enabled,
 )
@@ -98,6 +99,23 @@ class ButtonBoundsTests(unittest.TestCase):
         for left, top, right, bottom in found:
             self.assertLessEqual(left, right)
             self.assertLessEqual(top, bottom)
+
+
+class ButtonCaptionTests(unittest.TestCase):
+    def test_caption_is_the_string_at_0x22(self):
+        path = os.environ.get("OPENTOOLBOOK_TBK")
+        if not path or not os.path.isfile(path):
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        data = Path(path).read_bytes()
+        captions = stored_button_captions(data)
+        self.assertEqual(captions.count("OK"), 2)
+        self.assertEqual(captions.count(""), len(captions) - 2)
+        nida = Path(path).with_name("nida81.tbk")
+        self.assertTrue(nida.is_file())
+        other = stored_button_captions(nida.read_bytes())
+        self.assertEqual(other.count("Recheck"), 4)
+        self.assertEqual(other.count("Check Voltages"), 3)
+        self.assertEqual(other.count(""), len(other) - 7)
 
 
 class ButtonBorderTests(unittest.TestCase):

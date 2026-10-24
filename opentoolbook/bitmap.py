@@ -23,6 +23,7 @@ from opentoolbook.field import (
     _page_handles,
     _segments,
     _trailer,
+    _u16,
 )
 from opentoolbook.record import Book
 
@@ -380,6 +381,25 @@ def stored_button_checked(data: bytes) -> tuple[int, ...]:
 def stored_button_bounds(data: bytes) -> tuple[tuple[int, int, int, int], ...]:
     """The rectangle at ``+0x0F`` of every class ``0x09`` button of this length."""
     return tuple(_bounds(data, button) for _segment, button in _button_records(data))
+
+
+def stored_button_captions(data: bytes) -> tuple[str, ...]:
+    """The C string named by the word at ``+0x22``, or empty when that word is 0."""
+    return tuple(_caption(data, segment, button) for segment, button in _button_records(data))
+
+
+def _caption(data: bytes, segment, button: int) -> str:
+    pointer = _u16(data, button + 0x22)
+    if pointer == 0:
+        return ""
+    origin = segment.base + pointer
+    end = segment.file_at + segment.size
+    if origin < segment.base or origin >= end:
+        raise ValueError("button caption is past the segment")
+    stop = data.find(b"\x00", origin, end)
+    if stop < 0:
+        raise ValueError("button caption is past the segment")
+    return data[origin:stop].decode("latin1")
 
 
 def _button_records(data: bytes) -> tuple[tuple, ...]:

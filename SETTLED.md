@@ -63,6 +63,10 @@ A class `0x09` button is 43 bytes. The word at `+0x28` is a near pointer to a gr
 
 A class `0x09` button is 43 bytes. The four signed words at `+0x0F` are a rectangle. The reader returns that rectangle. On `9e954d01.tbk` the Next button on `P300` is (8907, 6210, 9342, 6630) and the A button on `P10210` is (2430, 1635, 2715, 1920). The same read holds for every such button in `nida81.tbk`.
 
+## Button caption
+
+A class `0x09` button is 43 bytes. The word at `+0x22` is a near pointer to a C string, or 0. The reader returns that string, and it returns an empty string when the word is 0. On `otb-btn.tbk` the two captions are `otb` and `go`. On `9e954d01.tbk` two buttons store `OK` and the other 396 store an empty caption. On `nida81.tbk` the stored captions are `Recheck` and `Check Voltages`, and the other 149 store an empty caption.
+
 ## Button checked picture
 
 A class `0x09` button's word at `+0x28` names a graphics block that starts with `0x0202`. The unaligned word at byte `0x4b` of that block is the checked picture. It is a type-1 resource id plus one, or 0 when there is no checked picture. The reader returns it. On `9e954d01.tbk` the A button on `P10210` is 118, the stored id of bitmap 117. The MenuFrame button on `P300` is 0. The same word is a stored id or 0 on every such block in `nida81.tbk`.
