@@ -310,6 +310,39 @@ def stored_button_borders(data: bytes) -> tuple[int, ...]:
     return tuple(data[button + 0x27] for _segment, button in _button_records(data))
 
 
+def button_enabled(data: bytes, page_id: str, button_name: str) -> int:
+    """Bit 0 of the byte at ``+0x26`` of the named button.
+
+    1 is enabled and 0 is not. The other bits of that byte are not this field.
+    """
+    segments = _segments(data)
+    by_key = {segment.key: segment for segment in segments}
+    book_segment, book_record = _book(data, segments)
+    for handle in _page_handles(data, by_key, book_segment, book_record):
+        segment = by_key.get(handle >> 16)
+        if segment is None:
+            continue
+        record = segment.base + (handle & 0xFFFF)
+        if record < 2 or record + 8 > len(data) or _u16(data, record - 2) != PAGE:
+            continue
+        if _chars(data, record + 6, 32) != page_id:
+            continue
+        trailer = _trailer(data, segment)
+        parent = record - segment.base
+        for button in _buttons(data, segment):
+            if _u16(data, button + 4) != parent:
+                continue
+            if trailer is None or _name(trailer, _u16(data, button + 6)) != button_name:
+                continue
+            return data[button + 0x26] & 1
+    raise ValueError(f"no {button_name} button on {page_id}")
+
+
+def stored_button_enabled(data: bytes) -> tuple[int, ...]:
+    """Bit 0 of ``+0x26`` on every class ``0x09`` button of this length."""
+    return tuple(data[button + 0x26] & 1 for _segment, button in _button_records(data))
+
+
 def stored_button_bounds(data: bytes) -> tuple[tuple[int, int, int, int], ...]:
     """The rectangle at ``+0x0F`` of every class ``0x09`` button of this length."""
     return tuple(_bounds(data, button) for _segment, button in _button_records(data))

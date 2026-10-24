@@ -79,6 +79,10 @@ A class `0x09` button's graphics block starts with `0x0202`. The unaligned word 
 
 A class `0x09` button is 43 bytes. The byte at `+0x27` is the border. The reader returns that byte. On `9e954d01.tbk` the Next button on `P300` is 1 and the A button on `P10210` is 9. The export calls 1 `none`, 9 `radioButton3d`, and 7 `pushButton`. In `nida81.tbk` every such button is 1 or 7.
 
+## Button enabled
+
+A class `0x09` button is 43 bytes. Bit 0 of the byte at `+0x26` is enabled. The reader returns that bit. On `9e954d01.tbk` the Next button on `P300` is 1 and the A button on `P10302` is 0. The export calls 1 `true` and 0 `false`. The same bit is 1 on 93 buttons in `nida81.tbk` and 0 on 63.
+
 ## Page ids
 
 Page ids come from the walk that already finds P0: the page list at book `+0x10`, then the C string at each page record `+6`. That walk includes P0 and P430.
