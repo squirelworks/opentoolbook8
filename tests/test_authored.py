@@ -8,6 +8,7 @@ of those points. The rectangle uses the class 0x8 color and pattern bytes.
 import unittest
 from pathlib import Path
 
+from opentoolbook.bitmap import stored_button_bounds
 from opentoolbook.ellipse import stored_ellipses
 from opentoolbook.field import field_text, page_ids, stored_field_bounds
 from opentoolbook.line import stored_lines
@@ -80,6 +81,23 @@ class AuthoredFieldTests(unittest.TestCase):
         self.assertEqual(
             [(item.kind, item.object_id, item.name) for item in page.objects],
             [(0xA, 0, "otb")],
+        )
+
+
+BUTTON_BOOK = Path(__file__).parent / "fixtures" / "otb-btn.tbk"
+
+
+class AuthoredButtonTests(unittest.TestCase):
+    def test_blank_native_page_stores_two_buttons(self):
+        data = BUTTON_BOOK.read_bytes()
+        self.assertEqual(
+            stored_button_bounds(data),
+            ((600, 600, 2200, 1100), (600, 1400, 2200, 1900)),
+        )
+        page = page_records(data, "")
+        self.assertEqual(
+            [(item.kind, item.object_id, item.name) for item in page.objects],
+            [(0x9, 0, ""), (0x9, 1, "")],
         )
 
 
