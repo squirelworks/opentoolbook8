@@ -95,3 +95,43 @@ def _rect(data: bytes, offset: int) -> tuple[int, int, int, int]:
     left, top, right, bottom = struct.unpack_from("<hhhh", data, offset)
     return left, top, right, bottom
 
+
+@dataclass(frozen=True)
+class PolygonColor:
+    """Colors stored beside the points.
+
+    The bytes at ``+0x17`` are a color and the byte at ``+0x1A`` is 0.
+    The bytes at ``+0x1B`` are a color and the byte at ``+0x1E`` is 0.
+    The byte at ``+0x25`` is the pattern. The bounds are four signed
+    words at ``+0x0F``.
+    """
+
+    bounds: tuple[int, int, int, int]
+    pattern: int
+    first_color: tuple[int, int, int]
+    second_color: tuple[int, int, int]
+
+
+def stored_polygon_colors(data: bytes) -> tuple[PolygonColor, ...]:
+    """Every class ``0x10`` record of the shared length."""
+    found: list[PolygonColor] = []
+    for segment in _segments(data):
+        end = segment.file_at + segment.size
+        at = segment.base + 0x10
+        while at + POLYGON_BYTES <= end and at >= 4:
+            kind = _u16(data, at - 2)
+            size = _u16(data, at - 4) - (at - segment.base)
+            if kind == POLYGON and size == POLYGON_BYTES:
+                found.append(_color(data, at))
+            at += 2
+    return tuple(found)
+
+
+def _color(data: bytes, record: int) -> PolygonColor:
+    return PolygonColor(
+        _rect(data, record + 0x0F),
+        data[record + 0x25],
+        (data[record + 0x17], data[record + 0x18], data[record + 0x19]),
+        (data[record + 0x1B], data[record + 0x1C], data[record + 0x1D]),
+    )
+
