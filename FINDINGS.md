@@ -404,3 +404,9 @@ Byte 4 in the first book is 0 on 219 runs, 238 on 3, and 146 on 2. Byte 5 is 0 o
 Byte 7 in the first book is 255 on 111, 0 on 84, 240 on 20, and 64 on 9. Byte 8 is 0 on 84, 252 on 62, 255 on 49, 240 on 20, and 64 on 9. Byte 9 is 0 on 128, 240 on 82, 255 on 9, 64 on 3, and 191 on 2. In `nida81.tbk` byte 7 is 0 on 81, 255 on 37, and 64 on 13. Byte 8 is 0 on 79, 255 on 27, 252 on 14, 64 on 9, and 128 on 2. Byte 9 is 0 on 93, 255 on 20, 240 on 14, 191 on 2, and 64 on 2.
 
 The seven Wingdings runs in `9e954d01.tbk` store 0 at bytes 4, 5, 7, 8, and 9. `nida81.tbk` has no Wingdings run. The word at byte 4 of an Arial run is 0 on all 74 Arial runs in the first book and all 69 in the second. That is the same word the Wingdings runs store. The word at byte 7 is not one value on the Arial runs. No point size is read from these bytes.
+
+## Class `0x15` words that vary
+
+Twenty-four words are the same on all five records, as the class note says. The other twenty words vary. Their offsets are `+0x00`, `+0x0A`, `+0x0C`, `+0x0E`, `+0x10`, `+0x12`, `+0x14`, `+0x16`, `+0x22`, `+0x28`, `+0x2A`, `+0x2C`, `+0x2E`, `+0x30`, `+0x32`, `+0x34`, `+0x4C`, `+0x4E`, `+0x50`, and `+0x52`. The last byte varies too. None of those twenty words is a type-1 resource id, and none is a stored id in 101 through 166.
+
+The word at `+0x00` is 2, 16, 20, 16, 20. The two records whose id is 16 share the word `0xA700` at `+0x4E`. The two whose id is 20 share `0x1D00` there. Reading an unaligned word at `+0x4F` on the first pair yields 167, because byte `+0x4F` is `0xA7` and byte `+0x50` is 0. Resource 166 starts `02 02 07 00`. The bytes `01 02 01 00` and `BM` occur later in that resource, at `+18` and `+26`. That unaligned 167 is not a picture field.
