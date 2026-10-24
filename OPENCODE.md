@@ -1,8 +1,8 @@
-# Open code and the core
+# Book script and the core
 
-DLLs and EXEs are the core, hardcoded side of ToolBook. This note does not decompile them, paste their code, or copy them into git. The `.sbk` files are the open side. So are the handler bodies the existing readers return from the NIDA `.tbk` files.
+DLLs and EXEs are the core, hardcoded side of ToolBook. This note does not decompile them, paste their code, or copy them into git. The `.sbk` files hold book script. So do the handler bodies the existing readers return from the NIDA `.tbk` files. OpenScript is the ToolBook language. This note uses book script for the text in those files, and OpenScript only for the language.
 
-A name is open when a `to handle`, `to get`, or `to set` line in one of those scripts starts its body. A name is on the core side of the split when one of those scripts calls it and no script in the books below defines it. The body is not in the open books. A `linkDLL` or `linkDLL32` line is open-script text: it places a DLL filename beside an identifier. This note did not open that DLL, and it does not name an export inside it.
+A name is book script when a `to handle`, `to get`, or `to set` line in one of those scripts starts its body. A name is on the core side of the split when one of those scripts calls it and no script in the books below defines it. The body is not in these books. A `linkDLL` or `linkDLL32` line is book-script text: it places a DLL filename beside an identifier. This note did not open that DLL, and it does not name an export inside it.
 
 ## Books and how a call was counted
 
@@ -23,24 +23,24 @@ A name seen at one call site is one call site. It is still listed.
 
 The lists below are that type 10 and type 19 text. The button reader is separate, and the last section says what it adds.
 
-## The quiz check is open code
+## The quiz check is book script
 
-`response = answer of this page` is open code inside `nc81test.sbk`. Type 10 resource 741 contains that line twice.
+`response = answer of this page` is book script inside `nc81test.sbk`. Type 10 resource 741 contains that line twice.
 
 `to get gotoNextQuestionEx` sets `score = 0`, then sets `score = 100` when `response = answer of this page`. It then calls `storeQuestionResponse`. `to get gotoPreviousQuestionEx` uses the same comparison: `score = 100` on that line, and `score = 0` on the other branch, then the same `storeQuestionResponse` call.
 
-`getquizResponse` and `storeQuestionResponse` are defined in that script, and the scripts call them, so they stay on the open side of the split.
+`getquizResponse` and `storeQuestionResponse` are defined in that script, and the scripts call them, so they stay on the book-script side of the split.
 
 - `to get getquizResponse` is called 4 times, all in `nc81test.sbk`.
 - `to get storeQuestionResponse int test, int question, string response, int score` is called 3 times: twice in `nc81test.sbk`, and once in `9e954d01.tbk` type 19 resource 102.
 
-Type 19 resource 102 of `9e954d01.tbk` is also open code. Its `to handle buttonClick` contains `response = answer of this page` once, sets `score = 100` or `score = 0`, and calls `storeQuestionResponse` once. `getquizResponse` does not appear there. That handler reads `text of field "response"`.
+Type 19 resource 102 of `9e954d01.tbk` is also book script. Its `to handle buttonClick` contains `response = answer of this page` once, sets `score = 100` or `score = 0`, and calls `storeQuestionResponse` once. `getquizResponse` does not appear there. That handler reads `text of field "response"`.
 
-## Handlers defined in the open books
+## Handlers defined in these books
 
 The four `.sbk` files define 218 handlers. Each name occurs once in those four files. The two `.tbk` files add 46 definition lines. Together that is 264 definition lines and 231 different names. Every definition is `to get` or `to handle`. These scripts contain no `to set`.
 
-A call of one of these 231 names is open code calling open code. Those calls are not in the boundary list. 106 of the 231 names occur as calls in this type 10 and type 19 text.
+A call of one of these 231 names is book script calling book script. Those calls are not in the boundary list. 106 of the 231 names occur as calls in this type 10 and type 19 text.
 
 ### nc81base.sbk
 
@@ -346,15 +346,15 @@ The same name in more than one resource is still one open name. `enterPage` is d
 
 ## Boundary names
 
-These 101 names are called from the type 10 and type 19 text above. No `to handle`, `to get`, or `to set` in these six books defines them. The body is not in the open books. The counts are call sites in that text.
+These 101 names are called from the type 10 and type 19 text above. No `to handle`, `to get`, or `to set` in these six books defines them. The body is not in these books. The counts are call sites in that text.
 
-78 of them are outside the OpenScript keyword list. 66 of those 78 also appear in a `linkDLL` or `linkDLL32` declaration in the open script. 12 are called with no such declaration. 23 are OpenScript keywords from `opentoolbook.keywords`, the keyword ids the reader uses to expand these scripts. The scripts call those keywords, and no open handler here defines them.
+78 of them are outside the OpenScript keyword list. 66 of those 78 also appear in a `linkDLL` or `linkDLL32` declaration in the book script. 12 are called with no such declaration. 23 are OpenScript keywords from `opentoolbook.keywords`, the keyword ids the reader uses to expand these scripts. The scripts call those keywords, and no handler in these books defines them.
 
 The 101 names account for 891 call sites.
 
-### Called, and declared with linkDLL in the open script
+### Called, and declared with linkDLL in the book script
 
-The open script names a DLL file on the `linkDLL` line. The function body is not in the open books. The DLL was not opened. This list does not say which export inside that file implements the name.
+The book script names a DLL file on the `linkDLL` line. The function body is not in these books. The DLL was not opened. This list does not say which export inside that file implements the name.
 
 | Name | Call sites | DLL file the script names |
 |---|---|---|
@@ -427,11 +427,11 @@ The open script names a DLL file on the `linkDLL` line. The function body is not
 
 `GetPrivateProfileIntA` is declared twice in `nc81base.sbk`, once as `INT GetPrivateProfileIntA(STRING, STRING, INT, STRING)` and once as `DWORD GetPrivateProfileIntA(STRING, STRING, INT, STRING)`. Both declarations name `kernel32.dll`.
 
-Two further identifiers are declared this way and have no call site in these scripts, so they are not in the table: `GlobalHandle` beside `kernel32.dll`, and `IntClearFaults205E` beside `nc81int.dll`. Their bodies are not in the open books either.
+Two further identifiers are declared this way and have no call site in these scripts, so they are not in the table: `GlobalHandle` beside `kernel32.dll`, and `IntClearFaults205E` beside `nc81int.dll`. Their bodies are not in these books either.
 
 ### Called, with no handler and no linkDLL declaration
 
-Each of these is called from the type 10 and type 19 text. No open handler defines it, and no `linkDLL` line in these scripts names it. The body is not in the open books.
+Each of these is called from the type 10 and type 19 text. No handler in these books defines it, and no `linkDLL` line in these scripts names it. The body is not in these books.
 
 | Name | Call sites |
 |---|---|
@@ -448,11 +448,11 @@ Each of these is called from the type 10 and type 19 text. No open handler defin
 | `getCurrentDirectory` | 1 (one call site) |
 | `getCurrentDrive` | 1 (one call site) |
 
-`readVoltages130E` is an open handler in `nc81trnr.sbk`. `readVoltages130a` is a different name. `WritePrivateProfileStringA` is the identifier in the `kernel32.dll` declaration. `WritePrivateProfileString`, without the final `A`, is a different name. `pointerString`, `pointerLong`, and `pointerDouble` are keywords. `pointerString32`, `pointerLong32`, and `pointerDouble32` are the names the scripts call.
+`readVoltages130E` is a handler in `nc81trnr.sbk`. `readVoltages130a` is a different name. `WritePrivateProfileStringA` is the identifier in the `kernel32.dll` declaration. `WritePrivateProfileString`, without the final `A`, is a different name. `pointerString`, `pointerLong`, and `pointerDouble` are keywords. `pointerString32`, `pointerLong32`, and `pointerDouble32` are the names the scripts call.
 
 ### Called OpenScript keywords
 
-These words are keyword ids. The scripts call them with `name(...)` or `send name`. No handler in these books defines them. The body is not in the open books.
+These words are keyword ids. The scripts call them with `name(...)` or `send name`. No handler in these books defines them. The body is not in these books.
 
 | Name | Call sites |
 |---|---|
@@ -482,9 +482,9 @@ These words are keyword ids. The scripts call them with `name(...)` or `send nam
 
 ## Inline buttonClick scripts
 
-`button_clicks` also returns script text. `nida81.tbk` has 119 of those handlers and `9e954d01.tbk` has 249. The `.sbk` files have none. Every one of them is `to handle buttonClick` (the spelling of `to handle` varies). They define no other name. `buttonClick` is already defined in the type 10 and type 19 scripts of `9e954d01.tbk`, so those bodies are open code for a name already listed above.
+`button_clicks` also returns script text. `nida81.tbk` has 119 of those handlers and `9e954d01.tbk` has 249. The `.sbk` files have none. Every one of them is `to handle buttonClick` (the spelling of `to handle` varies). They define no other name. `buttonClick` is already defined in the type 10 and type 19 scripts of `9e954d01.tbk`, so those bodies are book script for a name already listed above.
 
-The call-site counts in the boundary tables do not include these button scripts. Two names show up only there, both in `nida81.tbk`, and no open handler defines them. The body is not in the open books.
+The call-site counts in the boundary tables do not include these button scripts. Two names show up only there, both in `nida81.tbk`, and no handler in these books defines them. The body is not in these books.
 
 | Name | Call sites in inline `buttonClick` scripts |
 |---|---|
