@@ -68,6 +68,72 @@ class OpenTests(unittest.TestCase):
                 self.assertEqual(real_notes["minstb32.dll"], "named, not shipped")
                 self.assertGreater(len(real.book.records), 0)
 
+    def test_open_resolves_named_files_and_tolerates_three_absent(self):
+        from opentoolbook.shelf import search_roots
+
+        named = (
+            b"minstb32.dll",
+            b"93954302.tbk",
+            b"93954d01.tbk",
+            b"nida81.tbk",
+            b"nc81recs.sbk",
+            b"nc81test.sbk",
+            b"tb80anm.sbk",
+            b"nc81base.sbk",
+        )
+        raw = _book_naming(b"\x00".join(named) + b"\x00")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            book_dir = root / "book"
+            home = root / "home"
+            lessons = home / "Nida98" / "Lessons"
+            student = home / "Nida98" / "Student"
+            courses = home / "courses"
+            for folder in (book_dir, home, lessons, student, courses):
+                folder.mkdir(parents=True)
+            book = book_dir / "9e954d01.tbk"
+            book.write_bytes(raw)
+            (book_dir / "NIDA81.TBK").write_bytes(b"beside the book")
+            (home / "nida81.tbk").write_bytes(b"home copy")
+            (home / "NC81RECS.SBK").write_bytes(b"home")
+            (courses / "nc81recs.sbk").write_bytes(b"courses copy")
+            (courses / "NC81TEST.SBK").write_bytes(b"courses")
+            (lessons / "nc81test.sbk").write_bytes(b"lessons copy")
+            (lessons / "TB80ANM.SBK").write_bytes(b"lessons")
+            (student / "NC81BASE.SBK").write_bytes(b"student only")
+            (home / "toolbook.lst").write_text(
+                "NIDA81.TBK\nNC81RECS.SBK\nNC81TEST.SBK\nTB80ANM.SBK\nNC81BASE.SBK\n",
+                encoding="latin1",
+            )
+            roots = search_roots(book, home)
+            self.assertNotIn(student, roots)
+            opened = open_book(book, home)
+            self.assertGreater(len(opened.book.records), 0)
+            found = {item.name: item.path for item in opened.files}
+            notes = {item.name: item.note for item in opened.files}
+            self.assertEqual(found["nida81.tbk"], book_dir / "NIDA81.TBK")
+            self.assertEqual(found["nc81recs.sbk"], home / "NC81RECS.SBK")
+            self.assertEqual(found["nc81test.sbk"], courses / "NC81TEST.SBK")
+            self.assertEqual(found["tb80anm.sbk"], lessons / "TB80ANM.SBK")
+            self.assertIsNone(found["nc81base.sbk"])
+            self.assertEqual(notes["nc81base.sbk"], "not found")
+            for absent in ("minstb32.dll", "93954302.tbk", "93954d01.tbk"):
+                self.assertIsNone(found[absent])
+                self.assertEqual(notes[absent], "named, not shipped")
+            import contextlib
+            import io
+
+            from opentoolbook.__main__ import main
+
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                code = main(["opentoolbook", "--home", str(home), str(book)])
+            text = buf.getvalue()
+        self.assertEqual(code, 0)
+        self.assertIn("records ", text)
+        self.assertIn(str(lessons / "TB80ANM.SBK"), text)
+        self.assertNotIn(str(student / "NC81BASE.SBK"), text)
+
 
 if __name__ == "__main__":
     unittest.main()
