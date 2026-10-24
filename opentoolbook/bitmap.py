@@ -97,6 +97,62 @@ def button_picture_ids(data: bytes) -> tuple[int, ...]:
     return tuple(found)
 
 
+def button_checked_picture(data: bytes, page_id: str, button_name: str) -> int:
+    """The unaligned word at byte ``0x4b`` of the named button's graphics block.
+
+    It is a type-1 resource id plus one, or 0 when that button has no
+    checked picture. The picture id at byte ``0x15`` is not this word.
+    """
+    segments = _segments(data)
+    by_key = {segment.key: segment for segment in segments}
+    book_segment, book_record = _book(data, segments)
+    for handle in _page_handles(data, by_key, book_segment, book_record):
+        segment = by_key.get(handle >> 16)
+        if segment is None:
+            continue
+        record = segment.base + (handle & 0xFFFF)
+        if record < 2 or record + 8 > len(data) or _u16(data, record - 2) != PAGE:
+            continue
+        if _chars(data, record + 6, 32) != page_id:
+            continue
+        trailer = _trailer(data, segment)
+        parent = record - segment.base
+        for button in _buttons(data, segment):
+            if _u16(data, button + 4) != parent:
+                continue
+            if trailer is None or _name(trailer, _u16(data, button + 6)) != button_name:
+                continue
+            word = _graphic_word(data, segment, button, 0x4B)
+            if word is None:
+                raise ValueError(f"{button_name} on {page_id} has no graphics block")
+            return word
+    raise ValueError(f"no {button_name} button on {page_id}")
+
+
+def button_checked_ids(data: bytes) -> tuple[int, ...]:
+    """Checked picture id of every button whose graphics block starts ``0x0202``.
+
+    The id is the unaligned word at byte ``0x4b``. Zero is no checked
+    picture. A nonzero id is a type-1 resource id plus one.
+    """
+    found: list[int] = []
+    for segment in _segments(data):
+        for button in _buttons(data, segment):
+            word = _graphic_word(data, segment, button, 0x4B)
+            if word is not None:
+                found.append(word)
+    return tuple(found)
+
+
+def _graphic_word(data: bytes, segment, button: int, offset: int) -> int | None:
+    end = segment.file_at + segment.size
+    pointer = _u16(data, button + 0x28)
+    origin = segment.base + pointer
+    if pointer and origin + offset + 2 <= end and _u16(data, origin) == 0x0202:
+        return _u16(data, origin + offset)
+    return None
+
+
 def button_bounds(data: bytes, page_id: str, button_name: str) -> tuple[int, int, int, int]:
     """The four signed words at ``+0x0F`` of the named button.
 
