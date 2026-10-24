@@ -84,7 +84,7 @@ def parse_version(text: str) -> tuple[str, str]:
 
 
 def search_roots(book: Path | None, home: Path | None) -> tuple[Path, ...]:
-    """Folders that can hold a file the book names, in the order to try them."""
+    """Book directory, then home, home/courses, and home/Nida98/Lessons."""
     roots: list[Path] = []
     if book is not None:
         roots.append(book if book.is_dir() else book.parent)
