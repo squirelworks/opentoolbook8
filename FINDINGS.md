@@ -91,7 +91,7 @@ The first word of each run is an offset into that field's text. Inside one block
 
 The first has offsets 0 and 18. The second has offsets 0, 1, 25, 26, 48, and 49.
 
-### Class `0xB`, 49 bytes, 369 records
+### Class `0xB`, 49 bytes, 372 records
 
 Words `+0x02`, `+0x1A`, `+0x1C`, and `+0x20` are 0. Word `+0x08` is 65535. Word `+0x22` is 1. Two records:
 
@@ -99,6 +99,34 @@ Words `+0x02`, `+0x1A`, `+0x1C`, and `+0x20` are 0. Word `+0x08` is 65535. Word 
 1000000014000e00ffff000000fffffd096900b218ed03000000000000000001000001000200fd096900b218ed03840199
 0f0000005001ffffffff000000ffff820c6801fe17fd02000000000000000001000001000200820c6801fe17fd02500265
 ```
+
+The word at `+0x24` is a count and the word at `+0x2E` is a near pointer to that many 10-byte entries. An entry is a child near offset, then the signed words left, top, right, and bottom. The child's word at `+4` is that group's near offset, on every child of 371 records. One child pointer does not land on an object. That pointer is one example.
+
+The word at `+4` is a near pointer to the parent. On a class `0x9` button it is a page on 294 records, a group on 89, and a background on 15. On these 372 records it is a page on 168 and another group on 203. One group points at a background. That target is one example.
+
+`Selection1` on `P300` is the group at near `0x9C`. The count is 2. The entries:
+
+```
+e201e2069204071ecc061002cb070d05a61d4806
+```
+
+The children are the button at `0x1E2` and the field at `0x210`. The rectangles are (1762, 1170, 7687, 1740) and (1995, 1293, 7590, 1608), the same words as each child's `+0x0F`. A second group, near `0x754`, is also a button then a field:
+
+```
+b008e809cf03c81a27063009aa0b590487197605
+```
+
+Those rectangles are (2536, 975, 6856, 1575) and (2986, 1113, 6535, 1398). The button entry equals that button's `+0x0F` on all 89 class `0x9` children. The field entry equals the field's `+0x0F` on 114 of 133 class `0xA` children.
+
+The field entry follows the button entry on all 33 groups where the field rectangle sits inside the button rectangle, and on all 19 such groups in `nida81.tbk`. An inner class `0x13` entry is the later one on 24 lists and the earlier one on 4. Those four are why the list order is not a front byte.
+
+`nida81.tbk` has 94 class `0xB` records of 49 bytes. The count, the pointer, and the 10-byte entries are the same shape, and each child's word at `+4` is the group. One group:
+
+```
+5c0b5f072d003a1d7602dc0b8f07a5001f1d0d02
+```
+
+The children are a button at `0xB5C` and a field at `0xBDC`. The rectangles are (1887, 45, 7482, 630) and (1935, 165, 7455, 525).
 
 ### Class `0xC`, 41 bytes, 45 records
 
