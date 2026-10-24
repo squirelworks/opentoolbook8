@@ -1,7 +1,8 @@
 """Summarise a book, a NIDA menu, or the install folder beside them.
 
 Record text is not printed. A menu run prints course ids, titles, and
-counts. A book run prints the files and calls that book names.
+counts. A book run prints the files and calls that book names, then the
+files the install list ships.
 """
 
 from __future__ import annotations
@@ -10,15 +11,15 @@ import argparse
 import sys
 from pathlib import Path
 
-from opentoolbook.nida import discs_for, parse_cailt, parse_catalog, read_keydisk
-from opentoolbook.record import MESSAGE_AFTER_LOAD, Book
-from opentoolbook.shelf import named_calls, named_files, on_disk, parse_install_list, parse_version
+from opentoolbook.nida import discs_for, parse_cailt, parse_catalog, read_keydisk, zip_names_for
+from opentoolbook.record import Book
+from opentoolbook.shelf import CALL_BOOKS, find_file, named_calls, named_files, parse_install_list, parse_version, search_roots
 
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="opentoolbook")
     parser.add_argument("book", nargs="?", help="a .tbk or .sbk to summarise")
-    parser.add_argument("--catalog", help="a nida:m3search courses.xml")
+    parser.add_argument("--catalog", help="courses.xml, or a folder that contains it")
     parser.add_argument("--cailt", nargs=2, metavar=("TABLE", "LESSON"))
     parser.add_argument("--keydisk", help="one rating folder from the key-disk creator")
     parser.add_argument("--home", help="a ToolBook install directory")
@@ -28,13 +29,17 @@ def main(argv: list[str]) -> int:
         return 2
 
     if args.catalog:
-        _print_catalog(Path(args.catalog))
+        courses, programs = _catalog_paths(Path(args.catalog))
+        if courses is None and programs is None:
+            print(f"no courses.xml in {args.catalog}", file=sys.stderr)
+            return 2
+        if courses is None:
+            _print_programs(programs)
+        else:
+            _print_catalogs(courses, programs)
     if args.cailt:
         table, lesson = args.cailt
-        rules = parse_cailt(Path(table).read_text(encoding="latin1"))
-        discs = discs_for(rules, lesson)
-        print(f"lesson {lesson}")
-        print("discs " + (", ".join(discs) if discs else "none"))
+        _print_discs(Path(table).read_text(encoding="latin1"), lesson, ())
     if args.keydisk:
         _print_keydisk(Path(args.keydisk))
     if args.home:
@@ -50,34 +55,68 @@ def _print_book(path: Path, home: Path | None) -> None:
     follow = [item for item in book.records if item.wants_follow_up]
     print(f"records {len(book.records)}")
     print(f"follow-up reads {len(follow)}")
-    print(f"message after a load {MESSAGE_AFTER_LOAD:#x}")
     files = named_files(data)
     calls = named_calls(data)
-    print(f"named files {len(files)}")
+    roots = search_roots(path, home)
+    shipped = _shipped_names(home)
+    print(f"named by the book {len(files)}")
     for name in files:
-        print(f"  {name}")
+        _print_named(name, roots, shipped)
     print(f"calls {len(calls)}")
     for name in calls:
-        print(f"  {name}")
+        owner = CALL_BOOKS.get(name)
+        print(f"  {name}  {owner}" if owner else f"  {name}")
     if home is not None:
-        present, missing = on_disk(home, files)
-        print(f"in {home} present {len(present)} missing {len(missing)}")
-        for name in missing:
-            print(f"  missing {name}")
+        _print_shipped(home, roots)
         table = _find(home, "CAILT.DAT")
         if table is not None:
-            discs = discs_for(parse_cailt(table.read_text(encoding="latin1")), path.stem)
-            print("discs " + (", ".join(discs) if discs else "none"))
+            _print_discs(table.read_text(encoding="latin1"), path.stem, roots)
 
 
-def _print_catalog(path: Path) -> None:
-    catalog = parse_catalog(path.read_text(encoding="latin1"))
+def _print_named(name: str, roots: tuple[Path, ...], shipped: dict[str, bool] | None) -> None:
+    found = find_file(roots, name)
+    if found is not None:
+        print(f"  {name}  {found}")
+        return
+    if shipped is None:
+        print(f"  {name}")
+        return
+    if name.lower() not in shipped:
+        print(f"  {name}  named, not shipped")
+        return
+    if shipped[name.lower()]:
+        print(f"  {name}  listed, not shipped")
+        return
+    print(f"  {name}  not found")
+
+
+def _print_catalogs(courses: Path, programs: Path | None) -> None:
+    catalog = parse_catalog(courses.read_text(encoding="latin1"))
     lessons = catalog.lessons()
+    course_ids = set(catalog.lesson_ids())
     print(f"courses {len(catalog.courses)}")
     print(f"lessons {len(lessons)}")
-    print(f"unique lesson ids {len(catalog.lesson_ids())}")
+    print(f"courses.xml unique lesson ids {len(course_ids)}")
     for course in catalog.courses:
         print(f"{course.course_id}\t{course.title}\t{len(course.lessons())}")
+    if programs is None:
+        return
+    program_ids = set(parse_catalog(programs.read_text(encoding="latin1")).lesson_ids())
+    print(f"programs.xml unique lesson ids {len(program_ids)}")
+    _print_id_diff("courses.xml", course_ids - program_ids)
+    _print_id_diff("programs.xml", program_ids - course_ids)
+
+
+def _print_programs(programs: Path) -> None:
+    program_ids = set(parse_catalog(programs.read_text(encoding="latin1")).lesson_ids())
+    print(f"programs.xml unique lesson ids {len(program_ids)}")
+
+
+def _print_id_diff(label: str, ids: set[str]) -> None:
+    ordered = tuple(sorted(ids))
+    print(f"only in {label} {len(ordered)}")
+    for lesson_id in ordered:
+        print(f"  {lesson_id}")
 
 
 def _print_keydisk(folder: Path) -> None:
@@ -92,35 +131,81 @@ def _print_keydisk(folder: Path) -> None:
 
 
 def _print_home(folder: Path, book: Path | None) -> None:
+    if not folder.is_dir():
+        raise ValueError(f"{folder} is not a directory")
     version_file = _find(folder, "version.ini")
     if version_file is not None:
         version, date = parse_version(version_file.read_text(encoding="latin1"))
         print(f"version {version} {date}".rstrip())
-    listing = _find(folder, "toolbook.lst")
-    if listing is not None:
-        files = parse_install_list(listing.read_text(encoding="latin1"))
-        required = tuple(item.name for item in files if not item.optional)
-        optional = tuple(item.name for item in files if item.optional)
-        present, missing = on_disk(folder, required)
-        print(f"install required {len(required)} optional {len(optional)}")
-        print(f"required present {len(present)} missing {len(missing)}")
-        for name in missing:
-            print(f"  missing {name}")
     apps = _find(folder, "stdapps.lst")
     if apps is not None:
         data = apps.read_bytes()
-        kind = "encoded" if b"\x00" in data[:32] else "text"
-        print(f"stdapps.lst {len(data)} bytes {kind}")
-    catalog = _find(folder, "courses.xml")
-    if catalog is not None:
-        _print_catalog(catalog)
+        print(f"stdapps.lst {len(data)} bytes")
+        print("  " + " ".join(f"{byte:02x}" for byte in data[:32]))
+    courses, programs = _catalog_paths(folder)
+    if courses is not None:
+        _print_catalogs(courses, programs)
     if book is not None:
         _print_book(book, folder)
+    else:
+        _print_shipped(folder, search_roots(None, folder))
+
+
+def _print_shipped(folder: Path, roots: tuple[Path, ...]) -> None:
+    listing = _find(folder, "toolbook.lst")
+    if listing is None:
+        return
+    files = parse_install_list(listing.read_text(encoding="latin1"))
+    required = tuple(item for item in files if not item.optional)
+    optional = tuple(item for item in files if item.optional)
+    print("shipped by the install")
+    print(f"required {len(required)}")
+    for item in required:
+        found = find_file(roots, item.name)
+        if found is None:
+            print(f"  {item.name}  not found")
+        else:
+            print(f"  {item.name}  {found}")
+    print("listed, not shipped")
+    for item in optional:
+        print(f"  {item.name}")
+
+
+def _print_discs(text: str, lesson: str, roots: tuple[Path, ...]) -> None:
+    rules = parse_cailt(text)
+    discs = discs_for(rules, lesson)
+    print(f"lesson {lesson}")
+    print("discs " + (", ".join(discs) if discs else "none"))
+    for name in zip_names_for(rules, lesson):
+        found = find_file(roots, name)
+        if found is not None:
+            print(f"  {name}  {found}")
+
+
+def _shipped_names(home: Path | None) -> dict[str, bool] | None:
+    """Map a lower-case install-list name to whether that entry is starred."""
+    if home is None:
+        return None
+    listing = _find(home, "toolbook.lst")
+    if listing is None:
+        return None
+    files = parse_install_list(listing.read_text(encoding="latin1"))
+    return {item.name.lower(): item.optional for item in files}
+
+
+def _catalog_paths(path: Path) -> tuple[Path | None, Path | None]:
+    if path.is_dir():
+        return _find(path, "courses.xml"), _find(path, "programs.xml")
+    folder = path.parent
+    if path.name.lower() == "programs.xml":
+        return _find(folder, "courses.xml"), path
+    programs = _find(folder, "programs.xml")
+    return path, programs
 
 
 def _find(folder: Path, name: str) -> Path | None:
     if not folder.is_dir():
-        raise ValueError(f"{folder} is not a directory")
+        return None
     for path in folder.iterdir():
         if path.is_file() and path.name.lower() == name.lower():
             return path

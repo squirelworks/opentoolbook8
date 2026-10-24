@@ -4,6 +4,10 @@ Rebuilding ToolBook 8 from analysis, so a book can run on a current operating sy
 
 The 16-bit runtime is `TB80RTM` and `TB80BAS`. The notes and the unpacker live in the other repositories: `tbdecompile`, `tbworldview`, `squirreldra`, and `toolbookunpacker`. Foolbook is the viewer that already opens pages. Foolcourse, Foollege, and Foolversity sit above that viewer. This repository is the runtime those books need: object records, the class procedure a load calls, and the NIDA course shell around a lesson.
 
+A record is one object in the book's directory, with a file position and a length.
+A follow-up read is the two bytes stored after that body when the entry asks for them.
+The message after a load is 0xe, passed to the procedure at the start of the class slot, and the report leaves that constant out.
+
 What works in this tree:
 
 - The object directory, the body read, and the two-byte follow-up when the entry asks for one.
@@ -55,6 +59,7 @@ The commands below take a book or a NIDA folder that is already on your computer
 ```bash
 python3 -m opentoolbook path/to/book.tbk
 python3 -m opentoolbook --catalog path/to/courses.xml
+python3 -m opentoolbook --catalog path/to/TBK
 python3 -m opentoolbook --cailt path/to/CAILT.DAT 9E954D01
 python3 -m opentoolbook --home path/to/TBK path/to/book.tbk
 python3 -m opentoolbook --keydisk path/to/rating
@@ -109,6 +114,7 @@ A new PowerShell window needs `.\.venv\Scripts\Activate.ps1` from the repo folde
 ```powershell
 python -m opentoolbook path\to\book.tbk
 python -m opentoolbook --catalog path\to\courses.xml
+python -m opentoolbook --catalog path\to\TBK
 python -m opentoolbook --cailt path\to\CAILT.DAT 9E954D01
 python -m opentoolbook --home path\to\TBK path\to\book.tbk
 python -m opentoolbook --keydisk path\to\rating
