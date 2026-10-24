@@ -564,3 +564,8 @@ The words `0x0013` and `0x0068` sit in the 55 bytes after the page record on all
 On `9e954d01.tbk` the background `Test` is the one named by pages `P10210` through `P10229`. Its `buttonClick` is `get handleQuizClick(target)`. The three type 10 handlers whose ids are 372, 373, and 374 each contain `get handleQuizKey(key)` when the key is `keyF7`. Group `selection1` on pages `P10001`, `P10002`, `P10003`, and `P10004` each calls `setupQuizEx` with `2`, `"P10301"`, `"P10302"`, and `"P10303"`. The first argument is `Assessment`, `Pre-Test`, `Post-Test`, or `Quiz`. After that call the same four scripts contain `get clearpool()`, `addObjectiveToPool(1, 110, 119, 6)`, `addObjectiveToPool(2, 120, 129, 4)`, `setuppool()`, and `get gotoNextQuestionEx()`. Each of the four ends with the line `end buttonClick`.
 
 `to get getquizResponse` is one function. It walks `ansiToChar(96 + i)` and keeps the name of a checked button. `to get processQuizScore` in `nc81base.sbk` is one function. It writes the score into `NIDAREC.INI`. `to get handleQuizKey` is one function.
+
+## Version FileVersion
+
+The version-resource string `FileVersion` is not one value. `otb-line-rect.tbk` and `nida81.tbk` store `8.1.0.0`. `9e954d01.tbk`, `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk` store `8.1.0.664`. The fixed file-version low dword in that block is 0 for the first pair and 664 for the second. `FileDescription`, `InternalName`, `OriginalFilename`, `ProductVersion`, and `CompanyName` are the same bytes in all seven files.
+
