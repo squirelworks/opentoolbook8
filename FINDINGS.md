@@ -53,6 +53,12 @@ Word `+0x02` is 0, word `+0x08` is 65535, and words `+0x20` and `+0x26` are 0. T
 250000001400ffffffff08000016006108b60d970eee11fffcf00080808000210000040000fd00002f
 ```
 
+### Class `0x8` colors
+
+The bytes at `+0x17`, `+0x18`, and `+0x19` are a color, and the byte at `+0x1A` is 0. The bytes at `+0x1B`, `+0x1C`, and `+0x1D` are a color, and the byte at `+0x1E` is 0. The byte at `+0x25` is the pattern. The even scan finds 243 records. The patterns include 254, 33, 253, and 4. The 56 records whose pattern is 33 store color 0, 0, 0 and color 192, 192, 192. The 143 records whose pattern is 254 use more than one color. The first record above is pattern 254, colors 128, 128, 128 and 64, 64, 64. The second is pattern 253, colors 255, 252, 240 and 128, 128, 128.
+
+`nida81.tbk` has 86 records of this class and length. The same two colors and the same pattern byte are present on all 86. The patterns are 254, 253, and 81. The two records whose pattern is 81 store color 240, 240, 240 and color 96, 96, 96. The 75 records whose pattern is 254 use more than one color. Eight records have left equal to right at `+0x0F`. One of them is (6821, 3534, 6821, 3536), colors 255, 255, 255 and 64, 64, 64, pattern 254.
+
 ### Class `0x9`, 43 bytes, 398 records
 
 Word `+0x02` is 0 and word `+0x20` is 0. The four signed words at `+0x0F` are an ordered rectangle in all 398. Two records:
