@@ -448,3 +448,13 @@ The bytes at `+0x17`, `+0x18`, and `+0x19` are a color, and the byte at `+0x1A` 
 In `9e954d01.tbk` the first color is 192, 192, 192 on 154 records and 160, 160, 164 on 154. The second color is 255, 255, 255 on 384. Ten color pairs each occur on more than one endpoint pair. Twelve endpoint pairs are stored with more than one color pair, so the colors are not the endpoints. In `nida81.tbk` five color pairs each occur on more than one endpoint pair. No endpoint pair there is stored with two color pairs.
 
 The byte at `+0x25` is 4 on 372 records, 0 on 91, 10 on 63, and 14 on 2. In `nida81.tbk` it is 4 on 18, 14 on 3, 0 on 2, and 10 on 1. The endpoints begin at `+0x26`. A pattern byte on a class `0x8`, `0xC`, or `0x10` record is not 0. This byte is not that pattern.
+
+## Type 10 handler bytes
+
+The type-10 directory is the dword at header `+8 + (10 + 5) * 4`. Its entries are the same 8-byte shape as the type-1 directory. `9e954d01.tbk` lists ids 372, 373, 374, and 376. `nida81.tbk` lists ids 158, 159, 160, 161, and 165. The type-9 directory in each book lists those same ids.
+
+Each type-10 record is 15 bytes, the class word at −2 is `0x2A`, and the record starts `02 02 01 00`. The word at `+6` is 0 and the word at `+0x0B` is `0xFFFF`. The word at `+9` is a near pointer. The word at that pointer is a count, and that many bytes follow. The last of those bytes is 0. Those bytes expand to a handler. In `9e954d01.tbk` three begin `to handle enterPage` and one begins `to handle enterSystem`. In `nida81.tbk` four begin `To handle enterpage` and one begins `to handle enterApplication`.
+
+The word at `+4` of the 15-byte record is not that pointer. On three type-10 records in `nida81.tbk` it names the same address, and that address is in the middle of another handler.
+
+A page whose script-mode byte has low bits 2 stores a word at `+0x2A`. That word minus 1 is one of these type-10 ids, on all three such pages in `9e954d01.tbk` and all four in `nida81.tbk`. Each of those seven words occurs once. The type-9 record with the same id is also 15 bytes and starts `02 02 01 00`. The bytes at its `+9` pointer do not expand to a handler.

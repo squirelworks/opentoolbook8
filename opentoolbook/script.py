@@ -20,6 +20,7 @@ from dataclasses import dataclass
 
 from opentoolbook.field import _chars, _name, _segments, _trailer, _u16
 from opentoolbook.keywords import KEYWORDS
+from opentoolbook.record import Book
 
 # Repeating class lengths. Page and background use the other script word.
 _BYTES = {
@@ -195,6 +196,65 @@ def _expand(blob: bytes, origin: int, span: int) -> str:
             at = src + index
             out.append(blob[at] if 0 <= at < len(blob) else ord("?"))
     return out.decode("latin-1")
+
+
+@dataclass(frozen=True)
+class ResourceScript:
+    """One type 10 handler, as source text. ``source`` is not a call."""
+
+    resource_id: int
+    source: str
+
+
+# Header slot (type + 5) * 4. Type 10 stores the handler bytes.
+_SCRIPT_TYPE = 10
+_SCRIPT_BYTES = 15
+_SCRIPT_CLASS = 0x2A
+
+
+def resource_scripts(data: bytes) -> tuple[ResourceScript, ...]:
+    """Every type 10 handler. The word at ``+9`` names a length and the bytes.
+
+    The record is 15 bytes and starts with ``0x0202``, ``0x0001``. The
+    reader expands those bytes. It does not call the handler.
+    """
+    book = Book(data)
+    records = {item.key: item for item in book.records}
+    handle = _u32(data, book.header + 8 + (_SCRIPT_TYPE + 5) * 4)
+    directory, _record = _at(records, handle)
+    count = _u16(data, directory + 2)
+    table, _table_record = _at(records, (handle & 0xFFFF0000) | _u16(data, directory + 0x0E))
+    found: list[ResourceScript] = []
+    for index in range(count):
+        entry = table + index * 8
+        _first, near, segment, ident = struct.unpack_from("<HHHH", data, entry)
+        resource, record = _at(records, (segment << 16) | near)
+        if _u16(data, resource - 2) != _SCRIPT_CLASS:
+            raise ValueError(f"type 10 resource {ident} is not class {_SCRIPT_CLASS:#x}")
+        length = _u16(data, resource - 4) - near
+        if length != _SCRIPT_BYTES or _u16(data, resource) != 0x0202 or _u16(data, resource + 2) != 0x0001:
+            raise ValueError(f"type 10 resource {ident} is not a 15-byte handler record")
+        base = record.position - 6
+        origin = base + _u16(data, resource + 9)
+        if origin + 2 > record.position + record.length:
+            raise ValueError(f"type 10 resource {ident} pointer is past the segment")
+        span = _u16(data, origin)
+        start = origin + 2
+        if span == 0 or start + span > record.position + record.length:
+            raise ValueError(f"type 10 resource {ident} handler is past the segment")
+        found.append(ResourceScript(ident, _expand(data, start, span)))
+    return tuple(found)
+
+
+def _at(records: dict, handle: int):
+    record = records.get(handle >> 16)
+    if record is None:
+        raise ValueError("resource segment is missing")
+    return record.position - 6 + (handle & 0xFFFF), record
+
+
+def _u32(data: bytes, offset: int) -> int:
+    return struct.unpack_from("<I", data, offset)[0]
 
 
 def _button_click(text: str) -> str | None:

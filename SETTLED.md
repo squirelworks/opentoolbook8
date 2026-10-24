@@ -142,3 +142,7 @@ A class `0x0E` line is 53 bytes. The bytes at `+0x17`, `+0x18`, and `+0x19` are 
 ## Lesson filename spelling
 
 On open, each named file is keyed by the spelling the lesson stored. A later mention of the same name in another case does not add a second entry. The lookup still ignores case. `9e954d01.tbk` stores `MINSTB32.dll` and `TB80ANM.SBK`. `nida81.tbk` stores `nida71.tbk`. That file is reported and not opened. A missing name still carries `named, not shipped`, `not found`, or `listed, not shipped`.
+
+## Resource script
+
+A type 10 resource is 15 bytes. It starts with the words `0x0202` and `0x0001`. The word at `+9` is a near pointer. The word at that pointer is a count, and that many bytes are the handler. The reader expands them to source text and returns it. It does not call the handler. On `9e954d01.tbk` the scripts begin `to handle enterPage` or `to handle enterSystem`. On `nida81.tbk` they begin `To handle enterpage` or `to handle enterApplication`. The word at `+4` is not the pointer. The type 9 record with the same id does not hold these bytes.

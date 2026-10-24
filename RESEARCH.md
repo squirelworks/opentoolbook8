@@ -91,3 +91,7 @@ Checked against `9e954d01.tbk`. The `Selection1` script on page `P300` contains 
 ## Line color bytes
 
 From `tbdecompile/research/paint-20261021.md`. That note calls a draw object's stroke the bytes at `+0x17` and its fill the bytes at `+0x1B`, and its pattern the byte at `+0x25`. On every class `0x0E` record in both books the triples at `+0x17` and `+0x1B` have a 0 in the fourth byte. The byte at `+0x25` is not the pattern that note describes: the values are in `FINDINGS.md`, and the endpoints already occupy `+0x26`. The reader returns the two triples. It does not choose a brush.
+
+## Type 10 handler
+
+From `tbdecompile/research/paint-20261021.md`. That note says script mode 2 is a type 9 resource. In both books the page word at `+0x2A` minus 1 is an id in the type 9 directory and in the type 10 directory. The handler bytes are the count and the bytes named by the type 10 record's word at `+9`. The type 9 pointer is not those bytes. The reader returns the type 10 text. It does not call the handler.
