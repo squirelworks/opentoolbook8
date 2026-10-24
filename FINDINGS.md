@@ -154,14 +154,32 @@ Words `+0x06` and `+0x08` are 65535. Words `+0x02` and `+0x20` are 0. Word `+0x2
 110000008802ffffffff08000026009213c70bae15f20dffffff00ffff00000100000400004a07c91317070c121707ed120e01e1000300000f000f0069
 ```
 
-### Class `0x13`, 55 bytes, 65 records
+### Class `0x13`, 55 bytes, 66 records
 
-Words `+0x06` and `+0x08` are 65535. Word `+0x02` is 0 and word `+0x0A` is 8. The four signed words at `+0x0F` are an ordered rectangle in 64 of the 65. The one that is not is one example. Two records that have the rectangle:
+Words `+0x06` and `+0x08` are 65535. Word `+0x02` is 0 and word `+0x0A` is 8. The four signed words at `+0x0F` are an ordered rectangle in 64 of the 66. The other two are flat: (5985, 3446, 5998, 3446) and (6678, 3421, 6678, 3446). Two records:
 
 ```
 1d000000bc03ffffffff0800001b006e17760da017f40d4040ff00bf00000021000004000061177a0d9d17100e06005e0e00000f000f77
 1e000000bc03ffffffff0800001a006117760d6e17760d4040ff00bf00000021000004000052177a0d61177a0d0200b40e00000f000fbd
 ```
+
+The word at `+0x2D` is a count and the word at `+0x2F` is a near pointer to that many signed pairs. On all 66 the pointer is 3 bytes past the record. The count is 3 on 30 records and 4 on 23. The records also include lists of 2, 5, 6, and 7. A list of 8 and a list of 10 are one example each. The two records above are a list of 6 and a list of 2:
+
+```
+9d17100e7f17e00d7817dd0d6117bc0d61179b0d61177a0d
+61177a0d52177a0d
+```
+
+The first pairs are (6045, 3600), (6015, 3552), (6008, 3549), (5985, 3516), (5985, 3483), and (5985, 3450). The second are (5985, 3450) and (5970, 3450). On 61 records the next object's header is the byte after the pairs. On the other five, one byte follows the pairs.
+
+`nida81.tbk` has 14 class `0x13` records of 55 bytes. The word at `+0x2D` is the count and the word at `+0x2F` points 3 bytes past the record, on all 14. Twelve are lists of 3. A list of 2 and a list of 4 are one example each. The next object's header is the byte after the pairs on all 14. Two lists of 3:
+
+```
+a2033a11a2031806a71c1806
+b1033a11981c3a11981c1806
+```
+
+The first pairs are (930, 4410), (930, 1560), and (7335, 1560). The second are (945, 4410), (7320, 4410), and (7320, 1560).
 
 ### Class `0x15`, 89 bytes, 5 records
 
