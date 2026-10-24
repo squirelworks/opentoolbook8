@@ -264,6 +264,7 @@ def _u32(data: bytes, offset: int) -> int:
 def _button_click(text: str) -> str | None:
     lines = text.split("\r\n")
     start = None
+    name = None
     for index, line in enumerate(lines):
         parts = line.strip().split()
         if (
@@ -273,12 +274,29 @@ def _button_click(text: str) -> str | None:
             and parts[2].lower() == "buttonclick"
         ):
             start = index
+            name = parts[2].lower()
             break
     if start is None:
         return None
     stop = len(lines)
+    named = None
+    bare = None
+    limit = len(lines)
     for index in range(start + 1, len(lines)):
-        if lines[index].strip().lower() == "end":
-            stop = index + 1
+        stripped = lines[index].strip().lower()
+        parts = stripped.split()
+        if len(parts) >= 3 and parts[0] == "to" and parts[1] == "handle":
+            limit = index
             break
+        if len(parts) >= 2 and parts[0] == "end" and parts[1] == name:
+            named = index
+            break
+        if stripped == "end" and bare is None:
+            bare = index
+    if named is not None:
+        stop = named + 1
+        if all(not lines[index].strip() for index in range(named + 1, limit)):
+            stop = limit
+    elif bare is not None:
+        stop = bare + 1
     return "\r\n".join(lines[start:stop])

@@ -150,3 +150,7 @@ A type 10 resource is 15 bytes. It starts with the words `0x0202` and `0x0001`. 
 ## System book script
 
 `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk` each store one type 10 record. The same count, ending in 0, is the handler. The reader returns that whole source. It does not call the handler. The records are id 129, 268, 741, and 428. The sources begin `-- NC81BASE.SBK`, `-- NC81RECS.SBK`, `-- NC81TEST.SBK`, and `-- NC82TRNR.SBK`. The handlers inside them are `to get`. The `nc81test.sbk` source contains `to get handleQuizClick`, `to get getQuizScore`, and `to get gotoNextQuestionEx`.
+
+## Quiz start
+
+A `buttonClick` handler that contains the line `end buttonClick` ends on that line. The reader returns the handler through that line. It does not call it. On `9e954d01.tbk` the group `selection1` on pages `P10001`, `P10002`, `P10003`, and `P10004` ends that way. Each calls `setupQuizEx` with `2`, `"P10301"`, `"P10302"`, and `"P10303"`, then `get clearpool()`, `addObjectiveToPool(1, 110, 119, 6)`, `addObjectiveToPool(2, 120, 129, 4)`, `setuppool()`, and `get gotoNextQuestionEx()`. The first argument is `Assessment`, `Pre-Test`, `Post-Test`, or `Quiz`.
