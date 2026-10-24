@@ -225,3 +225,11 @@ The info rows also name a help page. Nineteen question pages contain a length-pr
 ## One example, no second record
 
 These class words occur on one object only, so none of their fields is recorded as shared: `0x2`, `0x1C`, `0x20`, `0x25`, `0x27`, `0x31`, `0x33`, `0x3E`.
+
+## Small classes in nida81.tbk
+
+`nida81.tbk` has one class `0x15` record of 89 bytes. The constant words match except at `+0x24`, `+0x26`, `+0x3A`, and `+0x3C`. Each of those four values occurs once. The four signed words at `+0x0F` are an ordered rectangle in all five records of `9e954d01.tbk`. Two of them are (0, 0, 9360, 6630) and (-22, 0, 9383, 360). The `nida81.tbk` record is ordered there too, (525, 405, 8835, 6255), and that rectangle is one example.
+
+`nida81.tbk` has no class `0x17` record of 17 bytes. On each of the five records in `9e954d01.tbk`, the word at `+0x04` is a near pointer to a 61-byte class `0xA` field, and that field is named `Text`. On page `P1080` the word is `0x240`. On page `P1082` it is `0x9C`.
+
+`nida81.tbk` has two class `0x26` records of 83 bytes, and those records use the same constant words. One of the two carries the C string `Key Map`. That is a second record with the string.
