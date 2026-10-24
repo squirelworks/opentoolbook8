@@ -44,6 +44,20 @@ def named_files(data: bytes) -> tuple[str, ...]:
     return tuple(sorted(found))
 
 
+def lesson_names(data: bytes) -> tuple[str, ...]:
+    """File names in the order the lesson wrote them. The first spelling is kept."""
+    found: list[str] = []
+    seen: set[str] = set()
+    for match in _FILE.finditer(data):
+        name = match.group().decode("latin1")
+        key = name.lower()
+        if key in KEYDISK_NAMES or key in seen:
+            continue
+        seen.add(key)
+        found.append(name)
+    return tuple(found)
+
+
 def named_calls(data: bytes) -> tuple[str, ...]:
     """``initialize*`` words and the four entry calls the lesson shell uses."""
     found = {match.group().decode("latin1").lower() for match in _INIT.finditer(data)}
@@ -146,7 +160,7 @@ def open_book(path: Path, home: Path | None = None) -> Opened:
     book = Book(data)
     roots = search_roots(path, home)
     shipped = install_flags(home)
-    files = tuple(_file_report(name, roots, shipped) for name in named_files(data))
+    files = tuple(_file_report(name, roots, shipped) for name in lesson_names(data))
     return Opened(book, files)
 
 

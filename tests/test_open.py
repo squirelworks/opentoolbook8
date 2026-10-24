@@ -64,7 +64,7 @@ class OpenTests(unittest.TestCase):
             lesson = os.environ.get("OPENTOOLBOOK_TBK")
             if lesson and os.path.isfile(lesson):
                 real = open_book(Path(lesson), home)
-                real_notes = {item.name: item.note for item in real.files}
+                real_notes = {item.name.lower(): item.note for item in real.files}
                 self.assertEqual(real_notes["minstb32.dll"], "named, not shipped")
                 self.assertGreater(len(real.book.records), 0)
 
@@ -133,6 +133,41 @@ class OpenTests(unittest.TestCase):
         self.assertIn("records ", text)
         self.assertIn(str(lessons / "TB80ANM.SBK"), text)
         self.assertNotIn(str(student / "NC81BASE.SBK"), text)
+
+    def test_open_keys_files_by_the_lesson_spelling(self):
+        raw = _book_naming(b"MINSTB32.dll\x00TB80ANM.SBK\x00nida81.tbk\x00NIDA81.TBK\x00")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            book = root / "9e954d01.tbk"
+            book.write_bytes(raw)
+            (root / "nida81.TBK").write_bytes(b"beside the book")
+            home = root / "home"
+            home.mkdir()
+            (home / "toolbook.lst").write_text("TB80ANM.SBK\nNIDA81.TBK\n", encoding="latin1")
+            opened = open_book(book, home)
+            by_name = {item.name: item for item in opened.files}
+            self.assertEqual(
+                set(by_name),
+                {"MINSTB32.dll", "TB80ANM.SBK", "nida81.tbk"},
+            )
+            self.assertEqual(by_name["MINSTB32.dll"].note, "named, not shipped")
+            self.assertIsNone(by_name["MINSTB32.dll"].path)
+            self.assertEqual(by_name["TB80ANM.SBK"].note, "not found")
+            self.assertEqual(by_name["nida81.tbk"].path, root / "nida81.TBK")
+            self.assertEqual(by_name["nida81.tbk"].note, "")
+            lesson = os.environ.get("OPENTOOLBOOK_TBK")
+            if lesson and os.path.isfile(lesson):
+                real = open_book(Path(lesson), home)
+                spellings = {item.name.lower(): item.name for item in real.files}
+                self.assertEqual(spellings["minstb32.dll"], "MINSTB32.dll")
+                self.assertEqual(spellings["tb80anm.sbk"], "TB80ANM.SBK")
+                nida = Path(lesson).with_name("nida81.tbk")
+                if nida.is_file():
+                    opened_nida = open_book(nida, home)
+                    nida_notes = {item.name: item for item in opened_nida.files}
+                    self.assertIn("nida71.tbk", nida_notes)
+                    self.assertIsNone(nida_notes["nida71.tbk"].path)
+                    self.assertEqual(nida_notes["nida71.tbk"].note, "named, not shipped")
 
 
 if __name__ == "__main__":
