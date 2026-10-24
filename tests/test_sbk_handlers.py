@@ -7,7 +7,7 @@ import os
 import unittest
 from pathlib import Path
 
-from opentoolbook.script import open_handlers, resource_scripts
+from opentoolbook.script import book_handlers, resource_scripts
 
 
 # kind, name. Measured from the type 10 source of each book.
@@ -257,7 +257,7 @@ class SystemBookHandlerTests(unittest.TestCase):
         for name, expected in HANDLERS.items():
             script = resource_scripts((folder / name).read_bytes())
             self.assertEqual(len(script), 1)
-            found = open_handlers(name, script[0].source)
+            found = book_handlers(name, script[0].source)
             self.assertEqual(
                 [(item.book, item.kind, item.name) for item in found],
                 [(name, kind, handler) for kind, handler in expected],
@@ -294,7 +294,7 @@ class SystemBookHandlerTests(unittest.TestCase):
         checked = set()
         for name in HANDLERS:
             source = resource_scripts((folder / name).read_bytes())[0].source
-            found = open_handlers(name, source)
+            found = book_handlers(name, source)
             self.assertEqual(len(found), len(HANDLERS[name]))
             for item in found:
                 head_end = item.body_start
