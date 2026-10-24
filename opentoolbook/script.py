@@ -14,6 +14,7 @@ The reader returns the text. It does not call the handler.
 
 from __future__ import annotations
 
+import re
 import struct
 from dataclasses import dataclass
 
@@ -53,6 +54,23 @@ class ButtonClick:
     owner: str
     name: str
     source: str
+
+
+_QUOTED_PAGE = re.compile(r'go\s+to\s+page\s*\(?\s*"([^"]*)"', re.IGNORECASE)
+_QUOTED_BOOK = re.compile(r'of\s+book\s*\(?\s*"([^"]*)"', re.IGNORECASE)
+
+
+def quoted_go_to(line: str) -> tuple[str, str | None] | None:
+    """The quoted page and the quoted book on one ``go to page`` line.
+
+    A page or a book that is not in double quotes is not returned.
+    ``send next`` is not a page id.
+    """
+    found = _QUOTED_PAGE.search(line)
+    if not found:
+        return None
+    book = _QUOTED_BOOK.search(line, found.end())
+    return found.group(1), book.group(1) if book else None
 
 
 def button_clicks(data: bytes) -> tuple[ButtonClick, ...]:

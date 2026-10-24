@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from opentoolbook.keywords import KEYWORDS
-from opentoolbook.script import button_clicks
+from opentoolbook.script import button_clicks, quoted_go_to
 
 GO_P310 = 'go to page "P310" of book "nida81.tbk"'
 GO_NEXT = "go to page nextpage of book lastbook"
@@ -46,6 +46,55 @@ class ButtonClickTests(unittest.TestCase):
         jumps = [item for item in other if GO_NEXT in item.source]
         self.assertTrue(any(item.owner == "P340" and item.name == "Next" for item in jumps))
         self.assertTrue(any(item.owner == "P340" and item.name == "Back" for item in jumps))
+
+
+class QuotedGoToTests(unittest.TestCase):
+    def test_quotes_only(self):
+        path = os.environ.get("OPENTOOLBOOK_TBK")
+        if not path or not os.path.isfile(path):
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        logic = Path(path).read_bytes()
+        nida = Path(path).with_name("nida81.tbk").read_bytes()
+        self.assertIsNone(quoted_go_to("send next"))
+        self.assertIsNone(quoted_go_to("go to page nextpage of book lastbook"))
+        self.assertIsNone(quoted_go_to("go to page (nextpage) of book(lastbook)"))
+        saw_p310 = False
+        saw_p400 = False
+        saw_paren = False
+        for item in button_clicks(logic):
+            for line in item.source.split("\r\n"):
+                if line.strip().lower() == "send next":
+                    self.assertIsNone(quoted_go_to(line))
+                if 'go to page "P310" of book "nida81.tbk"' in line:
+                    self.assertEqual(quoted_go_to(line), ("P310", "nida81.tbk"))
+                    self.assertEqual(item.owner, "P300")
+                    saw_p310 = True
+                if line.strip() == 'go to page "P400"':
+                    self.assertEqual(quoted_go_to(line), ("P400", None))
+                    saw_p400 = True
+                if 'go to page("P1210")' in line:
+                    self.assertEqual(quoted_go_to(line), ("P1210", None))
+                    saw_paren = True
+        self.assertTrue(saw_p310 and saw_p400 and saw_paren)
+        saw_book = False
+        saw_plain = False
+        saw_71 = False
+        for item in button_clicks(nida):
+            for line in item.source.split("\r\n"):
+                if "go to page nextpage of book lastbook" in line and '"' not in line:
+                    self.assertIsNone(quoted_go_to(line))
+                    saw_plain = True
+                if "go to page (nextpage) of book(lastbook)" in line:
+                    self.assertIsNone(quoted_go_to(line))
+                    saw_plain = True
+                if 'go to page "P20001" of book "nida81.tbk"' in line:
+                    self.assertEqual(quoted_go_to(line), ("P20001", "nida81.tbk"))
+                    saw_book = True
+                if 'go to page "P12060" of book "nida71.tbk"' in line:
+                    self.assertEqual(quoted_go_to(line), ("P12060", "nida71.tbk"))
+                    self.assertIn(item.owner, {"P12000", "P12001", "P12002", "P12003"})
+                    saw_71 = True
+        self.assertTrue(saw_book and saw_plain and saw_71)
 
 
 if __name__ == "__main__":

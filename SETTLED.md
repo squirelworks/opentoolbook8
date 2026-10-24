@@ -130,3 +130,7 @@ The page body is that field, not a second store. A class `0xA` field names the c
 ## buttonClick
 
 An object's `buttonClick` is source text. The reader expands the inline script and returns that handler. It does not call it. On `9e954d01.tbk` page `P300`, the group `Selection1` contains `go to page "P310" of book "nida81.tbk"` and the words `send next`. On `nida81.tbk` page `P340`, the buttons `Next` and `Back` contain `go to page nextpage of book lastbook`. The keyword ids are the 994 entries of TB80CMP resource `0x77`. In the `P300` script the bytes `90 af 80 91 83` are the words `go to page`.
+
+## Quoted go to page
+
+A `go to page` line returns the page in double quotes and, when the line has one, the book in double quotes. It returns nothing else. `send next` stays those words. `go to page nextpage of book lastbook` has no quotes, so it is not a page id. On `9e954d01.tbk` page `P300` the quoted page is `P310` and the quoted book is `nida81.tbk`. The same line on `nida81.tbk` names `P20001` of `nida81.tbk`. A quoted page with no quoted book, such as `P400`, returns that page and no book.

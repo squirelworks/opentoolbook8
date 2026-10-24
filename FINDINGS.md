@@ -424,3 +424,7 @@ The word at `+0x2A` is 144 on 3 records. The word at `+0x2E` is 147 on 6 records
 ## Page scripts that are not inline
 
 The low two bits of the byte at `+0x30` are 0 on 128 pages of `9e954d01.tbk` and on 40 pages of `nida81.tbk`. They are 2 on the other pages: `P10301`, `P10302`, and `P10303` in the first book, and `P12000`, `P12001`, `P12002`, and `P12003` in the second. The word at `+0x2A` on those pages is `0x175`, `0x176`, `0x177`, and `0x9F`, `0xA0`, `0xA1`, `0xA2`. The `buttonClick` reader does not expand that word. Objects on those pages whose own script is inline are still read.
+
+## nida71.tbk is named, not opened
+
+`nida81.tbk` names `nida71.tbk` from pages `P12000`, `P12001`, `P12002`, and `P12003`. On each of those pages the button `Retry` has the line `go to page "P12060" of book "nida71.tbk"`. Page `P12001` also has `go to page "P12000" of book "nida71.tbk"`. The file is not in this read.
