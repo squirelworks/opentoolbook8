@@ -38,6 +38,23 @@ class _Trailer:
     slots: tuple[tuple[int, int, int, int], ...]
 
 
+def page_ids(data: bytes) -> tuple[str, ...]:
+    """Page ids from the same walk that finds P0. The id is the C string at record ``+6``."""
+    segments = _segments(data)
+    by_key = {segment.key: segment for segment in segments}
+    book_segment, book_record = _book(data, segments)
+    found: list[str] = []
+    for handle in _page_handles(data, by_key, book_segment, book_record):
+        segment = by_key.get(handle >> 16)
+        if segment is None:
+            continue
+        record = segment.base + (handle & 0xFFFF)
+        if record < 2 or record + 8 > len(data) or _u16(data, record - 2) != PAGE:
+            continue
+        found.append(_chars(data, record + 6, 32))
+    return tuple(found)
+
+
 def field_text(data: bytes, page_id: str, field_name: str) -> str:
     """Text of the named field on one page, from word 1 of the ``+0x24`` block."""
     segments = _segments(data)
