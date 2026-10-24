@@ -59,6 +59,10 @@ Page ids come from the walk that already finds P0: the page list at book `+0x10`
 
 A class 4 background is the record named by the far reference at page `+0x47`. The class word immediately before that record is 4. The pattern byte is at `+0x4B`. Red, green, and blue are at `+0x5B`, `+0x5C`, and `+0x5D`. On `9e954d01.tbk`, Logo and Definition both use those offsets. Logo is pattern `0xFE` and color 0, 0, 191. Definition is pattern `0xFE` and color 128, 128, 128.
 
+## Quiz question
+
+A quiz question page has fields named `Stem`, `A`, `B`, `C`, and `D`. The trailer slot before each of `Answer`, `QuestionNo`, and `TestNo` is a value: the word `0x0009`, a length, and that many characters. On `9e954d01.tbk` the twenty pages `P10210` through `P10229` use that shape, and their test and question numbers are the same numbers as the `InfoText` field on page `PQINFO`.
+
 ## Arc
 
 Class `0x11` object 80 on page P1140 of `9e954d01.tbk` stores two points, the signed pairs at `+0x25` and `+0x29`: (1866, 5065) and (1815, 4620). Those are the points in the record. The arc is not filled.

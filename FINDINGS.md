@@ -155,6 +155,22 @@ Class `0x23`, 68 bytes, six records. All six are the same bytes:
 022251011424003b020520402398002b45085e00040a23b6002b423b02051b402390002c09052e40218f0002fcff056a4223980002f8ff3a001100243b02083700040a23
 ```
 
+## Quiz questions
+
+Twenty pages, `P10210` through `P10229`, each hold five class `0xA` fields named `Stem`, `A`, `B`, `C`, and `D`. In the trailer heap, the slot before a property name holds the value: the word `0x0009`, a length word, and that many characters. `P10210` and `P10211` both use it.
+
+`P10210` answer value and name:
+
+```
+0600090001004300770003000000416e7377657200
+```
+
+That value is `C`. The same bytes on `P10211` have `42` where `P10210` has `43`, so the value is `B`. The following value slots are `110` and `111`, named `QuestionNo`, then `1` and `1`, named `TestNo`.
+
+Page `PQINFO` has a field named `InfoText`. Its filled rows are page, test, and question. All twenty question pages' `TestNo` and `QuestionNo` are those two columns. The answer letters are not all the same.
+
+The info rows also name a help page. Nineteen question pages contain a length-prefixed `P` plus that number. Page `10215` contains `P1310` where the info row says `30000`, so that string is not the info column.
+
 ## One example, no second record
 
 These class words occur on one object only, so none of their fields is recorded as shared: `0x2`, `0x1C`, `0x20`, `0x25`, `0x27`, `0x31`, `0x33`, `0x3E`.
