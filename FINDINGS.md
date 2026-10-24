@@ -565,6 +565,12 @@ On `9e954d01.tbk` the background `Test` is the one named by pages `P10210` throu
 
 `to get getquizResponse` is one function. It walks `ansiToChar(96 + i)` and keeps the name of a checked button. `to get processQuizScore` in `nc81base.sbk` is one function. It writes the score into `NIDAREC.INI`. `to get handleQuizKey` is one function.
 
+## Class `0x0E` in otb-line.tbk
+
+`otb-line.tbk` is a blank native book saved by ToolBook II Instructor 8.1. The page id is empty. Instructor reports two line objects, ids 0 and 1. `draw line from 400,600 to 2400,600` is the horizontal line. `draw line from 400,1200 to 2400,2000` is the diagonal line. The reader returns the horizontal line. These notes are the diagonal line.
+
+Both are class `0x0E`. The length formula, the end word minus the near offset of the id word, is 53 on line id 0. Line id 1 is the last object in that directory record, so the word before its class does not yield 53. Fifty-two bytes from its id word match line id 0 in the shared slots. The bounds at `+0x0F` are `(400, 1200, 2400, 2000)`. The endpoints at `+0x26` are `(400, 1200)` and `(2400, 2000)`. The colors at `+0x17` and `+0x1B` are `(0, 0, 0)` and `(255, 255, 255)`. That is one last-object example, not a change to the length formula.
+
 ## Version FileVersion
 
 The version-resource string `FileVersion` is not one value. `otb-line-rect.tbk` and `nida81.tbk` store `8.1.0.0`. `9e954d01.tbk`, `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk` store `8.1.0.664`. The fixed file-version low dword in that block is 0 for the first pair and 664 for the second. `FileDescription`, `InternalName`, `OriginalFilename`, `ProductVersion`, and `CompanyName` are the same bytes in all seven files.

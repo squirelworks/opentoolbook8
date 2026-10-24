@@ -11,7 +11,7 @@ from pathlib import Path
 from opentoolbook.bitmap import stored_button_bounds
 from opentoolbook.ellipse import stored_ellipses
 from opentoolbook.field import field_text, page_ids, stored_field_bounds
-from opentoolbook.line import stored_lines
+from opentoolbook.line import Line, LineColor, stored_line_colors, stored_lines
 from opentoolbook.page import page_records
 from opentoolbook.polygon import stored_polygons
 from opentoolbook.polyline import Polyline, stored_polylines
@@ -98,6 +98,33 @@ class AuthoredButtonTests(unittest.TestCase):
         self.assertEqual(
             [(item.kind, item.object_id, item.name) for item in page.objects],
             [(0x9, 0, ""), (0x9, 1, "")],
+        )
+
+
+LINE_BOOK = Path(__file__).parent / "fixtures" / "otb-line.tbk"
+
+
+class AuthoredLineTests(unittest.TestCase):
+    def test_blank_native_page_stores_a_straight_line(self):
+        data = LINE_BOOK.read_bytes()
+        self.assertEqual(
+            stored_lines(data),
+            (
+                Line(
+                    endpoints=((400, 600), (2400, 600)),
+                    bounds=(400, 600, 2400, 600),
+                ),
+            ),
+        )
+        self.assertEqual(
+            stored_line_colors(data),
+            (
+                LineColor(
+                    endpoints=((400, 600), (2400, 600)),
+                    first_color=(0, 0, 0),
+                    second_color=(255, 255, 255),
+                ),
+            ),
         )
 
 
