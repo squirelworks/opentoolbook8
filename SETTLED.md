@@ -65,7 +65,7 @@ A class 4 background is the record named by the far reference at page `+0x47`. T
 
 ## Quiz question
 
-A quiz question page has fields named `Stem`, `A`, `B`, `C`, and `D`. The trailer slot before each of `Answer`, `QuestionNo`, and `TestNo` is a value: the word `0x0009`, a length, and that many characters. On `9e954d01.tbk` the twenty pages `P10210` through `P10229` use that shape, and their test and question numbers are the same numbers as the `InfoText` field on page `PQINFO`.
+A quiz question page has fields named `Stem`, `A`, `B`, `C`, and `D`. The trailer slot before each of `Answer`, `QuestionNo`, `TestNo`, `SourceQuestionNo`, `SourceTestNo`, and `sourcepage` is a value: the word `0x0009`, a length, and that many characters. The reader returns those six values. On `9e954d01.tbk` the twenty pages `P10210` through `P10229` use that shape. Their test and question numbers are the same numbers as the `InfoText` field on page `PQINFO`. `SourceQuestionNo` is that question number, `SourceTestNo` is that test number, and `sourcepage` is the page id.
 
 ## Polyline
 

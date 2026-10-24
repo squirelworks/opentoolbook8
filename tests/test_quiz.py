@@ -30,6 +30,9 @@ class QuizTests(unittest.TestCase):
                 continue
             test_no, question_no = info[number]
             self.assertEqual((item.test_no, item.question_no), (test_no, question_no))
+            self.assertEqual(item.source_question_no, item.question_no)
+            self.assertEqual(item.source_test_no, item.test_no)
+            self.assertEqual(item.source_page, item.page_id)
             letters = {letter for letter, _text in item.choices}
             self.assertIn(item.answer, letters)
             self.assertTrue(item.stem.strip())

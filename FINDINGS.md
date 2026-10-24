@@ -278,6 +278,10 @@ Page `PQINFO` has a field named `InfoText`. Its filled rows are page, test, and 
 
 The info rows also name a help page. Nineteen question pages contain a length-prefixed `P` plus that number. Page `10215` contains `P1310` where the info row says `30000`, so that string is not the info column.
 
+The same `0x0009` slot holds `SourceQuestionNo`, `SourceTestNo`, and `sourcepage` on all twenty pages. `SourceQuestionNo` is the same characters as `QuestionNo`. `SourceTestNo` is the same characters as `TestNo`. `sourcepage` is the page id, `P10210` through `P10229`.
+
+The name `SourceLesson` is on all twenty pages, and the characters in front of it are `93954302.tbk`. The word before that length is `0x0009` on nineteen pages and `0x0004` on `P10210`.
+
 ## One example, no second record
 
 These class words occur on one object only, so none of their fields is recorded as shared: `0x2`, `0x1C`, `0x20`, `0x27`, `0x31`, `0x33`, `0x3E`.

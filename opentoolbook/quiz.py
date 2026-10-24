@@ -2,8 +2,9 @@
 
 The page has five fields, named ``Stem``, ``A``, ``B``, ``C``, and ``D``.
 In the same record's trailer, the slot before a property name holds the
-value: the word ``0x0009``, a length, and that many characters. Two
-question pages use that for ``Answer``, ``QuestionNo``, and ``TestNo``.
+value: the word ``0x0009``, a length, and that many characters. Question
+pages use that for ``Answer``, ``QuestionNo``, ``TestNo``,
+``SourceQuestionNo``, ``SourceTestNo``, and ``sourcepage``.
 """
 
 from __future__ import annotations
@@ -34,6 +35,9 @@ class Question:
     test_no: str
     question_no: str
     answer: str
+    source_question_no: str
+    source_test_no: str
+    source_page: str
     stem: str
     choices: tuple[tuple[str, str], ...]
 
@@ -59,13 +63,17 @@ def questions(data: bytes) -> tuple[Question, ...]:
         if any(name not in fields for name in ("Stem", *CHOICES)):
             continue
         props = _properties(trailer)
-        if any(name not in props for name in ("Answer", "QuestionNo", "TestNo")):
+        needed = ("Answer", "QuestionNo", "TestNo", "SourceQuestionNo", "SourceTestNo", "sourcepage")
+        if any(name not in props for name in needed):
             continue
         found.append(Question(
             page_id,
             props["TestNo"],
             props["QuestionNo"],
             props["Answer"],
+            props["SourceQuestionNo"],
+            props["SourceTestNo"],
+            props["sourcepage"],
             fields["Stem"],
             tuple((letter, fields[letter]) for letter in CHOICES),
         ))
