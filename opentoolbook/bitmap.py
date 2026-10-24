@@ -16,12 +16,20 @@ from __future__ import annotations
 import struct
 from dataclasses import dataclass
 
-from opentoolbook.field import _segments
+from opentoolbook.field import (
+    _book,
+    _chars,
+    _name,
+    _page_handles,
+    _segments,
+    _trailer,
+)
 from opentoolbook.record import Book
 
 BITMAP_TYPE = 1
 BUTTON = 0x09
 BUTTON_BYTES = 43
+PAGE = 5
 
 
 @dataclass(frozen=True)
@@ -87,6 +95,66 @@ def button_picture_ids(data: bytes) -> tuple[int, ...]:
                     found.append(_u16(data, origin + 0x15))
             at += 2
     return tuple(found)
+
+
+def button_bounds(data: bytes, page_id: str, button_name: str) -> tuple[int, int, int, int]:
+    """The four signed words at ``+0x0F`` of the named button.
+
+    They are a rectangle. The picture id in the graphics block is not
+    this rectangle.
+    """
+    segments = _segments(data)
+    by_key = {segment.key: segment for segment in segments}
+    book_segment, book_record = _book(data, segments)
+    for handle in _page_handles(data, by_key, book_segment, book_record):
+        segment = by_key.get(handle >> 16)
+        if segment is None:
+            continue
+        record = segment.base + (handle & 0xFFFF)
+        if record < 2 or record + 8 > len(data) or _u16(data, record - 2) != PAGE:
+            continue
+        if _chars(data, record + 6, 32) != page_id:
+            continue
+        trailer = _trailer(data, segment)
+        parent = record - segment.base
+        for button in _buttons(data, segment):
+            if _u16(data, button + 4) != parent:
+                continue
+            if trailer is None or _name(trailer, _u16(data, button + 6)) != button_name:
+                continue
+            return _bounds(data, button)
+    raise ValueError(f"no {button_name} button on {page_id}")
+
+
+def stored_button_bounds(data: bytes) -> tuple[tuple[int, int, int, int], ...]:
+    """The rectangle at ``+0x0F`` of every class ``0x09`` button of this length."""
+    return tuple(_bounds(data, button) for _segment, button in _button_records(data))
+
+
+def _button_records(data: bytes) -> tuple[tuple, ...]:
+    found = []
+    for segment in _segments(data):
+        for button in _buttons(data, segment):
+            found.append((segment, button))
+    return tuple(found)
+
+
+def _buttons(data: bytes, segment) -> tuple[int, ...]:
+    end = segment.file_at + segment.size
+    at = segment.base + 0x10
+    found: list[int] = []
+    while at + BUTTON_BYTES <= end and at >= 4:
+        kind = _u16(data, at - 2)
+        size = _u16(data, at - 4) - (at - segment.base)
+        if kind == BUTTON and size == BUTTON_BYTES:
+            found.append(at)
+        at += 2
+    return tuple(found)
+
+
+def _bounds(data: bytes, record: int) -> tuple[int, int, int, int]:
+    left, top, right, bottom = struct.unpack_from("<hhhh", data, record + 0x0F)
+    return left, top, right, bottom
 
 
 def huge_bitmaps(data: bytes) -> tuple[Bitmap, ...]:

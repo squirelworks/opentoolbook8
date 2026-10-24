@@ -5,7 +5,13 @@ import struct
 import unittest
 from pathlib import Path
 
-from opentoolbook.bitmap import button_bitmap, button_picture_ids, huge_bitmaps
+from opentoolbook.bitmap import (
+    button_bitmap,
+    button_bounds,
+    button_picture_ids,
+    huge_bitmaps,
+    stored_button_bounds,
+)
 from opentoolbook.record import Book
 
 
@@ -55,6 +61,31 @@ class BitmapTests(unittest.TestCase):
         self.assertTrue(any(picture not in resources for picture in pictures))
         stored = {item.stored_id for item in huge_bitmaps(data)}
         self.assertTrue(stored <= set(pictures))
+
+
+class ButtonBoundsTests(unittest.TestCase):
+    def test_bounds_are_the_rectangle_at_0x0f(self):
+        path = os.environ.get("OPENTOOLBOOK_TBK")
+        if not path or not os.path.isfile(path):
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        data = Path(path).read_bytes()
+        next_bounds = button_bounds(data, "P300", "Next")
+        choice_bounds = button_bounds(data, "P10210", "A")
+        self.assertEqual(next_bounds, (8907, 6210, 9342, 6630))
+        self.assertEqual(choice_bounds, (2430, 1635, 2715, 1920))
+        self.assertNotEqual(next_bounds, choice_bounds)
+        self._ordered(data)
+        nida = Path(path).with_name("nida81.tbk")
+        self.assertTrue(nida.is_file())
+        self._ordered(nida.read_bytes())
+
+    def _ordered(self, data: bytes):
+        found = stored_button_bounds(data)
+        self.assertGreaterEqual(len(found), 2)
+        self.assertGreaterEqual(len(set(found)), 2)
+        for left, top, right, bottom in found:
+            self.assertLessEqual(left, right)
+            self.assertLessEqual(top, bottom)
 
 
 def _type1_resource_ids(data: bytes) -> set[int]:
