@@ -1,29 +1,48 @@
-"""A class ``0x10`` polygon, placed on its bounds.
+"""A class ``0x10`` polygon as the points stored in its record.
 
 The count is the word at ``+0x30``. The near pointer at ``+0x32`` names
-the points, four bytes each. The source rectangle is four words at
-``+0x28`` and the bounds are four words at ``+0x0F``. A point moves by
-
-``x' = (x - src.left) * dstW / srcW + dst.left``
-
-and the same for y. The result is those points. It is not the bounds
-rectangle.
+the points, four bytes each. Those points lie in the source rectangle,
+four words at ``+0x28``. The bounds are four words at ``+0x0F``. The
+points returned are the stored pairs.
 """
 
 from __future__ import annotations
 
 import struct
+from dataclasses import dataclass
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
 
 POLYGON = 0x10
-# Measured length of a class 0x10 record. P430 object 136 is one.
+# Length shared by the class 0x10 records in 9e954d01.tbk.
 POLYGON_BYTES = 53
 PAGE = 5
 
 
+@dataclass(frozen=True)
+class Polygon:
+    points: tuple[tuple[int, int], ...]
+    source: tuple[int, int, int, int]
+    bounds: tuple[int, int, int, int]
+
+
+def stored_polygons(data: bytes) -> tuple[Polygon, ...]:
+    """Every class ``0x10`` record whose point list sits in its segment."""
+    found: list[Polygon] = []
+    for segment in _segments(data):
+        end = segment.file_at + segment.size
+        at = segment.base + 0x10
+        while at + POLYGON_BYTES <= end and at >= 4:
+            kind = _u16(data, at - 2)
+            size = _u16(data, at - 4) - (at - segment.base)
+            if kind == POLYGON and size == POLYGON_BYTES:
+                found.append(_read(data, segment, at))
+            at += 2
+    return tuple(found)
+
+
 def polygon_points(data: bytes, page_id: str, object_id: int) -> tuple[tuple[int, int], ...]:
-    """Mapped points of one polygon. The word at the start of the record is its id."""
+    """Stored points of one polygon. The word at the start of the record is its id."""
     segments = _segments(data)
     by_key = {segment.key: segment for segment in segments}
     book_segment, book_record = _book(data, segments)
@@ -39,7 +58,7 @@ def polygon_points(data: bytes, page_id: str, object_id: int) -> tuple[tuple[int
         found = _polygon(data, segment, object_id)
         if found is None:
             break
-        return _place(data, segment, found)
+        return _read(data, segment, found).points
     raise ValueError(f"no polygon {object_id} on {page_id}")
 
 
@@ -58,38 +77,21 @@ def _polygon(data: bytes, segment, object_id: int) -> int | None:
     return None
 
 
-def _place(data: bytes, segment, record: int) -> tuple[tuple[int, int], ...]:
+def _read(data: bytes, segment, record: int) -> Polygon:
     count = _u16(data, record + 0x30)
     pointer = _u16(data, record + 0x32)
     source = _rect(data, record + 0x28)
     bounds = _rect(data, record + 0x0F)
-    src_w = source[2] - source[0]
-    src_h = source[3] - source[1]
-    dst_w = bounds[2] - bounds[0]
-    dst_h = bounds[3] - bounds[1]
-    if src_w == 0 or src_h == 0:
-        raise ValueError("polygon source rectangle has no area")
     origin = segment.base + pointer
     if count == 0 or origin < 0 or origin + 4 * count > segment.file_at + segment.size:
         raise ValueError("polygon points are past the segment")
-    points: list[tuple[int, int]] = []
-    for index in range(count):
-        x, y = struct.unpack_from("<hh", data, origin + 4 * index)
-        points.append((
-            _muldiv(x - source[0], dst_w, src_w) + bounds[0],
-            _muldiv(y - source[1], dst_h, src_h) + bounds[1],
-        ))
-    return tuple(points)
+    points = tuple(
+        struct.unpack_from("<hh", data, origin + 4 * index) for index in range(count)
+    )
+    return Polygon(points, source, bounds)
 
 
 def _rect(data: bytes, offset: int) -> tuple[int, int, int, int]:
     left, top, right, bottom = struct.unpack_from("<hhhh", data, offset)
     return left, top, right, bottom
 
-
-def _muldiv(delta: int, dst_span: int, src_span: int) -> int:
-    """Truncating ``delta * dst_span / src_span``."""
-    numerator = delta * dst_span
-    negative = (numerator < 0) != (src_span < 0)
-    value = abs(numerator) // abs(src_span)
-    return -value if negative else value

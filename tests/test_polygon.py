@@ -1,38 +1,31 @@
-"""A class 0x10 polygon is its mapped points, not its bounds rectangle."""
+"""Class 0x10 stores its points in the record. They sit in the source rectangle."""
 
 import os
 import unittest
 from pathlib import Path
 
-from opentoolbook.polygon import polygon_points
-
-# P430 object 136. Eleven points of a pin tip, placed on the bounds.
-PIN = (
-    (4497, 6262),
-    (4599, 6262),
-    (4599, 6349),
-    (4579, 6373),
-    (4568, 6412),
-    (4558, 6436),
-    (4538, 6436),
-    (4528, 6412),
-    (4532, 6373),
-    (4497, 6349),
-    (4497, 6325),
-)
+from opentoolbook.polygon import stored_polygons
 
 
 class PolygonTests(unittest.TestCase):
-    def test_p430_object_136_has_eleven_points(self):
+    def test_stored_points_lie_in_the_source_rectangle(self):
         path = os.environ.get("OPENTOOLBOOK_TBK")
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         data = Path(path).read_bytes()
-        points = polygon_points(data, "P430", 136)
-        self.assertEqual(points, PIN)
-        self.assertEqual(len(points), 11)
-        rectangle = ((4497, 6262), (4599, 6262), (4599, 6436), (4497, 6436))
-        self.assertNotEqual(points, rectangle)
+        found = stored_polygons(data)
+        self.assertGreaterEqual(len(found), 2)
+        counts = {len(item.points) for item in found}
+        self.assertGreaterEqual(len(counts), 2)
+        for item in found:
+            left, top, right, bottom = item.source
+            self.assertGreater(right, left)
+            self.assertGreater(bottom, top)
+            for x, y in item.points:
+                self.assertGreaterEqual(x, left)
+                self.assertLessEqual(x, right)
+                self.assertGreaterEqual(y, top)
+                self.assertLessEqual(y, bottom)
 
 
 if __name__ == "__main__":

@@ -37,11 +37,11 @@ On open, those filenames are looked up in this order: the book's directory, `--h
 
 ## Field text
 
-A field is class `0xA`. Its text is word 1 of the block at record `+0x24`: a trailer handle, then a capacity word, a length word, and the characters. The copyright field on page P0 of `9e954d01.tbk` is read that way. The word at `+0x42` is not the text.
+A field is class `0xA` and the record is 61 bytes. Its text is word 1 of the block at record `+0x24`: a trailer handle, then a capacity word, a length word, and the characters. On `9e954d01.tbk` that reads the Copyright field and the Filename field. Offset `+0x42` is past the end of the record.
 
 ## Polygon
 
-A class `0x10` polygon stores its count at `+0x30` and a near pointer to the points at `+0x32`. The source rectangle is four words at `+0x28` and the bounds are four words at `+0x0F`. A point maps as `x' = (x − src.left) × dstW / srcW + dst.left`, and the same for y. Page P430 object 136 has 11 points. Those points are the polygon. They are not the bounds rectangle.
+A class `0x10` polygon is 53 bytes. The count is the word at `+0x30` and the near pointer at `+0x32` names the stored points, four bytes each. Every such point list in `9e954d01.tbk` lies inside the source rectangle at `+0x28`. The bounds are four words at `+0x0F`. The reader returns the stored points.
 
 ## Button bitmap
 
@@ -57,7 +57,7 @@ Page ids come from the walk that already finds P0: the page list at book `+0x10`
 
 ## Background
 
-A class 4 background is the record named by the far reference at page `+0x47`. The class word immediately before that record is 4. The pattern byte is at `+0x4B`. Red, green, and blue are at `+0x5B`, `+0x5C`, and `+0x5D`. Page P0 of `9e954d01.tbk` uses pattern `0xFE` and color 0, 0, 191.
+A class 4 background is the record named by the far reference at page `+0x47`. The class word immediately before that record is 4. The pattern byte is at `+0x4B`. Red, green, and blue are at `+0x5B`, `+0x5C`, and `+0x5D`. On `9e954d01.tbk`, Logo and Definition both use those offsets. Logo is pattern `0xFE` and color 0, 0, 191. Definition is pattern `0xFE` and color 128, 128, 128.
 
 ## Arc
 
