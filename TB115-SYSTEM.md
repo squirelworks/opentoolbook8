@@ -3927,3 +3927,79 @@ Each line is one handler `book_handlers` listed in the type 10 book script: kind
 - `get windowBorderWidth`
 - `handle buttonDown`
 - `handle updateMedia` — `frame`
+
+## Identical files, checked against the bytes
+
+Hashed again 24 October 2026 from the same extract. SHA-256 of every name containing `.sbk`: 79 files, 13 hashes. Two hashes are shared. The other eleven files each have their own hash. Sharing a hash means the bytes match. It is not, by itself, a broken copy.
+
+### 29,147 bytes, 62 names
+
+SHA-256 `3d25f5b0d545f25cf95d4a50a16760fb6c0057afeed8d7cedd307d39125e7a60`.
+
+`ctb40c.sbk`, `ctb40r.sbk`, `ctb50c.sbk`, `ctb60c.sbk`, `ctb70c.sbk`, `ctb80c.sbk`, `ctb85c.sbk`, `tb40anm.sbk`, `tb40hyp.sbk`, `tb50anm.sbk`, `tb50hyp.sbk`, `tb50r.sbk`, `tb60anm.sbk`, `tb60ftp.sbk`, `tb60hyp.sbk`, `tb60olx.sbk`, `tb60r.sbk`, `tb70actr.sbk`, `tb70anm.sbk`, `tb70ftp.sbk`, `tb70hyp.sbk`, `tb70olx.sbk`, `tb70r.sbk`, `tb80actr.sbk`, `tb80aicc.sbk`, `tb80anm.sbk`, `tb80ftp.sbk`, `tb80hyp.sbk`, `tb80r.sbk`, `tb85actr.sbk`, `tb85aicc.sbk`, `tb85anm.sbk`, `tb85ftp.sbk`, `tb85hyp.sbk`, `tb85r.sbk`, `tb89actr.sbk`, `tb89aicc.sbk`, `tb89anm.sbk`, `tb89ftp.sbk`, `tb89hyp.sbk`, `tb89r.sbk`, `tb90ftp.sbk`, `tb90hyp.sbk.old`, `tb90r.sbk.old`, `tb95actr.sbk`, `tb95aicc.sbk`, `tb95anm.sbk`, `tb95ftp.sbk`, `tb95hyp.sbk`, `tb95r.sbk`, `tb100actr.sbk`, `tb100aicc.sbk`, `tb100anm.sbk`, `tb100ftp.sbk`, `tb100hyp.sbk`, `tb100r.sbk`, `tb105actr.sbk`, `tb105aicc.sbk`, `tb105anm.sbk`, `tb105ftp.sbk`, `tb105hyp.sbk`, `tb105r.sbk`.
+
+Read from `zip1/tb80hyp.sbk`. The other 61 names are those same bytes.
+
+`export_module_name` returned `MINSTB32.dll`. `version_fields` returned file description `ToolBook`, internal name `TB110`, original filename `TB110.EXE`, product version `11.00.37`, company `SumTotal Systems, Inc.` Those five strings agree with each other.
+
+`SizeOfImage` is 16384. `SizeOfHeaders` is 4096. Three sections. The last is `.reloc`, raw pointer 12288, raw size 4096, raw end 16384. No section raw range runs past the end of the file. The file is 12763 bytes longer than that raw end.
+
+Offset `0xc00` is inside that header region. The 16 bytes there are zero. The object-store header `03 4A 42 4F` occurs once, at offset 16440. The reader walks 10 records from it. `resource_scripts` returns no type 10 book script.
+
+The 56 bytes between the section raw end and that header start with `NB10` and the null-terminated path `D:\Tunguska\system\exestub\minstb32.pdb`.
+
+The version resource says TB110 `11.00.37`. None of the 62 names says `tb110`. `tb80actr.sbk`, `tb80aicc.sbk`, `tb80anm.sbk`, `tb80ftp.sbk`, `tb80hyp.sbk`, and `tb80r.sbk` are misnamed copies of this TB110 file. So are the other names in the hash, including `tb105hyp.sbk`: the version in the name is not the version in the resource.
+
+The section table ends inside the file, the object store is present, and the version strings in the file agree. This file is a misnamed copy. The bytes do not show a broken structure, so this note does not call it corrupt.
+
+### 29,145 bytes, 6 names
+
+SHA-256 `bb4dc448d1dc772ef7163fb07506e81b3470dcb685dac26aa6f934650f6151cf`.
+
+`tb110actr.sbk`, `tb110aicc.sbk`, `tb110anm.sbk`, `tb110ftp.sbk`, `tb110hyp.sbk`, `tb110r.sbk`.
+
+Read from `zip2/tb110hyp.sbk`.
+
+`export_module_name` returned `MINSTB32.dll`. `version_fields` returned file description `ToolBook`, internal name `TB115`, original filename `TB115.EXE`, product version `11.50.12`, company `SumTotal Systems, Inc.` Those five strings agree with each other. Every name says `tb110`. The six names are misnamed copies of this TB115 file.
+
+`SizeOfImage` is 16384. The last section is `.reloc` with raw end 16384. The file is 12761 bytes longer than that raw end. No section raw range runs past the end of the file. The 16 bytes at `0xc00` are zero. The object-store header occurs once, at offset 16438. The reader walks 10 records. `resource_scripts` returns no type 10 book script.
+
+This file and `tb115hyp.sbk` share a prefix of 16465 bytes: the PE image, the `NB10` record that follows it, and the first 27 bytes of the object store. They differ after that. The short file runs on to 29145 bytes, so it is a different book on that PE image, not a cut-down `tb115hyp.sbk`. The `NB10` path string is `D:\Avatar\system\exestub\minstb32.pd(`. The same path bytes are on `tb115hyp.sbk` and `tb115r.sbk`.
+
+The section table ends inside the file, the object store is present, and the version strings in the file agree. This file is a misnamed copy. The bytes do not show a broken structure, so this note does not call it corrupt.
+
+### `tb115hyp.sbk` and `tb115r.sbk`
+
+`tb115hyp.sbk` is 123049 bytes, SHA-256 `347b2e2b8e6af565ca4dfbb169857bfe709f8af334355cd170d96ddfe79bfe76`. Export `MINSTB32.dll`. Version resource internal name `TB115`, original filename `TB115.EXE`, product version `11.50.12`, company `SumTotal Systems, Inc.` The name agrees with that internal name. `SizeOfImage` is 16384 and the last section raw end is 16384. The file continues 106665 bytes past that end. The 16 bytes at `0xc00` are zero. The object-store header is at 16438. The reader walks 25 records. `resource_scripts` returns 3 type 10 scripts, 51557 characters of book script.
+
+`tb115r.sbk` is 1251439 bytes, SHA-256 `d185c362d865e100e07ad0d337661da5e2bf8c19850e74e667cff1fd5265be61`. Export `MINSTB32.dll`. Version resource internal name `TB115`, original filename `TB115.EXE`, product version `11.50.30`, company `SumTotal Systems, Inc.` `SizeOfImage` and the last section raw end are 16384. The 16 bytes at `0xc00` are zero. The object-store header is at 16438. The reader walks 156 records. `resource_scripts` returns 63 type 10 scripts, 644574 characters of book script. Its PE image differs from the 29,145-byte file at offset 200, in the version resource.
+
+### Instructor 8.1 `tb80anm.sbk`, `tb80hyp.sbk`, and `tb80r.sbk`
+
+These three files are still in the Instructor 8.1 TBSystem directory. On each one the object-store header is at `0xc00`. `SizeOfHeaders` is 512. The last section raw end is 3072, which is `0xc00`. `SizeOfImage` is 16384, and the file continues past the raw end. `export_module_name` returned `MINSTB32.dll`. The version resource is file description `Toolbook II`, internal name `TB80`, original filename `TB80.EXE`, company `Click2learn, Inc.`
+
+| File | Bytes | SHA-256 | Product version | Records | Type 10 book script |
+|---|---:|---|---|---:|---|
+| `tb80anm.sbk` | 64023 | `16e756f7e26de27ed91bc2c547dc4bf29313418d7bcb692fb4f4280167bed1fb` | `8.10.128` | 16 | 1 script, 32878 characters |
+| `tb80hyp.sbk` | 140613 | `36bd8cf82f4538321e7172c5cd46c31d8d06e44a9e707d91c5d2ffcc04f4f664` | `8.10.128` | 26 | 3 scripts, 72075 characters |
+| `tb80r.sbk` | 953705 | `56b7ab72e4c9e2c2d577b725f3c14f1ded3d664c41105dbd46c8f3fba95fb442` | `8.10.131` | 144 | 57 scripts, 542687 characters |
+
+None of these hashes is the 29,147-byte hash or the 29,145-byte hash, and none of these sizes is 29147 or 29145. The TB115 archives do not contain these Instructor books. A `tb80` name in the archives is the TB110 file in the 29,147-byte group.
+
+### The other eleven hashes
+
+Each of these is one file. They are the books in the earlier table that returned book script.
+
+| Bytes | File | SHA-256 |
+|---:|---|---|
+| 359825 | `tb90actr.sbk` | `090585d0361648a12702feeffa767c7072187250cad6e8bfdd3675ecddfab935` |
+| 95975 | `tb90aicc.sbk` | `944d1a8ce592ae954e9991397d6ec11a46ddeaae2895b6087aac2202f35162a4` |
+| 76795 | `tb90anm.sbk` | `f27b953bc714beeb23983c1fd239a2aff9eac43b508209d7b7baa74999d48962` |
+| 123011 | `tb90hyp.sbk` | `b6e90fc3b87913dde98d2c47a5d70dba45a792d0e03650d6ff3c1952061d5de9` |
+| 1008173 | `tb90r.sbk` | `66aab760af188268652041b85b35983f88850a7208778684561a3515f22d6102` |
+| 363667 | `tb115actr.sbk` | `5f0bc1d12f49f1daea7e2d0e2f879b35c5cee626cd5825f1f2210e24d30e11a1` |
+| 96015 | `tb115aicc.sbk` | `a68712ac8061b16c50c9a063c1bf16c4cdc9e731d9630340f933c30e2f011a96` |
+| 76941 | `tb115anm.sbk` | `cb1efe257e693a7e36ae4a9192894b2ab6ddc855bcf118691f64009f5c804c49` |
+| 300269 | `tb115ftp.sbk` | `cd5d8b3e9c6938a0db035097c447aee0394739e2db084c34db8423e30f142f8f` |
+| 123049 | `tb115hyp.sbk` | `347b2e2b8e6af565ca4dfbb169857bfe709f8af334355cd170d96ddfe79bfe76` |
+| 1251439 | `tb115r.sbk` | `d185c362d865e100e07ad0d337661da5e2bf8c19850e74e667cff1fd5265be61` |
