@@ -126,3 +126,7 @@ A class `0x17` record is 17 bytes. The word at `+0x04` is a near pointer to a cl
 ## Page body
 
 The page body is that field, not a second store. A class `0xA` field names the character record through word 1 of the block at `+0x24`, and those bytes are the record in the gap after the page's directory body. The reader returns that file offset and the characters. On `9e954d01.tbk` page `P440` the field `Text` is the record at file `0xcbad7`. The same holds for every page of that book and of `nida81.tbk`: the text block is past the directory body, and the directory body does not hold a second copy.
+
+## buttonClick
+
+An object's `buttonClick` is source text. The reader expands the inline script and returns that handler. It does not call it. On `9e954d01.tbk` page `P300`, the group `Selection1` contains `go to page "P310" of book "nida81.tbk"` and the words `send next`. On `nida81.tbk` page `P340`, the buttons `Next` and `Back` contain `go to page nextpage of book lastbook`. The keyword ids are the 994 entries of TB80CMP resource `0x77`. In the `P300` script the bytes `90 af 80 91 83` are the words `go to page`.
