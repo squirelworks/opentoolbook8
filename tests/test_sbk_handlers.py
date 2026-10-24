@@ -270,6 +270,53 @@ class SystemBookHandlerTests(unittest.TestCase):
         self.assertIn("gotonextquestionex", seen)
         self.assertIn("timernotify", seen)
 
+    def test_nc81base_nc81recs_nc81test_nc81trnr_handler_split(self):
+        path = os.environ.get("OPENTOOLBOOK_TBK")
+        if not path or not os.path.isfile(path):
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        folder = Path(path).parent
+        samples = {
+            ("nc81base.sbk", "initializeBase"): "cmdLine",
+            ("nc81base.sbk", "specifyMenuColors"): "color1, color2",
+            ("nc81base.sbk", "getCurrentPath"): "",
+            ("nc81base.sbk", "getExternalValue"): "string exname",
+            ("nc81recs.sbk", "initializeRecs"): "",
+            ("nc81recs.sbk", "writeResponse"): "int testno, int questionno, string response, int score",
+            ("nc81test.sbk", "timerNotify"): "timerId",
+            ("nc81test.sbk", "setupQuizEx"): "string qType, int objectiveCount, string page1, string page2, string page3",
+            ("nc81test.sbk", "clearRandomSetX"): "int numbers[] by reference",
+            ("nc81test.sbk", "getNextQuestion"): "",
+            ("nc81trnr.sbk", "linkMemFunctions32"): "",
+            ("nc81trnr.sbk", "sendFaults130"): "string faults",
+            ("nc81trnr.sbk", "checkCardsTd2000"): "int pc1",
+            ("nc81trnr.sbk", "getTrainerCode"): "string lookup",
+        }
+        checked = set()
+        for name in HANDLERS:
+            source = resource_scripts((folder / name).read_bytes())[0].source
+            found = open_handlers(name, source)
+            self.assertEqual(len(found), len(HANDLERS[name]))
+            for item in found:
+                head_end = item.body_start
+                self.assertGreater(head_end, 0)
+                self.assertEqual(source[head_end - 1], "\n")
+                previous = source.rfind("\n", 0, head_end - 1)
+                line = source[previous + 1:head_end - 1].rstrip("\r")
+                prefix = f"to {item.kind} {item.name}"
+                self.assertTrue(line == prefix or line.startswith(prefix + " ") or line.startswith(prefix + "\t"))
+                self.assertEqual(item.arguments, line[len(prefix):].strip())
+                key = (item.book, item.name)
+                if key in samples:
+                    self.assertEqual(item.arguments, samples[key])
+                    checked.add(key)
+            if name == "nc81base.sbk":
+                external = next(item for item in found if item.name == "getExternalValue")
+                self.assertTrue(source[external.body_start:].startswith("\r\n"))
+            if name == "nc81trnr.sbk":
+                trainer = next(item for item in found if item.name == "getTrainerCode")
+                self.assertTrue(source[trainer.body_start:].startswith("    local string data"))
+        self.assertEqual(checked, set(samples))
+
 
 if __name__ == "__main__":
     unittest.main()

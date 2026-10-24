@@ -252,32 +252,46 @@ def resource_scripts(data: bytes) -> tuple[ResourceScript, ...]:
 
 @dataclass(frozen=True)
 class OpenHandler:
-    """One handler defined in an .sbk. ``name`` is not a call."""
+    """One handler defined in an .sbk. ``name`` is not a call.
+
+    ``arguments`` is the rest of the header line, with the spaces around
+    it removed. ``body_start`` is the source offset of the next line.
+    """
 
     book: str
     kind: str
     name: str
+    arguments: str
+    body_start: int
 
 
 # A column-0 handler header in a system-book script.
-_OPEN_HEADER = re.compile(r"^to\s+(handle|get|set)\s+(\S+)", re.IGNORECASE)
+_OPEN_HEADER = re.compile(r"^to\s+(handle|get|set)\s+(\S+)(.*)$", re.IGNORECASE)
 
 
 def open_handlers(book: str, source: str) -> tuple[OpenHandler, ...]:
-    """Handler names in one system-book script.
+    """Handlers in one system-book script.
 
     ``source`` is the type 10 text the reader already expanded. A column-0
     line ``to handle``, ``to get``, or ``to set`` names a handler whose
-    body is in ``book``. The reader does not call the handler.
+    body is in ``book``. The name and the argument list are on that line.
+    The body starts on the next line. The reader does not call the handler.
     """
     found: list[OpenHandler] = []
-    for line in source.splitlines():
-        if not line or line[0].isspace():
-            continue
-        match = _OPEN_HEADER.match(line)
-        if match is None:
-            continue
-        found.append(OpenHandler(book, match.group(1).lower(), match.group(2)))
+    offset = 0
+    for line in source.splitlines(keepends=True):
+        text = line.rstrip("\r\n")
+        if text and not text[0].isspace():
+            match = _OPEN_HEADER.match(text)
+            if match is not None:
+                found.append(OpenHandler(
+                    book,
+                    match.group(1).lower(),
+                    match.group(2),
+                    match.group(3).strip(),
+                    offset + len(line),
+                ))
+        offset += len(line)
     return tuple(found)
 
 
