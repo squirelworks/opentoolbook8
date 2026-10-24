@@ -43,6 +43,10 @@ A field is class `0xA`. Its text is word 1 of the block at record `+0x24`: a tra
 
 A class `0x10` polygon stores its count at `+0x30` and a near pointer to the points at `+0x32`. The source rectangle is four words at `+0x28` and the bounds are four words at `+0x0F`. A point maps as `x' = (x − src.left) × dstW / srcW + dst.left`, and the same for y. Page P430 object 136 has 11 points. Those points are the polygon. They are not the bounds rectangle.
 
+## Button bitmap
+
+A button bitmap is an 8-byte prefix followed by a `BM` file in the huge table. The stored id is the resource id plus 1. Resource 155 of `9e954d01.tbk` is the prefix at file offset `0x50117`. The picture is 580 by 158, 8 bits per pixel.
+
 ## Missing files are reported, not fatal
 
 Logic Families names `minstb32.dll`. That file is not in the install list. Opening the book reports `named, not shipped` and still returns the book. A name that is in the install list but absent is `not found`. A starred install-list entry that is absent is `listed, not shipped`. None of the three stops the open.
