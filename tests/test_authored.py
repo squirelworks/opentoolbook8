@@ -8,7 +8,7 @@ of those points. The rectangle uses the class 0x8 color and pattern bytes.
 import unittest
 from pathlib import Path
 
-from opentoolbook.ellipse import stored_ellipses
+from opentoolbook.ellipse import Ellipse, stored_ellipses
 from opentoolbook.field import page_ids
 from opentoolbook.line import stored_lines
 from opentoolbook.page import page_records
@@ -65,6 +65,25 @@ class AuthoredLineRectTests(unittest.TestCase):
         self.assertEqual(stored_lines(data), ())
         self.assertEqual(stored_ellipses(data), ())
         self.assertEqual(stored_polygons(data), ())
+
+
+PIE_BOOK = Path(__file__).parent / "fixtures" / "otb-pie.tbk"
+
+
+class AuthoredEllipseTests(unittest.TestCase):
+    def test_blank_native_page_stores_an_ellipse(self):
+        data = PIE_BOOK.read_bytes()
+        self.assertEqual(
+            stored_ellipses(data),
+            (
+                Ellipse(
+                    bounds=(700, 700, 2200, 1800),
+                    pattern=254,
+                    first_color=(0, 0, 0),
+                    second_color=(255, 255, 255),
+                ),
+            ),
+        )
 
 
 if __name__ == "__main__":
