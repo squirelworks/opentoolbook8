@@ -35,6 +35,10 @@ The other four calls are `nida81.tbk`.
 
 On open, those filenames are looked up in this order: the book's directory, `--home`, `--home/courses`, then `--home/Nida98/Lessons`. The match ignores case. The report prints the path that was found. The book still opens when `minstb32.dll`, `93954302.tbk`, or `93954d01.tbk` is absent.
 
+## Field text
+
+A field is class `0xA`. Its text is word 1 of the block at record `+0x24`: a trailer handle, then a capacity word, a length word, and the characters. The copyright field on page P0 of `9e954d01.tbk` is read that way. The word at `+0x42` is not the text.
+
 ## Missing files are reported, not fatal
 
 Logic Families names `minstb32.dll`. That file is not in the install list. Opening the book reports `named, not shipped` and still returns the book. A name that is in the install list but absent is `not found`. A starred install-list entry that is absent is `listed, not shipped`. None of the three stops the open.
