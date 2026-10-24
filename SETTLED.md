@@ -194,3 +194,7 @@ A `buttonClick` handler that contains the line `end buttonClick` ends on that li
 ## Export module name
 
 The bytes before the object store are a PE file. Data directory 0 is the export directory. The reader returns the C string its Name field points at. On `otb-line-rect.tbk` that string is `MINSTB32.dll` at file offset `0x258`, and the directory lists zero exports. `nida81.tbk` and `9e954d01.tbk` store the same name at that offset. `nida81.tbk` has no other `.dll` name.
+
+## Version strings
+
+Resource type 16 in the PE resource directory is a version resource. The reader returns `FileDescription`, `InternalName`, `OriginalFilename`, `ProductVersion`, and `CompanyName` from that resource. On `otb-line-rect.tbk`, `nida81.tbk`, and `9e954d01.tbk` those strings are `Toolbook II`, `TB80`, `TB80.EXE`, `8.10.131`, and `Click2learn, Inc.`. The same five strings are in `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk`.
