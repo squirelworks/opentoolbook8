@@ -44,9 +44,9 @@ Fourteen records sit at near offset `0x14`, start with the word `0x0202`, and ca
 
 A fifteenth 103-byte run whose class word is also 4 contains the text `UhandleQuizKey`. It does not start with `0x0202` and it is not at near `0x14`. That run is one example.
 
-### Class `0x8`, 41 bytes, 241 records
+### Class `0x8`, 41 bytes, 243 records
 
-Word `+0x02` is 0, word `+0x08` is 65535, and words `+0x20` and `+0x26` are 0. The four signed words at `+0x0F` are an ordered rectangle in all 241. Two records:
+Word `+0x02` is 0, word `+0x08` is 65535, and words `+0x20` and `+0x26` are 0. The four signed words at `+0x0F` are an ordered rectangle in all 243. Two records:
 
 ```
 0c0000001c03ffffffff08000029000b13e30d961efd118080800040404000010000040000fe00004f
