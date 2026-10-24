@@ -62,22 +62,14 @@ Word `+0x02` is 0 and word `+0x20` is 0. The four signed words at `+0x0F` are an
 0b0000005001ffff0f00080000fffffd096900b218ed0300000000ffffff000300000000e20f0a01ca0119
 ```
 
-Word `+0x28` is a near pointer from the segment base. All 398 land inside the file. The first word of that block is `0x0202` on 396 of the 398. The other two are 194 and 130, one example each. Both pointers are 0. The bytes at the segment base contain `80650005` and a page id (`P30000`, `P30010`). Those two pointers did not land on a block that starts `0x0202`.
-
-The huge-table resource ids are 148, 150, 155, and 164. The stored ids are one more: 149, 151, 156, and 165. No resource id in that list is a stored id. The unaligned word at block `+0x15` is a stored id 49 times and a resource id 21 times. The unaligned word at `+0x4b` is resource 148 six times, and on those six the word at `+0x15` is 146. No other offset in the first `0x60` bytes has 3 or more huge-id hits. The word at `+0x15` is 134 on 91 blocks, 131 on 84, and 116 on 23. The bitmap directory lists 134, 131, and 116, and none of the three is in the huge table. Seven blocks have 167 there. The directory does not list 167. Picture ids sit at `+0x15`, including ids that are not one of the four huge bitmaps.
-
-Inside the 43-byte button, a huge id occurs twice. The word at `+4` is 156 on those two buttons. The picture id is the word at `+0x15` of the block.
-
-Two blocks, first word `0x0202`, id at `+0x15`:
+The word at `+0x28` is a near pointer from the segment base. It is 0 on two of the 398, and those two do not name a graphics block. On the other 396 the block starts with the word `0x0202`. The unaligned word at byte `0x15` of that block is a picture id. It equals a type-1 resource id plus one on all 396. The type-1 resource ids in this book are 100 through 166 with no gaps, so a stored id from 101 through 166 is also some other resource's id. The value 100, the only resource id that is not a stored id, does not occur. The value 167 is not a resource id, and it occurs on 7 buttons, so the field is the stored id. The stored ids of the four huge-table bitmaps, 149, 151, 156, and 165, occur in this word. 134 occurs 91 times, 131 occurs 84 times, and 116 occurs 23 times. Those three are stored ids of resources 133, 130, and 115, and none of those resources is in the huge table. The words at block `+0x27`, `+0x39`, and `+0x4b` are not stored ids on every button, so they are not this field. The word at `+0x4b` is 148 on six buttons, and on those six the picture id is 146. The word at record `+4` is 156 on two buttons. It is not the picture id. Two blocks, the first with stored id 151 and the second with stored id 167:
 
 ```
 02020100000000000000000100fc21ad160000000097000000000000000000000000000000000000
-02020000000000000000000100c40e93030000000096000000000000000000000000000000000000
+02020000000000000000000100210c760200000000a7000000000000000000000000000000000000
 ```
 
-The first id is 151, the stored id of resource 150. The second is 150, the resource id. Both kinds of id occur at that word.
-
-`nida81.tbk` has 156 class `0x9` records of 43 bytes. Its huge-table resource ids are 132, 136, 137, 140, 142, 143, 148, 149, and 151. Stored ids are the resource id plus one, so 137, 143, and 149 are each a resource id and another bitmap's stored id. Those hits cannot separate resource from stored. The first word of the block is `0x0202` on 149. The other seven pointers are 0. The first word at the segment base is 2398 twice, 206 twice, 788 twice, and 0 once. The bytes there contain `80650005` and a page id. The word at `+0x15` is a resource id 21 times, a stored id 16 times, and one of 137, 143, or 149 eight times. `+0x4b` is a resource id 3 times. `+0x52` matches a huge id 4 times. `+0x40` is a resource id 7 times and `+0x5f` is a stored id 7 times, on the seven pointer-0 blocks.
+`nida81.tbk` has 156 class `0x09` records of 43 bytes. The pointer is 0 on 7 of them. The other 149 name a block that starts with `0x0202`, and the word at byte `0x15` is a stored id on all 149. Two of those values, 150 and 152, are not resource ids in that book. Each of those two numbers occurs once.
 
 ### Class `0xA`, 61 bytes, 515 records
 

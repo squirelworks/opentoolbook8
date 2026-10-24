@@ -1,8 +1,11 @@
 """A button bitmap in the huge table.
 
-The type-1 directory entry's fourth word is the resource id. A button
-stores that id plus one. When the resource marks itself as huge, the
-word at ``+9`` is a 1-based row of the table at header ``+0x104``. The
+The type-1 directory entry's fourth word is the resource id. A class
+``0x09`` button names a picture by the stored id, which is that resource
+id plus one. The word at record ``+0x28`` is a near pointer to a graphics
+block that starts with ``0x0202``, and the stored id is the unaligned
+word at byte ``0x15`` of the block. When the resource marks itself as
+huge, the word at ``+9`` is a 1-based row of the table at header ``+0x104``. The
 row's third dword is the file offset of an 8-byte prefix, and the ``BM``
 file begins on the next byte. Width, height, and depth come from that
 file's info header.
@@ -13,9 +16,12 @@ from __future__ import annotations
 import struct
 from dataclasses import dataclass
 
+from opentoolbook.field import _segments
 from opentoolbook.record import Book
 
 BITMAP_TYPE = 1
+BUTTON = 0x09
+BUTTON_BYTES = 43
 
 
 @dataclass(frozen=True)
@@ -59,6 +65,28 @@ def button_bitmap(data: bytes, resource_id: int) -> Bitmap:
     width, height = struct.unpack_from("<ii", data, info + 4)
     bpp = _u16(data, info + 14)
     return Bitmap(resource_id, resource_id + 1, offset, width, height, bpp)
+
+
+def button_picture_ids(data: bytes) -> tuple[int, ...]:
+    """Stored picture id of every button whose graphics block starts ``0x0202``.
+
+    A zero pointer at ``+0x28`` is a button with no picture. The id is a
+    type-1 resource id plus one.
+    """
+    found: list[int] = []
+    for segment in _segments(data):
+        end = segment.file_at + segment.size
+        at = segment.base + 0x10
+        while at + BUTTON_BYTES <= end and at >= 4:
+            kind = _u16(data, at - 2)
+            size = _u16(data, at - 4) - (at - segment.base)
+            if kind == BUTTON and size == BUTTON_BYTES:
+                pointer = _u16(data, at + 0x28)
+                origin = segment.base + pointer
+                if pointer and origin + 0x17 <= end and _u16(data, origin) == 0x0202:
+                    found.append(_u16(data, origin + 0x15))
+            at += 2
+    return tuple(found)
 
 
 def huge_bitmaps(data: bytes) -> tuple[Bitmap, ...]:
