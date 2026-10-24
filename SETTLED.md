@@ -59,6 +59,10 @@ Page ids come from the walk that already finds P0: the page list at book `+0x10`
 
 A class 4 background is the record named by the far reference at page `+0x47`. The class word immediately before that record is 4. The pattern byte is at `+0x4B`. Red, green, and blue are at `+0x5B`, `+0x5C`, and `+0x5D`. Page P0 of `9e954d01.tbk` uses pattern `0xFE` and color 0, 0, 191.
 
+## Arc
+
+Class `0x11` object 80 on page P1140 of `9e954d01.tbk` stores two points, the signed pairs at `+0x25` and `+0x29`: (1866, 5065) and (1815, 4620). Those are the points in the record. The arc is not filled.
+
 ## Missing files are reported, not fatal
 
 Logic Families names `minstb32.dll`. That file is not in the install list. Opening the book reports `named, not shipped` and still returns the book. A name that is in the install list but absent is `not found`. A starred install-list entry that is absent is `listed, not shipped`. None of the three stops the open.
