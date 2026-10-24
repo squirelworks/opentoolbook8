@@ -472,3 +472,11 @@ On a class `0x10` record the four signed words at `+0x28` are the source rectang
 ## Group entry union
 
 The union of the rectangles stored in the 10-byte entries equals the group's rectangle at `+0x0F` on 188 of the 372 groups in `9e954d01.tbk` and on 44 of the 94 groups in `nida81.tbk`. The union of the rectangles at `+0x0F` of the objects whose word at `+0x04` names the group equals that rectangle on all 372 and all 94. The 10-byte list is left as stored.
+
+## Pattern bytes
+
+The background pattern is the byte at `+0x4B`. `9e954d01.tbk` has 15 backgrounds: 254 on 12, 253 on 2, and 0 on 1. `nida81.tbk` has 20 backgrounds, and every one is 254.
+
+The pattern on a class `0x8`, `0xC`, or `0x10` record is the byte at `+0x25`. Class `0x8` in `9e954d01.tbk` is 254 on 143, 33 on 56, 253 on 41, and 4 on 3, of 243 records. In `nida81.tbk` it is 254 on 75, 253 on 9, and 81 on 2, of 86 records. Class `0xC` in `9e954d01.tbk` is 253 on 23 and 254 on 22, of 45 records. In `nida81.tbk` all 37 are 254. Class `0x10` in `9e954d01.tbk` is 254 on 621, 105 on 14, 119 on 14, 12 on 4, and 21 on 1, of 654 records. In `nida81.tbk` all 76 are 254.
+
+`0xFE` occurs in both books on all four of those fields. `0xFD` occurs in both books on class `0x8`. `0xFF` does not occur on any of those fields in either book. The other values stay numbers.
