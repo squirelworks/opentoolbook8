@@ -36,7 +36,7 @@ Both names are in the page-id walk. No other byte of the 81-byte object is share
 
 `TB80BAS` does not compare those four bytes. The page test in that image is the class word at object −2 equal to 5. The flag byte is outside that compare. The view-page function and the other compares are in `RESEARCH.md`.
 
-The sentence `ICs are classified into logic families based on voltage requirements` is one example of text in the gap after `P440`'s body and before the next directory record. It is not in the `P430` body.
+The characters in the gap after `P440`'s body, and before the next directory record, start `ICs are classified into logic families based on voltage requirements`. They are not in the `P430` body. The record is a capacity word, a length word, and that many characters, in the trailer heap. On `P440` the words are 128 and 122 at file `0xcbad7`, and the characters start at `0xcbadb`. The stored characters are `\r\n\r\nICs are classified into logic families based on voltage requirements, speed and the number of circuits they can drive.` Every class `0x5` page has that record in the gap after its directory body: all 131 pages in this book, and all 44 pages in `nida81.tbk`. The capacity is not one value. `P400` stores 96 and 80 at file `0xbdffd`, and the characters are `\r\n\r\nDigital circuits and the IC chip are usually thought of as one and the same.` A class `0xA` field names the record on both pages, through word 1 of the block at `+0x24`.
 
 ### Class `0x4`, 103 bytes, 14 records that agree
 

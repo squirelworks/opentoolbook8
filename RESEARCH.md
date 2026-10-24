@@ -52,8 +52,6 @@ From the bytes, recorded in `FINDINGS.md`:
 
 The decompile record's 11.5 export of this book has 131 `Page.xml` files, 654 `IrregularPolygon` tags, and 62 `Arc` tags. Those three counts match the class `0x5`, `0x10`, and `0x11` scans. Equal counts are not a class-name binding.
 
-The sentence `ICs are classified into logic families based on voltage requirements` is one example of text in the gap after `P440`'s body and before the next directory record.
-
 ## What this repository does
 
 A page can be read when the bytes name the text, the page, and the stored shapes. That is partial: field text, page ids, background pattern and color, stored polygon points, arc endpoints, four huge bitmaps, and the twenty quiz records are read. They are not composed into a page.
