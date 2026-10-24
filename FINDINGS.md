@@ -343,3 +343,11 @@ In `9e954d01.tbk` the pattern is 253 on 23 records and 254 on 22. Each of those 
 The bytes at `+0x17`, `+0x18`, and `+0x19` are a color, and the byte at `+0x1A` is 0. The bytes at `+0x1B`, `+0x1C`, and `+0x1D` are a color, and the byte at `+0x1E` is 0. The byte at `+0x25` is the pattern. That holds for all 654 class `0x10` records of 53 bytes in `9e954d01.tbk` and all 76 in `nida81.tbk`. The two records in the class `0x10` section are pattern 254, colors 0, 0, 0 and 192, 192, 192.
 
 In `9e954d01.tbk` the pattern is 254 on 621 records, 119 on 14, and 105 on 14. A pattern of 12 occurs on 4 records. A pattern of 21 is one example. The 14 records whose pattern is 119 store color 0, 0, 0 and color 64, 128, 64. The 14 whose pattern is 105 store color 0, 0, 0 and color 191, 64, 64. The 621 records whose pattern is 254 use more than one color. In `nida81.tbk` the pattern is 254 on all 76, and those records use more than one color. Seventeen of them store the same color in both triples.
+
+## Picture ids outside the huge table
+
+The type-1 directory is the dword at header `+8 + (1 + 5) * 4`. The same shape of slot with a resource id in place of the type is header `+(id + 5) * 4`, and the reader's own base is header `+8 + (id + 5) * 4`. Neither dword is the file offset of an 8-byte prefix followed by `BM`. That was checked for all 63 type-1 ids in `9e954d01.tbk` that are not in the huge table, and all 23 such ids in `nida81.tbk`.
+
+Resource 133 is stored id 134. `(133 + 5) * 4` is `0x228`. The dword at header `+0x228` is 0, and the dword at header `+8 + 0x228` is 0. Resource 130 is stored id 131. The dword at header `+0x21C` is 0. The dword at header `+8 + 0x21C` is `0x01400006`, past the end of the file.
+
+In `nida81.tbk`, resource 116 is not in the huge table. The dword at header `+(116 + 5) * 4` is `0x00040000`. The 16 bytes at that offset are `74 20 6c 61 77 20 61 6e 64 20 61 6c 6c 20 20 20`. Byte 8 of those is `0x64`, not `BM`. The dword at header `+8 + (116 + 5) * 4` is 0. The same `0x00040000` is the slot for resources 126, 131, 141, and 146, so it is not an offset of resource 116.

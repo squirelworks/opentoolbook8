@@ -77,3 +77,7 @@ The disk-to-object reader has no export name. The property that points a widget 
 ## The word at byte 2 of a style run
 
 From `tbdecompile/research/paint-20261021.md`. That note calls the list at book `+0x28` a font table, and it says a style run's word at `+2` is an entry pointer, with the value 1 meaning the field's font at `+0x22`. The bytes agree that the word is 1 or a pointer in that list, and that the pointer addresses a C string. They do not show that 1 is replaced by the word at field `+0x22`. The reader returns the C string.
+
+## The header slot is the resource type
+
+From the decompile record, claim G-010. `FUN_1028_218a` in `TB80BAS` reads `OBJGETHDRLONG((type + 5) * 4)`. The index is the resource type. Type 1 is the bitmap directory. Putting a resource id in that slot does not name a bitmap. The dwords are in `FINDINGS.md`.
