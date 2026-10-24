@@ -1,7 +1,11 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "opentoolbook"
 version = "0.1.0"
-description = "Clean-room read of a ToolBook 8 object directory"
+description = "Clean-room read of a ToolBook 8 book and the NIDA course shell"
 requires-python = ">=3.11"
 readme = "README.md"
 
