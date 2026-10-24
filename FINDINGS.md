@@ -181,6 +181,10 @@ b1033a11981c3a11981c1806
 
 The first pairs are (930, 4410), (930, 1560), and (7335, 1560). The second are (945, 4410), (7320, 4410), and (7320, 1560).
 
+### Class `0x13` bounds
+
+The four signed words at `+0x25` are the minimum x, the minimum y, the maximum x, and the maximum y of those pairs. That holds for all 66 records, and for all 14 in `nida81.tbk`. On the flat record whose `+0x0F` is (5985, 3446, 5998, 3446), the words at `+0x25` are (5970, 3450, 5985, 3450). On the flat record whose `+0x0F` is (6678, 3421, 6678, 3446), the words at `+0x25` are (6795, 3420, 6795, 3450).
+
 ### Class `0x15`, 89 bytes, 5 records
 
 Twenty-four words are the same in all five, including `+0x04` = 20, `+0x06` and `+0x08` = 65535, and `+0x1A` = 65280. Two records:

@@ -67,6 +67,10 @@ A class 4 background is the record named by the far reference at page `+0x47`. T
 
 A quiz question page has fields named `Stem`, `A`, `B`, `C`, and `D`. The trailer slot before each of `Answer`, `QuestionNo`, and `TestNo` is a value: the word `0x0009`, a length, and that many characters. On `9e954d01.tbk` the twenty pages `P10210` through `P10229` use that shape, and their test and question numbers are the same numbers as the `InfoText` field on page `PQINFO`.
 
+## Polyline
+
+A class `0x13` record is 55 bytes. The count is the word at `+0x2D` and the near pointer at `+0x2F` names the stored points, four bytes each. The four signed words at `+0x25` are the minimum x, the minimum y, the maximum x, and the maximum y of those points. The reader returns the stored points. The same read holds for every such record in `9e954d01.tbk` and in `nida81.tbk`.
+
 ## Arc
 
 Class `0x11` object 80 on page P1140 of `9e954d01.tbk` stores two points, the signed pairs at `+0x25` and `+0x29`: (1866, 5065) and (1815, 4620). Those are the points in the record. The arc is not filled.
