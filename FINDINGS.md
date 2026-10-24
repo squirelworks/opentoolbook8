@@ -16,7 +16,7 @@ Inside a directory record the base is 6 bytes before the body. An object is a wo
 
 ### Class `0x5`, 81 bytes, 131 records
 
-Every one of these is the first object in a directory record that also carries `80 65 00 05` at body offset 9. Word `+0x00` is 514, word `+0x26` is 20, and word `+0x28` is 4352. The C string at `+0x06` is the page id. Two records:
+Every one of these is the first object in a directory record. The object starts 14 bytes into the body. The byte at body offset 9 (object −5) is `0x80` on 129 records and `0x81` on the other two. The next three bytes are `65 00 05` on all 131: the size word is `0x65` and the class word is 5. Word `+0x00` is 514, word `+0x26` is 20, and word `+0x28` is 4352. The C string at `+0x06` is the page id. Two records whose flag byte is `0x80`:
 
 ```
 0202640300005030007972696768740000000000000000000000000000000000000000000000140000116800a60398032001000000000000008a03ffff0000000000000000000014000051b80300000087
@@ -24,6 +24,17 @@ Every one of these is the first object in a directory record that also carries `
 ```
 
 The first string is `P0`. The second is `P1`.
+
+The two records whose flag byte is `0x81` are `P440` (directory key `0x3200`, file `0xc7dbb`) and `P2920` (key `0xb700`, file `0x2085bf`). The bytes from object −8 through the page id:
+
+```
+2b371a816500050002026c0300005034343000
+c3382281650005000202c1030000503239323000
+```
+
+Both names are in the page-id walk. No other byte of the 81-byte object is shared by these two and absent from the `0x80` pages. `nida81.tbk` has the same split: 43 pages use `0x80`, and `P22100` uses `0x81`, still followed by `65 00 05`. Which page that is in `nida81.tbk` is one example.
+
+The sentence `ICs are classified into logic families based on voltage requirements` is one example of text in the gap after `P440`'s body and before the next directory record. It is not in the `P430` body.
 
 ### Class `0x4`, 103 bytes, 14 records that agree
 
