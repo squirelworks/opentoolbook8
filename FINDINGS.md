@@ -455,15 +455,15 @@ The type-10 directory is the dword at header `+8 + (10 + 5) * 4`. Its entries ar
 
 Each type-10 record is 15 bytes, the class word at −2 is `0x2A`, and the record starts `02 02 01 00`. The word at `+6` is 0 and the word at `+0x0B` is `0xFFFF`. The word at `+9` is a near pointer. The word at that pointer is a count, and that many bytes follow. The last of those bytes is 0. Those bytes expand to a handler. In `9e954d01.tbk` three begin `to handle enterPage` and one begins `to handle enterSystem`. In `nida81.tbk` four begin `To handle enterpage` and one begins `to handle enterApplication`.
 
-The word at `+4` of the 15-byte record is not that pointer. On three type-10 records in `nida81.tbk` it names the same address, and that address is in the middle of another handler.
+The word at `+4` of the 15-byte record is not that pointer. On three type-10 records in `nida81.tbk` it is the same value. That address is 1550 bytes into the handler bytes of id 158.
 
 A page whose script-mode byte has low bits 2 stores a word at `+0x2A`. That word minus 1 is one of these type-10 ids, on all three such pages in `9e954d01.tbk` and all four in `nida81.tbk`. Each of those seven words occurs once. The type-9 record with the same id is also 15 bytes and starts `02 02 01 00`. The bytes at its `+9` pointer do not expand to a handler.
 
 ## Lesson zip directory
 
-`die0dv03.zip` is one byte, `78`. It has no second record. It does not contain `50 4b 01 02` or `50 4b 05 06`. That file is one example. It is not a directory, and it is not opened.
+The local file `die0dv03.zip` is one byte, `78`. It is a one-byte stub, the same pattern as `93954302.tbk`, which is also the one byte `78`. The stub does not contain `50 4b 01 02` or `50 4b 05 06`. It is not opened.
 
-Two other archives do contain a central directory. `att-cd.zip` has 449 records and `toolbook-files.zip` has 120. Every record in both begins with the 46-byte header whose shared constant bytes are `50 4b 01 02` at 0, `14 03 14 00` at 4, `00` at 9 and at 11, `5d` at 15, `00` at 23 and at 29, and `18 00 00 00 00 00 00 00 00 00` at 30. Each archive ends with 22 bytes that begin `50 4b 05 06 00 00 00 00` and end `00 00`. The bytes between those differ. `att-cd.zip` names `Nida98/Lessons/nida81.tbk` and does not name a `.zip`. `toolbook-files.zip` names `.c` and `.html` files. Neither archive is `die0dv03.zip`. The directory in those two archives does not repeat in the lesson file.
+Two other archives do contain a central directory. `att-cd.zip` has 449 records and `toolbook-files.zip` has 120. Every record in both begins with the 46-byte header whose shared constant bytes are `50 4b 01 02` at 0, `14 03 14 00` at 4, `00` at 9 and at 11, `5d` at 15, `00` at 23 and at 29, and `18 00 00 00 00 00 00 00 00 00` at 30. Each archive ends with 22 bytes that begin `50 4b 05 06 00 00 00 00` and end `00 00`. The bytes between those differ. `att-cd.zip` names `Nida98/Lessons/nida81.tbk` and does not name a `.zip`. `toolbook-files.zip` names `.c` and `.html` files. Neither archive is the local `die0dv03.zip`.
 
 ## Polygon source rectangle and bounds
 
