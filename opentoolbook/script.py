@@ -142,11 +142,14 @@ def _script(data: bytes, heap: bytes, record: int, kind: int, size: int) -> str:
 
 
 def _expand(blob: bytes, origin: int, span: int) -> str:
-    """Expand ``span`` bytecode bytes at ``origin`` inside ``blob``."""
+    """Expand ``span`` bytecode bytes at ``origin`` inside ``blob``.
+
+    A zero byte ends the handler. The span is the bound.
+    """
     out = bytearray()
     pos = origin
     end = min(len(blob), origin + span)
-    while pos < end and len(out) < 8000:
+    while pos < end:
         opcode = blob[pos]
         pos += 1
         if opcode < 0x80:
@@ -216,7 +219,8 @@ def resource_scripts(data: bytes) -> tuple[ResourceScript, ...]:
     """Every type 10 handler. The word at ``+9`` names a length and the bytes.
 
     The record is 15 bytes and starts with ``0x0202``, ``0x0001``. The
-    reader expands those bytes. It does not call the handler.
+    word at the pointer is a count, and the last byte of that count is
+    0. The reader expands the whole count. It does not call the handler.
     """
     book = Book(data)
     records = {item.key: item for item in book.records}

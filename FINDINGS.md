@@ -486,3 +486,45 @@ The background pattern is the byte at `+0x4B`. `9e954d01.tbk` has 15 backgrounds
 The pattern on a class `0x8`, `0xC`, or `0x10` record is the byte at `+0x25`. Class `0x8` in `9e954d01.tbk` is 254 on 143, 33 on 56, 253 on 41, and 4 on 3, of 243 records. In `nida81.tbk` it is 254 on 75, 253 on 9, and 81 on 2, of 86 records. Class `0xC` in `9e954d01.tbk` is 253 on 23 and 254 on 22, of 45 records. In `nida81.tbk` all 37 are 254. Class `0x10` in `9e954d01.tbk` is 254 on 621, 105 on 14, 119 on 14, 12 on 4, and 21 on 1, of 654 records. In `nida81.tbk` all 76 are 254.
 
 `0xFE` occurs in both books on all four of those fields. `0xFD` occurs in both books on class `0x8`. `0xFF` does not occur on any of those fields in either book. The other values stay numbers.
+
+## Quiz handlers
+
+`nc81test.sbk` type 10 resource 741 is one script of `to get` handlers. `nida81.tbk` does not store these names. The lesson stores the calls.
+
+`to get gotoNextQuestionEx` contains:
+
+```
+	if  __quizPass <= 3  and  __quizIndex > 0  then	
+		response = getQuizResponse()
+		score = 0
+		if  response <> ""  then
+			if  response = answer of this page  then
+				score = 100
+			end if
+			get storeQuestionResponse(testNo of this page, questionNo of this page, response, score)
+		else
+			get storeQuestionSkipped(testNo of this page, questionNo of this page)
+		end if
+	end if
+```
+
+`to get gotoPreviousQuestionEx` contains the same pass test, the same `getQuizResponse()`, and the same `response = answer of this page` then `score = 100`. The other branch there is `score = 0`. It calls the same `storeQuestionResponse(testNo of this page, questionNo of this page, response, score)` and does not call `storeQuestionSkipped`.
+
+`to get getQuizScore` and `to get getQuizScorePM` both contain:
+
+```
+	step i from 1 to __quizCount
+		increment(count)
+		score = score + __quizScore[i]	
+	end step
+```
+
+`getQuizScore` then contains `error = score div count` when `count` is past 0. `getObjectiveScore` uses that same `div` for the entries whose `__quizTestNo[i]` is the objective. `getQuizScorePM` contains `error = score / count`. `to get storeQuestionResponse` is the function that writes `__quizScore[__quizIndex] = score`, `__quizResponse[__quizIndex] = response`, and `__quizAttempted[__quizIndex] = 1`.
+
+`to get startCompletionPass`, `to get startChangePass`, and `to get startCritiquePass` each set `__quizIndex = 0` and call `gotoNextQuestionEx()`. The `__quizPass` values are 2, 3, and 4. `to get handleQuizClick` also calls `gotoNextQuestionEx()` when the button is `OK`, `Skip`, or `Next`. That is six calls.
+
+`to get getNextQuestion` returns `getNextRandomX(__quizNumbers)`. `to get getPreviousQuestion` returns `getPreviousRandomX(__quizNumbers)`. `getNextRandomX` adds 1 to `__xIndex` and returns `numbers[__xIndex]` when the index was below the count. `getPreviousRandomX` subtracts 1 and returns that entry when the index was not 1.
+
+On `9e954d01.tbk` the background `Test` is the one named by pages `P10210` through `P10229`. Its `buttonClick` is `get handleQuizClick(target)`. The three type 10 handlers whose ids are 372, 373, and 374 each contain `get handleQuizKey(key)` when the key is `keyF7`. Group `selection1` on pages `P10001`, `P10002`, `P10003`, and `P10004` each calls `setupQuizEx` with `2`, `"P10301"`, `"P10302"`, and `"P10303"`. The first argument is `Assessment`, `Pre-Test`, `Post-Test`, or `Quiz`. After that call the same four scripts contain `get clearpool()`, `addObjectiveToPool(1, 110, 119, 6)`, `addObjectiveToPool(2, 120, 129, 4)`, `setuppool()`, and `get gotoNextQuestionEx()`.
+
+`to get getquizResponse` is one function. It walks `ansiToChar(96 + i)` and keeps the name of a checked button. `to get processQuizScore` in `nc81base.sbk` is one function. It writes the score into `NIDAREC.INI`. `to get handleQuizKey` is one function.

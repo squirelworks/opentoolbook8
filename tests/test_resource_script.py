@@ -40,6 +40,43 @@ class ResourceScriptTests(unittest.TestCase):
             self.assertEqual(lines[-1].lower(), "end")
             self.assertNotEqual(lines[0].lower(), "end")
 
+    def test_system_book_script_is_the_whole_count(self):
+        path = os.environ.get("OPENTOOLBOOK_TBK")
+        if not path or not os.path.isfile(path):
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        folder = Path(path).parent
+        books = {
+            "nc81base.sbk": (129, "-- NC81BASE.SBK"),
+            "nc81recs.sbk": (268, "-- NC81RECS.SBK"),
+            "nc81test.sbk": (741, "-- NC81TEST.SBK"),
+            "nc81trnr.sbk": (428, "-- NC82TRNR.SBK"),
+        }
+        for name, (ident, head) in books.items():
+            found = resource_scripts((folder / name).read_bytes())
+            self.assertEqual(len(found), 1)
+            item = found[0]
+            self.assertEqual(item.resource_id, ident)
+            self.assertTrue(item.source.startswith(head))
+            self.assertGreater(len(item.source), 8000)
+            self.assertNotIn("\x00", item.source)
+            self.assertIn("to get ", item.source)
+            lines = [line.strip() for line in item.source.splitlines() if line.strip()]
+            self.assertEqual(lines[-1].lower(), "end")
+        quiz = resource_scripts((folder / "nc81test.sbk").read_bytes())[0].source
+        self.assertIn("to get handleQuizClick", quiz)
+        self.assertIn("to get getQuizScore\r", quiz)
+        self.assertIn("to get getQuizScorePM", quiz)
+        self.assertIn("to get gotoNextQuestionEx", quiz)
+        self.assertIn("to get gotoPreviousQuestionEx", quiz)
+        self.assertEqual(quiz.count("response = answer of this page"), 2)
+        self.assertEqual(
+            quiz.count("get storeQuestionResponse(testNo of this page, questionNo of this page, response, score)"),
+            2,
+        )
+        self.assertGreaterEqual(quiz.count("score = score + __quizScore[i]"), 2)
+        self.assertEqual(quiz.count("error = score div count"), 2)
+        self.assertEqual(quiz.count("get gotoNextQuestionEx()"), 6)
+
 
 if __name__ == "__main__":
     unittest.main()

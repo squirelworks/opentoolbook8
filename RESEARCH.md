@@ -96,6 +96,12 @@ From `tbdecompile/research/paint-20261021.md`. That note calls a draw object's s
 
 From `tbdecompile/research/paint-20261021.md`. That note says script mode 2 is a type 9 resource. In both books the page word at `+0x2A` minus 1 is an id in the type 9 directory and in the type 10 directory. The handler bytes are the count and the bytes named by the type 10 record's word at `+9`. The type 9 pointer is not those bytes. The reader returns the type 10 text. It does not call the handler.
 
+## Quiz handlers
+
+From `nc81test.sbk` type 10 resource 741, expanded by this reader on 24 October 2026. The decompile record, chapter 14, says the four `nc81*` books have no decoded `to handle` text. The bytes in those books are `to get`. The reader returns that source. It does not run it. The steps two of those handlers share are in `FINDINGS.md`.
+
+`processQuizScore` in `nc81base.sbk` is one function. It writes `NIDAREC.INI` through `WritePrivateProfileStringA`. That write is not a score the reader computes. `getquizResponse` is one function. The comparison that repeats is the two handlers in `FINDINGS.md`, which call it and test `answer of this page`.
+
 ## Pattern bytes 0xFD, 0xFE, and 0xFF
 
 From `tbdecompile/research/paint-20261021.md`. `LOCKPATTERN` in `TB80BAS` is `1098:0876`. That note says `0xFD` is hollow, `0xFE` is solid paper, and `0xFF` is solid ink, and that `1` through `0x80` is a pattern. `0xFE` is stored on backgrounds and on class `0x8`, `0xC`, and `0x10` in both books. `0xFD` is stored on class `0x8` in both books. `0xFF` is not stored on those fields in either book, so that name is not applied here. The counts are in `FINDINGS.md`.
