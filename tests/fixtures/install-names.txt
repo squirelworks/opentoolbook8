@@ -1,0 +1,519 @@
+# Basenames from the Instructor 8.1 install under /tmp/tb81/wine.
+# Distribution names are the unstarred lines of toolbook.lst.
+# Sizes and the measured partition are in RESEARCH.md.
+[author]
+_INST32I.EX_
+_ISDEL.EXE
+_SETUP.DLL
+_SETUP.LIB
+abullet.spb
+actdelay.spb
+Action Objects.ini
+Action Objects.wbk
+Action Objects.wbx
+acttimer.spb
+allmedia.spb
+Almost.wav
+Almost1.wav
+angled.ptp
+angledh.ptp
+art_deco.ptp
+asym.ini
+Asymgif.ocx
+automenu.spb
+AUTORUN.EXE
+Autorun.ICO
+axf.dtd
+BITED80.EXE
+Bited80.hlp
+blank.tbk
+bluebr1i.ptp
+blueintersection.ptp
+blueintersectionh.ptp
+bluelines.ptp
+bluelinesh.ptp
+bullets.spb
+butnedit.spb
+Buttons.ini
+Buttons.wbk
+Buttons.wbx
+callout.spb
+Catalog Blank Cache.tbk
+Catalog Blank Category.tbk
+Catalog Blank Spec Cache.tbk
+Catalog Spec Cache.tbk
+catalog.aof
+catalog.ini
+catalog.tbk
+catalogh.tbk
+CATOBJT.HLP
+click2learn.author.ini
+click2learn.author.wbk
+click2learn.author.wbx
+click2learn.pal
+CLIPWID.HLP
+clipwid.spb
+COMPOBJ.DLL
+COMPRESS.INS
+CONFIRM.REG
+coralsea.ptp
+coralseah.ptp
+CORRECT.SWF
+Correct.wav
+Correct1.wav
+decrypt.exe
+DECRYPT.HLP
+default.tbk
+defaulth.tbk
+DIB.DRV
+DIBUTIL.DLL
+distrib.wri
+Draw Objects.ini
+Draw Objects.wbk
+Draw Objects.wbx
+dropbin.spb
+dzactx.dll
+earth.ptp
+earthh.ptp
+EVALBOOK.HLP
+evalbook.spb
+EVALPAGE.HLP
+evalpage.spb
+Excuse1.wav
+Excuseme.wav
+extjava.spb
+fall1i.ptp
+finan1.ptp
+finan1h.ptp
+finan1i.ptp
+fldglist.spb
+fldolist.spb
+gen1ch.tbk
+gen1chh.tbk
+gen2ch.tbk
+gen2chh.tbk
+genedit.spb
+generic.tbk
+generic1.aof
+generic2.aof
+generic3.aof
+generich.tbk
+Givebrk.wav
+Givebrk1.wav
+granite.ptp
+gray1.ptp
+gray1h.ptp
+gray1i.ptp
+grayck1i.ptp
+Groovy.wav
+Groovy1.wav
+hr.tbk
+hrh.tbk
+IBGIF2.FLT
+IBJPG2.FLT
+IBPCD2.FLT
+IBPCD2.INI
+IBPCX2.FLT
+IBTGA2.FLT
+IBTIF2.FLT
+ICONED80.EXE
+Iconed80.hlp
+IMAGEMAP.HLP
+imagemap.spb
+IMCD32.FLT
+IMCD42.FLT
+IMCDR2.FLT
+IMCDR2.INI
+IMDRW2.FLT
+IMDRW2.INI
+IMDXF2.FLT
+IMDXF2.INI
+IMGEDIT.HLP
+imgedit.spb
+IMHG32.FLT
+IMHG32.INI
+IMPCT2.FLT
+IMPCT2.INI
+IMPIC2.FLT
+IMPIC2.INI
+IMPIF2.FLT
+IMPIF2.INI
+IMPS_2.FLT
+IMPS_2.INI
+impulse.exe
+incorrect.swf
+Incrrct.wav
+indust1.ptp
+indust1h.ptp
+indust1i.ptp
+inetauto.spb
+INST80.CNT
+Inst80.exe
+INST80.HLP
+inst80.ini
+Inst80.pal
+INST80.SBK
+inter1i.ptp
+IPHGW2.FLT
+IPHGW2.INI
+ISGDI32.DLL
+ISGDI32.INI
+learn1.tbk
+learn1h.tbk
+learn1i.tbk
+liblogin.spb
+listedit.spb
+logread.exe
+logread.hlp
+marquee.spb
+Media (Animated).ini
+Media (Animated).wbk
+Media (Animated).wbx
+Media (Backdrops).ini
+Media (Backdrops).wbk
+Media (Backdrops).wbx
+Media (Clipart).ini
+Media (Clipart).wbk
+Media (Clipart).wbx
+Media (Icons).ini
+Media (Icons).wbk
+Media (Icons).wbx
+Media (Tiled Backdrops).ini
+Media (Tiled Backdrops).wbk
+Media (Tiled Backdrops).wbx
+Media Players.ini
+Media Players.wbk
+Media Players.wbx
+mediabtn.spb
+medimpt.m80
+MEDMANT.DLL
+medwavet.m80
+MENUED80.EXE
+Menued80.hlp
+mercury.jar
+mil1.ptp
+mil1h.ptp
+mil1i.ptp
+mod_offc.ptp
+mtchitem.spb
+mtchobj.spb
+multdrop.spb
+multiobj.spb
+multline.spb
+multwid.spb
+My Objects.ini
+My Objects.wbk
+My Objects.wbx
+namepart.spb
+Navigation Objects.ini
+Navigation Objects.wbk
+Navigation Objects.wbx
+NEURON.CNT
+NEURON.HLP
+NEURON.OCX
+neuron.spb
+No.wav
+No1.wav
+Nokid1.wav
+Nokiddng.wav
+NONSEC.REG
+Notcrct1.wav
+NP16NEUR.DLL
+NP32NEUR.DLL
+OC25.DLL
+OLE2.DLL
+OLE2.REG
+OLE2CONV.DLL
+OLE2DISP.DLL
+OLE2NLS.DLL
+OLE2PROX.DLL
+orderobj.spb
+orderwid.spb
+Ouch.wav
+Ouch1.wav
+Oxs.dll
+PACKAGER.exe
+PACKLIST.EXE
+PACKLIST.PIF
+pagemenu.spb
+Pages.ini
+Pages.wbk
+Pages.wbx
+paint.ptp
+PALED80.EXE
+Paled80.hlp
+PALOPT.EXE
+PALOPT.HLP
+PALOPTX.DLL
+Partly1.wav
+Partlyrt.wav
+PATHANIM.HLP
+PCDLIB.DLL
+PCDXBMP.DLL
+peacock.ptp
+peacockh.ptp
+PHOTO.DLL
+Placeholder Objects.ini
+Placeholder Objects.wbk
+Placeholder Objects.wbx
+popupump.spb
+POPVID.HLP
+popvid.spb
+ppointi.tbk
+present.aof
+present.ptp
+present.tbk
+presenth.tbk
+PXENGWIN.DLL
+questext.spb
+QUESTION.HLP
+Questions (Multiple Choice).ini
+Questions (Multiple Choice).wbk
+Questions (Multiple Choice).wbx
+Questions (True-False).ini
+Questions (True-False).wbk
+Questions (True-False).wbx
+Questions (Various).ini
+Questions (Various).wbk
+Questions (Various).wbx
+quiz1.aof
+quiz1.tbk
+quiz1h.tbk
+quiz1i.tbk
+quiz2.aof
+rainbow.ptp
+rainbowh.ptp
+realplay.spb
+Regsvr.exe
+RelNotes.WRI
+remover.exe
+remover.ico
+Repair80.exe
+reset.spb
+Righton.wav
+Righton1.wav
+roi.tbk
+roih.tbk
+rptactn.spb
+Rusure.wav
+Rusure1.wav
+sales1.tbk
+sales1h.tbk
+sales2.tbk
+sales2h.tbk
+Scoring and Tracking.ini
+Scoring and Tracking.wbk
+Scoring and Tracking.wbx
+SCP.DLL
+scrwalk.ico
+scrwalk.tbk
+SECURE.REG
+seltext.spb
+SETUP.EXE
+SETUP.INS
+simquiz.tbk
+simquizh.tbk
+skill1.aof
+sky.ptp
+skyh.ptp
+slider.spb
+space.ptp
+spaceh.ptp
+spclst.spb
+spclstld.spb
+spclstqs.spb
+stageb1.ptp
+stageb1h.ptp
+stageb1i.ptp
+stager1.ptp
+stager1h.ptp
+stager1i.ptp
+startup.ini
+STDOLE.TLB
+STORAGE.DLL
+strongline.ptp
+stronglineh.ptp
+TB2FTP.DLL
+TB80.EXE
+tb80.ini
+tb80.sbk
+tb80a.sbk
+tb80acta.sbk
+tb80actr.sbk
+TB80ACX.DLL
+tb80aicc.sbk
+tb80anm.sbk
+TB80ATH.EXE
+tb80axf.sbk
+TB80BAS.DLL
+tb80bit.m80
+TB80BMP.DLL
+TB80CMP.DLL
+TB80CVT.DLL
+TB80EDT.DLL
+TB80ENU1.DLL
+TB80ENU2.DLL
+TB80ENU3.DLL
+TB80ENU4.DLL
+TB80F32L.dll
+TB80FLT.DLL
+tb80ftp.exe
+TB80FTP.HLP
+tb80ftp.sbk
+tb80hyp.sbk
+tb80i.sbk
+TB80JPG.DLL
+tb80lmx.sbk
+TB80LNL.DLL
+TB80MAIN.EXE
+TB80MM.DLL
+TB80MM.INI
+TB80NET.EXE
+TB80OCX.DLL
+TB80OLE.DLL
+tb80r.sbk
+TB80RCA.DLL
+TB80RCR.DLL
+tb80RED.DLL
+TB80RMT.DLL
+TB80RTM.EXE
+TB80RUN.EXE
+TB80UTL.DLL
+TB80VBX.DLL
+TB80W16.DLL
+TB80W32.DLL
+tb80web.sbk
+tb80x.sbk
+TB80XTR.DLL
+TBCBT.DLL
+TBCOM.DLL
+TBDB3.DLL
+TBDLG.DLL
+TBDOS.DLL
+TBFILE32.DLL
+TBINET32.DLL
+Tbisx32.dll
+tbkcache.ini
+TBKSLICE.DLL
+Tbload.exe
+TBPDX.DLL
+TBREG.DLL
+TBUTIL32.dll
+TBWIN.DLL
+tech1.ptp
+tech1h.ptp
+tech1i.ptp
+tech2.ptp
+tech2h.ptp
+tech2i.ptp
+tech3.ptp
+tech3h.ptp
+tech3i.ptp
+tech_4h.ptp
+tech_b4h.ptp
+tech_g4h.ptp
+Text Fields.ini
+Text Fields.wbk
+Text Fields.wbx
+textedit.spb
+TIMER.HLP
+timer.spb
+Tlist16p.ocx
+TList4.ocx
+tornedge.ptp
+tornedgeh.ptp
+train1.aof
+train1.tbk
+train1h.tbk
+triang1i.ptp
+TRIGGER.HLP
+trigger.spb
+truefals.spb
+Tryagai1.wav
+Tryagain.wav
+Trythis.wav
+Trythis1.wav
+typein.spb
+TYPELIB.DLL
+UnInst80.isu
+Urright.wav
+Urright1.wav
+usejava.spb
+usgov1.ptp
+usgov1h.ptp
+usgov1i.ptp
+usgov2.ptp
+usgov2h.ptp
+usgov2i.ptp
+usmil1.ptp
+usmil1h.ptp
+usmil1i.ptp
+VEAMAA51.LEX
+vidsynch.spb
+VIDWID.HLP
+vidwid.spb
+Walkthrough.tbk
+WAVEED80.EXE
+Waveed80.hlp
+Waycoo1l.wav
+Waycool.wav
+WINCOMT.DLL
+winmedia.spb
+WINSOX.EXE
+Woops.wav
+Woops1.wav
+Wow.wav
+Wow1.wav
+WRKBNCHT.DLL
+Wrngag1.wav
+Wrngagn.wav
+xmedit.spb
+Yes.wav
+Yes1.wav
+Yougot1.wav
+Yougotit.wav
+Yup.wav
+Yup1.wav
+[distribution]
+NC81BASE.SBK
+NC81TEST.SBK
+NC81RECS.SBK
+NC81TRNR.SBK
+NC81INT.DLL
+NC81REC.DLL
+NIDA81.TBK
+TB80F32L.DLL
+TB80MAIN.EXE
+TB80OCX.DLL
+TB80RMT.DLL
+TB80VBX.DLL
+TB80ACX.DLL
+TB80ANM.SBK
+TB80BAS.DLL
+TB80BMP.DLL
+TB80CMP.DLL
+TB80ENU1.DLL
+TB80ENU2.DLL
+TB80FLT.DLL
+TB80HYP.SBK
+TB80JPG.DLL
+TB80LNL.DLL
+TB80MM.DLL
+TB80NET.EXE
+TB80OLE.DLL
+TB80R.SBK
+TB80RCR.DLL
+TB80RTM.EXE
+TB80RUN.EXE
+TB80UTL.DLL
+TB80W16.DLL
+TB80W32.DLL
+TBCBT.DLL
+TBDB3.DLL
+TBDLG.DLL
+TBDOS.DLL
+TBFILE32.DLL
+TBLOAD.EXE
+TBPDX.DLL
+TBREG.DLL
+TBWIN.DLL
