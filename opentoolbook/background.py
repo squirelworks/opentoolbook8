@@ -3,6 +3,8 @@
 A page names it with the far reference at ``+0x47``. The class word
 immediately before that record is 4. The pattern byte is at ``+0x4B``.
 Red, green, and blue are the bytes at ``+0x5B``, ``+0x5C``, and ``+0x5D``.
+A second color is the bytes at ``+0x57``, ``+0x58``, and ``+0x59``. The
+byte at ``+0x5A`` is 0.
 """
 
 from __future__ import annotations
@@ -22,6 +24,9 @@ class Background:
     red: int
     green: int
     blue: int
+    second_red: int
+    second_green: int
+    second_blue: int
 
 
 def background(data: bytes, page_id: str) -> Background:
@@ -52,5 +57,8 @@ def background(data: bytes, page_id: str) -> Background:
             data[found + 0x5B],
             data[found + 0x5C],
             data[found + 0x5D],
+            data[found + 0x57],
+            data[found + 0x58],
+            data[found + 0x59],
         )
     raise ValueError(f"no class 4 background on {page_id}")
