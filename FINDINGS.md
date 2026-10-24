@@ -513,6 +513,8 @@ Field `Indents` are the words at `+0x28`, `+0x2A`, and `+0x2C`, on 386 fields. T
 
 A class `0x13` count is the number of pairs in `Vertices`, on all 66. Those pairs are the stored points on 4 records.
 
+Type 19 resources 100, 101, 102, and 103 are the four shared scripts. Each record is 15 bytes, class `0x2A`, and starts with `0x0202`. The word at `+9` names a payload that starts `01 02 13 00`. The first `80 81` in that payload expands to the script. Resource 102 is `response = answer of this page`, then `score = 100` or `score = 0`.
+
 The export arc `Vertices` are not the stored pairs at `+0x25` and `+0x29`, on any of the 62 arcs.
 
 The words `0x0013` and `0x0068` sit in the 55 bytes after the page record on all twenty quiz pages, and on none of the 91 other pages with that same gap. `0x0068` is 104. The export calls the shared script id 103. That pair occurs once. `HelpPage` is not the `0x0009` value slot. `SourceLesson` is that slot on 19 pages. On `P10210` the word in that place is `0x0004`. That page is one example. Line `LineStyle` is not the byte at `+0x25`.

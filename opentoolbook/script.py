@@ -250,6 +250,67 @@ def resource_scripts(data: bytes) -> tuple[ResourceScript, ...]:
     return tuple(found)
 
 
+@dataclass(frozen=True)
+class SharedScript:
+    """One type 19 shared script, as source text. ``source`` is not a call."""
+
+    resource_id: int
+    source: str
+
+
+# Header slot (type + 5) * 4. Type 19 stores a shared script.
+_SHARED_TYPE = 19
+_SHARED_MARK = b"\x01\x02\x13\x00"
+# Opcode pair for the words ``to handle``.
+_TO_HANDLE = b"\x80\x81"
+
+
+def shared_scripts(data: bytes) -> tuple[SharedScript, ...]:
+    """Every type 19 shared script. The word at ``+9`` names the payload.
+
+    The record is 15 bytes and starts with ``0x0202``. The payload starts
+    ``01 02 13 00``. The handler is the first ``80 81`` in that payload.
+    The reader expands until opcode 0. It does not call the handler. A
+    zero directory handle is no shared script.
+    """
+    book = Book(data)
+    records = {item.key: item for item in book.records}
+    handle = _u32(data, book.header + 8 + (_SHARED_TYPE + 5) * 4)
+    if handle == 0:
+        return ()
+    directory, _record = _at(records, handle)
+    count = _u16(data, directory + 2)
+    table, _table_record = _at(records, (handle & 0xFFFF0000) | _u16(data, directory + 0x0E))
+    pending: list[tuple[int, int, object, int]] = []
+    for index in range(count):
+        entry = table + index * 8
+        _first, near, segment, ident = struct.unpack_from("<HHHH", data, entry)
+        resource, record = _at(records, (segment << 16) | near)
+        pending.append((resource, ident, record, near))
+    found: list[SharedScript] = []
+    for resource, ident, record, near in pending:
+        if _u16(data, resource - 2) != _SCRIPT_CLASS:
+            raise ValueError(f"type 19 resource {ident} is not class {_SCRIPT_CLASS:#x}")
+        length = _u16(data, resource - 4) - near
+        if length != _SCRIPT_BYTES or _u16(data, resource) != 0x0202:
+            raise ValueError(f"type 19 resource {ident} is not a 15-byte script record")
+        base = record.position - 6
+        origin = base + _u16(data, resource + 9)
+        later = [
+            other
+            for other, _other_id, other_record, _other_near in pending
+            if other_record is record and other > resource
+        ]
+        limit = min(later) if later else record.position + record.length
+        if origin < 0 or origin + len(_SHARED_MARK) > limit or data[origin:origin + 4] != _SHARED_MARK:
+            raise ValueError(f"type 19 resource {ident} payload is not a shared script")
+        at = data.find(_TO_HANDLE, origin, limit)
+        if at < 0:
+            raise ValueError(f"type 19 resource {ident} has no handler")
+        found.append(SharedScript(ident, _expand(data, at, limit - at)))
+    return tuple(found)
+
+
 def _at(records: dict, handle: int):
     record = records.get(handle >> 16)
     if record is None:

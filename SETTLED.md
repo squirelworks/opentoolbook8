@@ -155,6 +155,10 @@ On open, each named file is keyed by the spelling the lesson stored. A later men
 
 A type 10 resource is 15 bytes. It starts with the words `0x0202` and `0x0001`. The word at `+9` is a near pointer. The word at that pointer is a count, and that many bytes are the handler. The last byte of the count is 0. The reader expands the whole count to source text and returns it. It does not call the handler. On `9e954d01.tbk` the scripts begin `to handle enterPage` or `to handle enterSystem`. On `nida81.tbk` they begin `To handle enterpage` or `to handle enterApplication`. The word at `+4` is not the pointer. The type 9 record with the same id does not hold these bytes.
 
+## Shared script
+
+A type 19 resource is 15 bytes. It starts with the word `0x0202`. The word at `+9` is a near pointer. The payload at that pointer starts `01 02 13 00`. The handler is the first `80 81` in that payload, and the reader expands until opcode 0. It does not call the handler. On `9e954d01.tbk` the four resources are 100, 101, 102, and 103. Resource 102 begins `to handle buttonClick` and contains `response = answer of this page`, then `score = 100` or `score = 0`. `nida81.tbk` has no type 19 directory.
+
 ## System book script
 
 `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk` each store one type 10 record. The same count, ending in 0, is the handler. The reader returns that whole source. It does not call the handler. The records are id 129, 268, 741, and 428. The sources begin `-- NC81BASE.SBK`, `-- NC81RECS.SBK`, `-- NC81TEST.SBK`, and `-- NC82TRNR.SBK`. The handlers inside them are `to get`. The `nc81test.sbk` source contains `to get handleQuizClick`, `to get getQuizScore`, and `to get gotoNextQuestionEx`.

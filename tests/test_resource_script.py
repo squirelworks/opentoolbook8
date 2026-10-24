@@ -4,7 +4,7 @@ import os
 import unittest
 from pathlib import Path
 
-from opentoolbook.script import resource_scripts
+from opentoolbook.script import resource_scripts, shared_scripts
 
 
 class ResourceScriptTests(unittest.TestCase):
@@ -76,6 +76,36 @@ class ResourceScriptTests(unittest.TestCase):
         self.assertGreaterEqual(quiz.count("score = score + __quizScore[i]"), 2)
         self.assertEqual(quiz.count("error = score div count"), 2)
         self.assertEqual(quiz.count("get gotoNextQuestionEx()"), 6)
+
+
+class SharedScriptTests(unittest.TestCase):
+    def test_type_19_bytes_are_the_shared_script(self):
+        path = os.environ.get("OPENTOOLBOOK_TBK")
+        if not path or not os.path.isfile(path):
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        found = shared_scripts(Path(path).read_bytes())
+        self.assertEqual([item.resource_id for item in found], [100, 101, 102, 103])
+        self.assertGreaterEqual(len({item.source for item in found}), 2)
+        self.assertTrue(found[0].source.startswith("to handle EnterPage"))
+        self.assertTrue(found[1].source.startswith("to handle keyChar key"))
+        self.assertIn(
+            "if  response = answer of this page  then\r\n"
+            "\t\tscore = 100\r\n"
+            "\telse\r\n"
+            "\t\tscore = 0\r\n"
+            "\tend if",
+            found[2].source,
+        )
+        self.assertTrue(found[3].source.startswith("to handle enterPage"))
+        self.assertIn("get handleQuizClick(target)", found[3].source)
+        for item in found:
+            self.assertTrue(item.source.lower().startswith("to handle "))
+            self.assertNotIn("\x00", item.source)
+            lines = [line.strip() for line in item.source.splitlines() if line.strip()]
+            self.assertEqual(lines[-1].lower(), "end")
+        nida = Path(path).with_name("nida81.tbk")
+        self.assertTrue(nida.is_file())
+        self.assertEqual(shared_scripts(nida.read_bytes()), ())
 
 
 if __name__ == "__main__":
