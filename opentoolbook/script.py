@@ -9,7 +9,10 @@ of the bytecode, and those bytes follow it.
 The bytecode is the encoding in the decompile record, chapter 14, from
 ``FUN_1040_0970``. A keyword id is an entry in ``KEYWORDS``. A
 back-reference copies from this segment, not from the expanded text.
-The reader returns the text. It does not call the handler.
+This module returns the text. It does not call the handler. The page
+window runs a subset of that text: ``enterPage`` field writes, a quoted
+``go to page``, ``send next``, ``send previous``, and the quiz-button
+cases.
 """
 
 from __future__ import annotations

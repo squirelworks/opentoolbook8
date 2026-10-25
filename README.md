@@ -1,26 +1,34 @@
 # opentoolbook8
 
-Rebuilding ToolBook 8 from analysis, so a book can run on a current operating system.
+opentoolbook8 is a ToolBook 8 reader. It opens a book, draws the page, and runs the book's OpenScript.
 
-The 16-bit runtime is `TB80RTM` and `TB80BAS`. The notes and the unpacker live in the other repositories: `tbdecompile`, `tbworldview`, `squirreldra`, and `toolbookunpacker`. Foolbook is the viewer that already opens pages. Foolcourse, Foollege, and Foolversity sit above that viewer. This repository is the runtime those books need: object records, the class procedure a load calls, and the NIDA course shell around a lesson.
+OpenScript is the language. Book script is the source text in a `.sbk` or a `.tbk`. Core is the DLLs and EXEs. Those binaries are not in this repository. The ToolBook 8.1 authoring installer is the one Denny Dedmore's reinstall page lists. That note, and the rule against serial numbers, is in `DENNY-RUNTIME.md`.
 
-A record is one object in the book's directory, with a file position and a length.
-A follow-up read is the two bytes stored after that body when the entry asks for them.
-The message after a load is 0xe, passed to the procedure at the start of the class slot, and the report leaves that constant out.
+The 16-bit runtime the notes refer to is `TB80RTM` and `TB80BAS`. The notes and the unpacker live in the other repositories: `tbdecompile`, `tbworldview`, `squirreldra`, and `toolbookunpacker`. Foolbook is the other viewer. Do not import Foolbook, do not copy its painter, and do not treat Foolbook as right where it disagrees with ToolBook. ToolBook 8 is the target. A painted value comes from a reader. A reader comes from bytes that repeat across the lesson, not from one example and not from a guess that makes the picture look finished.
 
-What works in this tree:
+A record is one object in the book's directory, with a file position and a length. A follow-up read is the two bytes stored after that body when the entry asks for them. In `TB80BAS`, the message after a load is `0xE`, passed to the procedure at the start of the class slot. The book report leaves that constant out. This tree returns that pointer. It does not call the DLL.
 
-- A page window: `python3 -m opentoolbook --show P300 path/to/book.tbk` draws that page. On `P10` the field `first` reads `Hello Student, this lesson is about:`. On a quiz page opened with no quiz running, OK, Next, and Skip draw the next page, and Back draws the previous page. A button that quotes a page opens that page: Next on `P300` opens `P400`, and Selection1 opens `P310` of `nida81.tbk`.
-- The object directory, the body read, and the two-byte follow-up when the entry asks for one.
-- The class procedure for message `0xE`. It is the far pointer at the start of that class's `0x76`-byte slot. The lookup uses index 0.
-- The NIDA menu export (`nida:m3search`), the disc table (`CAILT.DAT`), the install list (`toolbook.lst`), and the system books a lesson names.
-- One rating folder from the key-disk creator: the description, the shift calendar, the encoded settings line, and the three versioned records.
+## Commands
 
-opentoolbook8 is a ToolBook 8 reader. It opens a book, draws the page, and runs the book's OpenScript. Foolbook is the other viewer. Do not import Foolbook, do not copy its painter, and do not treat Foolbook as right where it disagrees with ToolBook. ToolBook 8 is the target. A painted value comes from a reader. A reader comes from bytes that repeat across the lesson, not from one example and not from a guess that makes the picture look finished. Each push makes the window or the engine do something a person can see. Tests pass before the push. SETTLED.md lists every new fact that push implements. FINDINGS.md is only for a byte the viewer is blocked on. A push that only adds a note is a failed push.
+`python3 -m opentoolbook path/to/book.tbk` prints a book report: the record count, the follow-up reads, the files the book names, and the startup call names. Those names are `enterapplication`, `entersystem`, `gotopagelist`, `opensession`, and the `initialize*` calls. The report does not open a Tk window and does not run those calls. A bare invocation does not start at the beginning of the course.
 
-`SETTLED.md` is the behavior this reader implements. `FINDINGS.md` is what the bytes of `9e954d01.tbk` repeat. `RESEARCH.md` is the product and engine notes, and each claim there names its source.
+`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id you typed. It draws that page and runs the OpenScript the window knows for that page. It does not follow the startup handlers to the book's opening page. `--home` is not consulted.
 
-On a live stop with the lesson already open, handle `0x0C1E` had class word `0x0001`. The lookup returned `0x2BAF:0000`, the live selector of the class dispatcher, and `ECX` was `0x76`. The 412-byte record takes the same path. This boot did not reach that return.
+On a report, companion books such as `nida81.tbk` and `nc81*.sbk` are looked up in the book's directory, then in the parent of that directory, then in `--home`, `--home/courses`, and `--home/Nida98/Lessons`. The match ignores case. `SETTLED.md` has the full order. A quoted `of book` click looks only for that exact filename in the directory of the book passed to `--show`.
+
+## What the window does
+
+- On `P10` the field `first` reads `Hello Student, this lesson is about:`.
+- On a quiz page opened with no quiz running, OK, Next, and Skip draw the next page, and Back draws the previous page.
+- A button that quotes a page opens that page. Next on `P300` opens `P400`. Selection1 names `P310` of `nida81.tbk`.
+- The background, rectangles, ellipses, lines, class `0x10` polygons, fields, and button pictures are painted. The page walk also finds classes `0xD`, `0x11`, `0x13`, `0x15`, and `0x19`, and the window does not paint those. A group is not a paint; its children are. Class `0x12` pies and class `0x17` records are outside that walk and are not painted. Pattern 254 is a solid fill. Pattern 253 paints no fill. Another pattern byte is not drawn as a hatch.
+- The OpenScript that runs is the subset in `SETTLED.md`: some `enterPage` field writes, a quoted `go to page`, `send next`, `send previous`, and the quiz-button cases. `forward` has no body here. A `linkDLL` line is not called.
+
+Also in this tree, and named in `SETTLED.md`: the object directory and the two-byte follow-up, the class-slot lookup for message `0xE` (index 0, not a DLL call), the NIDA menu export (`nida:m3search`), the disc table (`CAILT.DAT`), the install list (`toolbook.lst`), the system books a lesson names, and one key-disk rating folder. There is no authoring path.
+
+## Notes
+
+`SETTLED.md` is the behavior this reader implements. `FINDINGS.md` is what the bytes of `9e954d01.tbk` repeat. `RESEARCH.md` is the product and engine notes, and each claim there names its source. `OPENCODE.md` splits book script from the core. `DENNY-RUNTIME.md` and `DENNY-OBJECTS.md` are his site. `INSTRUCTOR-LAYOUT.md` is the Instructor 8.1 trees. `TB115-SYSTEM.md` is the 11.5 system books. `GHIDRA-INSTRUCTOR.md` records a finished headless pass. It is not an instruction to run Ghidra.
 
 ## From scratch
 
@@ -57,7 +65,7 @@ python3 -m opentoolbook --help
 
 `source .venv/bin/activate` is what makes `python3` see this install. Each new terminal starts without it. From `~/FU/opentoolbook8`, run `source .venv/bin/activate` again before the commands below.
 
-The commands below take a book or a NIDA folder that is already on your computer. Put its path in the command.
+The commands below take a book or a NIDA folder that is already on your computer. Put its path in the command. The first command prints a report and does not open a window. `--show` opens the page id written in that command. The other flags print a menu, a disc row, an install folder, or a key-disk rating.
 
 ```bash
 python3 -m opentoolbook path/to/book.tbk
@@ -113,7 +121,7 @@ If activation says running scripts is disabled, run this once, then the activate
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
-A new PowerShell window needs `.\.venv\Scripts\Activate.ps1` from the repo folder before the next commands. Use `python` in that window:
+A new PowerShell window needs `.\.venv\Scripts\Activate.ps1` from the repo folder before the next commands. Use `python` in that window. The first command prints a report and does not open a window. `--show` opens the page id written in that command.
 
 ```powershell
 python -m opentoolbook path\to\book.tbk

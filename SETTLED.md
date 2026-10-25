@@ -231,8 +231,14 @@ A list-opened question page has no quiz running. `OK`, `Next`, and `Skip` go to 
 
 ## Button click
 
-A `buttonClick` handler is the text the reader already returns. A quoted `go to page` opens that page. A quoted `of book` names that file. `break` stops the handler, so the `send next` after it does not run. `send next` and `send previous` are the next and previous pages in the stored page list. On `P300` of `9e954d01.tbk`, `Next` opens `P400`, `Back` opens `P100`, and `Selection1` opens `P310` of `nida81.tbk`. `go to page nextpage of book lastbook` has no quotes, so it is not a page. A button with no handler does not change the page, except the quiz buttons whose background calls `handleQuizClick`.
+A `buttonClick` handler is the text the reader already returns. A quoted `go to page` opens that page. A quoted `of book` names that file. The window opens that filename from the directory of the book passed to `--show`. It does not search the parent, and it does not ignore case. `break` stops the handler, so the `send next` after it does not run. `send next` and `send previous` are the next and previous pages in the stored page list. On `P300` of `9e954d01.tbk`, `Next` opens `P400`, `Back` opens `P100`, and `Selection1` opens `P310` of `nida81.tbk`. `go to page nextpage of book lastbook` has no quotes, so it is not a page. A button with no handler does not change the page, except the quiz buttons whose background calls `handleQuizClick`.
 
 ## Version strings
 
 Resource type 16 in the PE resource directory is a version resource. The reader returns `FileDescription`, `InternalName`, `OriginalFilename`, `ProductVersion`, and `CompanyName` from that resource. On `otb-line-rect.tbk`, `nida81.tbk`, and `9e954d01.tbk` those strings are `Toolbook II`, `TB80`, `TB80.EXE`, `8.10.131`, and `Click2learn, Inc.`. The same five strings are in `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk`.
+
+## Commands
+
+`python3 -m opentoolbook path/to/book.tbk` prints the record count, the follow-up reads, the files the book names, and the startup call names. It does not open a window. It does not run `enterapplication`, `entersystem`, `gotopagelist`, or `opensession`. That is why a bare invocation does not start at the beginning of the course.
+
+`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds classes `0xD`, `0x11`, `0x13`, `0x15`, and `0x19`, and the window does not paint those. Class `0x12` pies and class `0x17` records are outside that walk and are not painted.

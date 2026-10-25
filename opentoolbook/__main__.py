@@ -1,8 +1,13 @@
-"""Summarise a book, a NIDA menu, or the install folder beside them.
+"""Print a book report, a NIDA menu, or the install folder beside them.
+
+A book with no other flag prints the record count, the files the book
+names, and the startup call names. It does not open a window and it does
+not run ``enterapplication``, ``entersystem``, ``gotopagelist``, or
+``opensession``. ``--show PAGE`` opens a Tk window on that page id. It
+does not follow those handlers to the book's opening page.
 
 Record text is not printed. A menu run prints course ids, titles, and
-counts. A book run prints the files and calls that book names, then the
-files the install list ships.
+counts.
 """
 
 from __future__ import annotations
@@ -26,12 +31,28 @@ from opentoolbook.shelf import (
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="opentoolbook")
-    parser.add_argument("book", nargs="?", help="a .tbk or .sbk to summarise")
+    parser.add_argument(
+        "book",
+        nargs="?",
+        help="a .tbk or .sbk. Alone, print a report and do not open a window",
+    )
     parser.add_argument("--catalog", help="courses.xml, or a folder that contains it")
-    parser.add_argument("--cailt", nargs=2, metavar=("TABLE", "LESSON"))
+    parser.add_argument(
+        "--cailt",
+        nargs=2,
+        metavar=("TABLE", "LESSON"),
+        help="CAILT.DAT and a lesson id; print that lesson's disc codes",
+    )
     parser.add_argument("--keydisk", help="one rating folder from the key-disk creator")
-    parser.add_argument("--home", help="a ToolBook install directory")
-    parser.add_argument("--show", metavar="PAGE", help="open a window on one page")
+    parser.add_argument(
+        "--home",
+        help="a ToolBook install directory. With a book, also search it for named files",
+    )
+    parser.add_argument(
+        "--show",
+        metavar="PAGE",
+        help="open a Tk window on this page id, not on the book's startup page",
+    )
     args = parser.parse_args(argv[1:])
     if args.show:
         if not args.book:

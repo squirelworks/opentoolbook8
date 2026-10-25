@@ -1,5 +1,7 @@
 # Instructor 8.1 headless analysis
 
+This note records one finished pass. It is not an instruction to run Ghidra again. The recorded command is normal analysis. It does not pass `ForceDisassembleC8` or `ForceDisassemblePrologues`. The exports are not in this repository.
+
 Tool: Ghidra 12.2 PUBLIC, built 2026-Oct-16, revision `8ca9077040cc43cd790babcfccf19475622a3e9a`, with the squirreldra Win16 loader patch at commit `ff0ef27`. That patch bounds the NE entry table by `ne_cbenttab`, treats the entry-bundle segment index as unsigned, and adds the `__pascal16far` and `__pascal16near` prototypes. Each headless run used normal analysis, then `Win16NEFixes.java` and `ExportDecompile.java`, from `/tmp/ghidra-scripts-clean`. Projects are under `/tmp/squirreldra-projects-clean`. Exports are under `/tmp/squirreldra-out-clean/` and are not in this repository. Every imported file finished with headless exit 0.
 
 The shared arguments were `analyzeHeadless /tmp/squirreldra-projects-clean <project> -import <file> -overwrite -scriptPath /tmp/ghidra-scripts-clean -postScript Win16NEFixes.java -postScript ExportDecompile.java -analysisTimeoutPerFile 300 -log /tmp/squirreldra-out-clean/logs/<file>.log`.

@@ -15,8 +15,9 @@ on disk and clear once the entry is in memory.
 Sending a message does not index the method table by the message number.
 The lookup loads the far pointer at the start of the class's ``0x76``-byte
 slot and calls that procedure with the message. A class word of zero has
-no procedure. The lesson-open path sends message ``0xE`` this way, after
-the body bytes are already in memory.
+no procedure. The lesson-open path in ``TB80BAS`` sends message ``0xE``
+this way, after the body bytes are already in memory. This module returns
+that pointer and that message. It does not call a DLL.
 """
 
 from __future__ import annotations

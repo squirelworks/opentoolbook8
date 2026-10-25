@@ -1,6 +1,6 @@
 # Book script and the core
 
-DLLs and EXEs are the core, hardcoded side of ToolBook. This note does not decompile them, paste their code, or copy them into git. The `.sbk` files hold book script. So do the handler bodies the existing readers return from the NIDA `.tbk` files. OpenScript is the ToolBook language. This note uses book script for the text in those files, and OpenScript only for the language.
+DLLs and EXEs are the core, hardcoded side of ToolBook. This note does not decompile them, paste their code, or copy them into git. The `.sbk` files hold book script. So do the handler bodies the existing readers return from the NIDA `.tbk` files. OpenScript is the ToolBook language. This note uses book script for the text in those files, and OpenScript only for the language. Returning that text is not running it. The page window runs only the subset named in `SETTLED.md`.
 
 A name is book script when a `to handle`, `to get`, or `to set` line in one of those scripts starts its body. A name is on the core side of the split when one of those scripts calls it and no script in the books below defines it. The body is not in these books. A `linkDLL` or `linkDLL32` line is book-script text: it places a DLL filename beside an identifier. This note did not open that DLL, and it does not name an export inside it.
 

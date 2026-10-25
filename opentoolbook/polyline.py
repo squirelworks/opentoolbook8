@@ -3,7 +3,8 @@
 The count is the word at ``+0x2D``. The near pointer at ``+0x2F`` names
 the points, four bytes each. The four signed words at ``+0x25`` are the
 minimum x, the minimum y, the maximum x, and the maximum y of those
-points. The points returned are the stored pairs.
+points. The points returned are the stored pairs. The page window does
+not paint this record.
 """
 
 from __future__ import annotations

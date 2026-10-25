@@ -2,12 +2,21 @@
 
 One page unit is one twentieth of a point. One point is 96/72 pixels at
 96 dpi. The fit scale multiplies that pixel size once. Pattern 254 is a
-solid fill and pattern 253 is no fill. A draw object's fill is the color
-at ``+0x1B`` and its stroke is the color at ``+0x17``. A button draws the
-picture at byte ``0x15`` of its graphics block, or the picture at byte
-``0x4B`` when the button is checked. A field that contains a shape is
-painted under that shape. A label that contains no shape is painted in
-front of a shape that contains the label.
+solid fill and pattern 253 is no fill. Another pattern byte is not drawn
+as a hatch. A draw object's fill is the color at ``+0x1B`` and its stroke
+is the color at ``+0x17``. A button draws the picture at byte ``0x15`` of
+its graphics block, or the picture at byte ``0x4B`` when the button is
+checked. The invert and disabled pictures are not drawn. A field that
+contains a shape is painted under that shape. A label that contains no
+shape is painted in front of a shape that contains the label.
+
+The page walk names classes ``0x8``, ``0x9``, ``0xA``, ``0xB``, ``0xC``,
+``0xD``, ``0xE``, ``0x10``, ``0x11``, ``0x13``, ``0x15``, and ``0x19``.
+Of those, the window paints rectangles, ellipses, lines, class ``0x10``
+polygons, fields, and buttons, plus the class 4 background. It does not
+paint ``0xD``, arcs (``0x11``), class ``0x13`` point lists, ``0x15``, or
+``0x19``. A group is not a paint; its children are. Class ``0x12`` pies
+and class ``0x17`` records are outside that walk, and they are not painted.
 """
 
 from __future__ import annotations
@@ -115,11 +124,13 @@ def show_page(data: bytes, page_id: str, view_width: int, view_height: int) -> D
 
 
 def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
-    """Open a Tk window on the page at 96 dpi, fitted to the screen once.
+    """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
-    A button whose handler quotes a page opens that page. A quiz page
-    with no quiz running still uses OK, Next, and Skip for the next page
-    and Back for the previous page.
+    The page id is the one the caller typed. Startup handlers are not
+    followed. A button whose handler quotes a page opens that page. A
+    quoted book is that filename in the directory of ``book``, exact
+    case, and nowhere else. A quiz page with no quiz running still uses
+    OK, Next, and Skip for the next page and Back for the previous page.
     """
     import tkinter as tk
     from pathlib import Path

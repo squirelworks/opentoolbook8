@@ -37,7 +37,7 @@ From the decompile record. The images in that set are 16-bit NE. Windows 98 thro
 
 `CDBFILEOPEN` is ordinal 8. `CDBVIEWPAGE` is 15. `CDBVIEWBKGND` is 18. `CDBPAINTCLIENT` is 26. `CDBSENDCREATE`, ordinal 51, creates objects from Instructor. A lesson open does not call it. The October 2026 trace reads an object body by the length in the directory and then sends message `0xE`. The function that does that read has no export name.
 
-Painters live in `TB80BAS` and call GDI. Stored coordinates are twips. The scale in that record is `(coord * dpi + 720) / 1440`. At 96 dpi that is division by 15. This reader does not apply that scale.
+Painters live in `TB80BAS` and call GDI. Stored coordinates are page units. The scale in that record is `(coord * dpi + 720) / 1440`. At 96 dpi that is division by 15, plus a half from the 720. This reader converts a page unit as one twentieth of a point and a point as 96/72 pixels, which is the division by 15, then multiplies by the fit scale once. It does not add 720.
 
 ## The specimen
 
@@ -48,13 +48,15 @@ From the bytes, recorded in `FINDINGS.md`:
 - The directory walk yields 206 records. `nida81.tbk` yields 114 by the same rule.
 - Class `0x5` is an 81-byte page. There are 131. The object starts 14 bytes into the body. Body offset 9 is `0x80` on 129 pages and `0x81` on `P440` and `P2920`. The next three bytes are `65 00 05` on all 131. `nida81.tbk` uses `0x81` once, on `P22100`.
 - The page-id walk includes `P0`, `P430`, `P440`, and `P2920`.
-- Class `0x10` polygons and class `0x11` arcs are counted in `FINDINGS.md`. The reader returns the stored points.
+- Class `0x10` polygons and class `0x11` arcs are counted in `FINDINGS.md`. The readers return the stored points. The window paints the polygons. It does not paint the arcs.
 
 The decompile record's 11.5 export of this book has 131 `Page.xml` files, 654 `IrregularPolygon` tags, and 62 `Arc` tags. Those three counts match the class `0x5`, `0x10`, and `0x11` scans. Equal counts are not a class-name binding.
 
 ## What this repository does
 
-A page is drawn from the readers. `python3 -m opentoolbook --show P300 path/to/9e954d01.tbk` opens that page, and the same display list is built without a screen. On `P10` the `enterPage` handler writes the greeting into field `first`. The facts of that paint and that write are in `SETTLED.md`.
+`python3 -m opentoolbook path/to/book.tbk` prints the book report. It does not open a window and it does not run `enterapplication`, `entersystem`, `gotopagelist`, or `opensession`.
+
+`python3 -m opentoolbook --show P300 path/to/9e954d01.tbk` opens that page. The same display list is built without a screen. On `P10` the `enterPage` handler writes the greeting into field `first`. The facts of that paint and that write are in `SETTLED.md`. What the window does not paint, and which handlers it does not run, is under Still open.
 
 ## Core calls with no body
 
@@ -74,7 +76,21 @@ Other class-5 branches in the same image, each a separate use of that compare: `
 
 ## Still open
 
-The disk-to-object reader has no export name. The property that points a widget at a bitmap, other than the four huge-table pictures, is not settled. Fill, stroke, parent, and z-order are not a settled paint. OpenScript in the file is not expanded or run by this reader. The low bit that makes the byte at object −5 into `0x81` has no compare in `TB80BAS` and no meaning recorded yet. Only two TB80 books are on this machine, so "any TB80 book" is the rule above, checked on those two.
+Settled behavior is in `SETTLED.md`. These are the gaps.
+
+The disk-to-object reader in `TB80BAS` has no export name. This tree does not call that DLL. There is no authoring path and no writer.
+
+Nothing runs `enterapplication`, `entersystem`, `gotopagelist`, or `opensession`. The default command prints those names. `--show` draws the page id it is given. Neither one follows the startup handlers to the book's opening page.
+
+Book script is expanded to source. The page window runs a subset of it: the `enterPage` field writes in `SETTLED.md`, a quoted `go to page`, `send next`, `send previous`, and the quiz-button cases. It does not execute a handler as a language. `forward` has no body in the lesson or the four system books, and the reader does not invent one. A `linkDLL` line is not called.
+
+The page walk names classes `0x8`, `0x9`, `0xA`, `0xB`, `0xC`, `0xD`, `0xE`, `0x10`, `0x11`, `0x13`, `0x15`, and `0x19`. Of those, the window paints rectangles, ellipses, lines, class `0x10` polygons, fields, and buttons (the up picture, or the checked picture when the button is checked), plus the class 4 background. It does not paint `0xD`, arcs (`0x11`), class `0x13` point lists, `0x15`, or `0x19`. A group is not a paint; its children are. Class `0x12` pies and class `0x17` records are outside that walk, and the window does not paint them. Invert and disabled button pictures are read and not drawn. Pattern 254 is a solid fill and pattern 253 is no fill. Another pattern byte is not drawn as a hatch.
+
+A quoted `of book` click looks for that filename in the directory of the book passed to `--show`. The report's search of the parent directory is a different path.
+
+The low bit that makes the byte at object −5 into `0x81` has no compare in `TB80BAS` and no meaning recorded yet. Only two TB80 books are on this machine, so "any TB80 book" is the rule in the page section above, checked on those two.
+
+On a live stop with the lesson already open, handle `0x0C1E` had class word `0x0001`. The lookup returned `0x2BAF:0000`, the live selector of the class dispatcher, and `ECX` was `0x76`. The 412-byte record takes the same path. This boot did not reach that return. That stop is not a behavior this reader implements.
 
 ## The word at byte 2 of a style run
 
@@ -88,19 +104,19 @@ From the decompile record, claim G-010. `FUN_1028_218a` in `TB80BAS` reads `OBJG
 
 From the decompile record, chapter 14, and `TB80CMP`. `FUN_1040_0970` expands a handler. Resource `0x77` is 994 keyword ids. Index 0 is `to`, 1 is `handle`, 564 is `system`. The list in this reader is that id order, transcribed from `openscript_analysis` `core/keywords.py` because the resource binary is not on this machine.
 
-Checked against `9e954d01.tbk`. The `Selection1` script on page `P300` contains the bytes `90 af 80 91 83` immediately before `"P310"`. Those opcodes are keyword `0x0AF` (`go`), keyword `0` (`to`, with the trailing space the clear bit 5 asks for), and keyword `0x183` (`page`). The expanded handler is the sentence in `SETTLED.md`. A back-reference copies from the segment that holds the script, which is the rule in that chapter after the output-stream copy was rejected. The reader does not call the handler.
+Checked against `9e954d01.tbk`. The `Selection1` script on page `P300` contains the bytes `90 af 80 91 83` immediately before `"P310"`. Those opcodes are keyword `0x0AF` (`go`), keyword `0` (`to`, with the trailing space the clear bit 5 asks for), and keyword `0x183` (`page`). The expanded handler is the sentence in `SETTLED.md`. A back-reference copies from the segment that holds the script, which is the rule in that chapter after the output-stream copy was rejected. The expander returns the text. The page window runs the quoted `go to page` from that text. It does not execute the rest of the handler.
 
 ## Line color bytes
 
-From `tbdecompile/research/paint-20261021.md`. That note calls a draw object's stroke the bytes at `+0x17` and its fill the bytes at `+0x1B`, and its pattern the byte at `+0x25`. On every class `0x0E` record in both books the triples at `+0x17` and `+0x1B` have a 0 in the fourth byte. The byte at `+0x25` is not the pattern that note describes: the values are in `FINDINGS.md`, and the endpoints already occupy `+0x26`. The reader returns the two triples. It does not choose a brush.
+From `tbdecompile/research/paint-20261021.md`. That note calls a draw object's stroke the bytes at `+0x17` and its fill the bytes at `+0x1B`, and its pattern the byte at `+0x25`. On every class `0x0E` record in both books the triples at `+0x17` and `+0x1B` have a 0 in the fourth byte. The byte at `+0x25` is not the pattern that note describes: the values are in `FINDINGS.md`, and the endpoints already occupy `+0x26`. The line reader returns the two triples. The window strokes with the triple at `+0x17`. It does not build a GDI brush, and the byte at `+0x25` is not a hatch.
 
 ## Type 10 handler
 
-From `tbdecompile/research/paint-20261021.md`. That note says script mode 2 is a type 9 resource. In both books the page word at `+0x2A` minus 1 is an id in the type 9 directory and in the type 10 directory. The handler bytes are the count and the bytes named by the type 10 record's word at `+9`. The type 9 pointer is not those bytes. The reader returns the type 10 text. It does not call the handler.
+From `tbdecompile/research/paint-20261021.md`. That note says script mode 2 is a type 9 resource. In both books the page word at `+0x2A` minus 1 is an id in the type 9 directory and in the type 10 directory. The handler bytes are the count and the bytes named by the type 10 record's word at `+9`. The type 9 pointer is not those bytes. The reader returns the type 10 text. The page window runs the book's `enterPage` when that text sets field `page#`, and it runs a page's inline `enterPage` field writes. It does not call the rest of the handler.
 
 ## Quiz handlers
 
-From `nc81test.sbk` type 10 resource 741, expanded by this reader on 24 October 2026. The decompile record, chapter 14, says the four `nc81*` books have no decoded `to handle` text. The bytes in those books are `to get`. The reader returns that source. It does not run it. The steps two of those handlers share are in `FINDINGS.md`.
+From `nc81test.sbk` type 10 resource 741, expanded by this reader on 24 October 2026. The decompile record, chapter 14, says the four `nc81*` books have no decoded `to handle` text. The bytes in those books are `to get`. The reader returns that source. It does not execute the `.sbk` as OpenScript. The page window applies a few of the outcomes those handlers describe: an empty OK on pass 1 or 2 beeps and stays, and a list-opened question page turns with OK, Next, Skip, and Back. The steps two of those handlers share are in `FINDINGS.md`.
 
 `processQuizScore` in `nc81base.sbk` is one function. It writes `NIDAREC.INI` through `WritePrivateProfileStringA`. That write is not a score the reader computes. `getquizResponse` is one function. The comparison that repeats is the two handlers in `FINDINGS.md`, which call it and test `answer of this page`.
 
@@ -110,11 +126,11 @@ The SumTotal objects schema names one element `IrregularPloygon`. The TB115 expo
 
 ## Pattern bytes 0xFD, 0xFE, and 0xFF
 
-From `tbdecompile/research/paint-20261021.md`. `LOCKPATTERN` in `TB80BAS` is `1098:0876`. That note says `0xFD` is hollow, `0xFE` is solid paper, and `0xFF` is solid ink, and that `1` through `0x80` is a pattern. `0xFE` is stored on backgrounds and on class `0x8`, `0xC`, and `0x10` in both books. `0xFD` is stored on class `0x8` in both books. `0xFF` is not stored on those fields in either book, so that name is not applied here. The counts are in `FINDINGS.md`.
+From `tbdecompile/research/paint-20261021.md`. `LOCKPATTERN` in `TB80BAS` is `1098:0876`. That note says `0xFD` is hollow, `0xFE` is solid paper, and `0xFF` is solid ink, and that `1` through `0x80` is a pattern. `0xFE` is stored on backgrounds and on class `0x8`, `0xC`, and `0x10` in both books. `0xFD` is stored on class `0x8` in both books. `0xFF` is not stored on those fields in either book, so that name is not applied here. The counts are in `FINDINGS.md`. The window treats 254 as a solid fill and 253 as no fill. It does not draw another pattern byte as a hatch.
 
 ## Indirect calls on view, load, and the class slot
 
-From the unpacked `TB80BAS.DLL` on this machine, 24 October 2026. NE segment `N` is the Ghidra base `0x1000 + (N - 1) * 8`. A listing address `10C8:00D0` is NE segment 26, offset `0x00D0`. Bytes below are the file bytes. A segment relocation fixes the segment word; the offset in a `9A` instruction is the offset. Where the fixup is chained, the word stored in the file is the next fixup, not the segment. This is not a layout the reader uses.
+From the unpacked `TB80BAS.DLL` on this machine, 24 October 2026. The listing is code a call path reached. It is not a request to run Ghidra, and it is not a force-disassembly of unknown bytes. NE segment `N` is the Ghidra base `0x1000 + (N - 1) * 8`. A listing address `10C8:00D0` is NE segment 26, offset `0x00D0`. Bytes below are the file bytes. A segment relocation fixes the segment word; the offset in a `9A` instruction is the offset. Where the fixup is chained, the word stored in the file is the next fixup, not the segment. This is not a layout the reader uses.
 
 Ghidra's listing turns some of these into `(*local)()` aimed at a string in segment `1630`. The immediates are near offsets in the same code segment. `call word ptr [bp-…]` uses `CS`.
 

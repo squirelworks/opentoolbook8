@@ -2,6 +2,7 @@
 
 The record is 17 bytes. The word at ``+0x04`` is a near pointer to a
 class ``0xA`` field in the same segment. That field is named ``Text``.
+The page window does not paint this record.
 """
 
 from __future__ import annotations

@@ -1,7 +1,8 @@
 """The two points stored on a class ``0x11`` arc.
 
 They are the signed pairs at ``+0x25`` and ``+0x29``. The record is not
-filled, and the points are not moved onto the bounds.
+filled, and the points are not moved onto the bounds. The page window
+does not paint this record.
 """
 
 from __future__ import annotations
