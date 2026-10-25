@@ -15,7 +15,7 @@ What works in this tree:
 - The NIDA menu export (`nida:m3search`), the disc table (`CAILT.DAT`), the install list (`toolbook.lst`), and the system books a lesson names.
 - One rating folder from the key-disk creator: the description, the shift calendar, the encoded settings line, and the three versioned records.
 
-A page is not drawn here, and OpenScript is not run here. Those are what the viewer already does. Reader behavior that is not written in `SETTLED.md` is not implemented.
+opentoolbook8 is a ToolBook 8 reader. It opens a book, draws the page, and runs the book's OpenScript. Foolbook is the other viewer. Do not import Foolbook, do not copy its painter, and do not treat Foolbook as right where it disagrees with ToolBook. ToolBook 8 is the target. A painted value comes from a reader. A reader comes from bytes that repeat across the lesson, not from one example and not from a guess that makes the picture look finished. Each push makes the window or the engine do something a person can see. Tests pass before the push. SETTLED.md lists every new fact that push implements. FINDINGS.md is only for a byte the viewer is blocked on. A push that only adds a note is a failed push.
 
 `SETTLED.md` is the behavior this reader implements. `FINDINGS.md` is what the bytes of `9e954d01.tbk` repeat. `RESEARCH.md` is the product and engine notes, and each claim there names its source.
 
