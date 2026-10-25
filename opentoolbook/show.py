@@ -30,6 +30,7 @@ from opentoolbook.field import (
     _trailer,
     _u16,
 )
+from opentoolbook.click import follow_click, quiz_background
 from opentoolbook.quiznav import quiz_click
 from opentoolbook.page import _child_nears, _object_name, _objects
 from opentoolbook.pixels import picture_rgb
@@ -113,20 +114,20 @@ def show_page(data: bytes, page_id: str, view_width: int, view_height: int) -> D
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
 
 
-def open_page(data: bytes, page_id: str) -> None:
+def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
     """Open a Tk window on the page at 96 dpi, fitted to the screen once.
 
-    A quiz page opened this way has no quiz running. OK, Next, and Skip
-    draw the next page. Back draws the previous page. OK on pass 1 or 2
-    with no choice beeps and stays; that pass is not this opening.
+    A button whose handler quotes a page opens that page. A quiz page
+    with no quiz running still uses OK, Next, and Skip for the next page
+    and Back for the previous page.
     """
     import tkinter as tk
+    from pathlib import Path
 
-    width, height = page_size(data)
-    pages = page_ids(data)
     root = tk.Tk()
     try:
         root.update_idletasks()
+        width, height = page_size(data)
         view_w = max(1, min(_pixels(width), root.winfo_screenwidth() - 48))
         view_h = max(1, min(_pixels(height), root.winfo_screenheight() - 96))
         root.title(page_id)
@@ -138,13 +139,20 @@ def open_page(data: bytes, page_id: str) -> None:
             background="#ffffff",
         )
         canvas.pack()
-        shown = {"page": page_id}
+        state = {
+            "data": data,
+            "pages": page_ids(data),
+            "page": page_id,
+            "book": Path(book).name if book else "",
+            "folder": Path(book).parent if book else None,
+        }
 
         def redraw() -> None:
-            listed = show_page(data, shown["page"], view_w, view_h)
+            listed = show_page(state["data"], state["page"], view_w, view_h)
             canvas.delete("all")
             draw_page(canvas, listed)
             canvas.listed = listed
+            root.title(state["page"])
 
         def on_click(event) -> None:
             listed = getattr(canvas, "listed", None)
@@ -153,13 +161,30 @@ def open_page(data: bytes, page_id: str) -> None:
             name = button_at(listed, event.x, event.y)
             if not name:
                 return
-            result = quiz_click(pages, shown["page"], name)
-            if result.beep:
-                root.bell()
-            if result.page_id == shown["page"]:
+            acted = follow_click(state["data"], state["page"], name, state["pages"])
+            if acted is None:
+                if not quiz_background(state["data"], state["page"]):
+                    return
+                result = quiz_click(state["pages"], state["page"], name)
+                if result.beep:
+                    root.bell()
+                if result.page_id == state["page"]:
+                    return
+                state["page"] = result.page_id
+                redraw()
                 return
-            shown["page"] = result.page_id
-            root.title(result.page_id)
+            if acted.book:
+                folder = state["folder"]
+                path = None if folder is None else folder / acted.book
+                if path is None or not path.is_file():
+                    return
+                if path.name.lower() != state["book"].lower():
+                    state["data"] = path.read_bytes()
+                    state["pages"] = page_ids(state["data"])
+                    state["book"] = path.name
+            if acted.page_id not in state["pages"] or acted.page_id == state["page"]:
+                return
+            state["page"] = acted.page_id
             redraw()
 
         canvas.bind("<Button-1>", on_click)

@@ -37,7 +37,8 @@ def main(argv: list[str]) -> int:
         if not args.book:
             parser.print_usage(sys.stderr)
             return 2
-        open_page(Path(args.book).read_bytes(), args.show)
+        opened = Path(args.book)
+        open_page(opened.read_bytes(), args.show, str(opened))
         return 0
     if not any((args.book, args.catalog, args.cailt, args.keydisk, args.home)):
         parser.print_usage(sys.stderr)

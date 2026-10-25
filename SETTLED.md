@@ -229,6 +229,10 @@ The background a page names is painted under the page. Its fields and buttons us
 
 A list-opened question page has no quiz running. `OK`, `Next`, and `Skip` go to the next page in the stored page list. `Back` goes to the previous page. On `9e954d01.tbk` those pages around `P10210` are `P10004` and `P10211`. A letter click stays. `__quizPass` 8 is the same next and previous pages: `gotoNextQuestionEx` runs `send next`, and `gotoPreviousQuestionEx` runs `send previous`. `Skip` on that pass, when a letter is checked, runs `beep(1)` and a request, so the page stays.
 
+## Button click
+
+A `buttonClick` handler is the text the reader already returns. A quoted `go to page` opens that page. A quoted `of book` names that file. `break` stops the handler, so the `send next` after it does not run. `send next` and `send previous` are the next and previous pages in the stored page list. On `P300` of `9e954d01.tbk`, `Next` opens `P400`, `Back` opens `P100`, and `Selection1` opens `P310` of `nida81.tbk`. `go to page nextpage of book lastbook` has no quotes, so it is not a page. A button with no handler does not change the page, except the quiz buttons whose background calls `handleQuizClick`.
+
 ## Version strings
 
 Resource type 16 in the PE resource directory is a version resource. The reader returns `FileDescription`, `InternalName`, `OriginalFilename`, `ProductVersion`, and `CompanyName` from that resource. On `otb-line-rect.tbk`, `nida81.tbk`, and `9e954d01.tbk` those strings are `Toolbook II`, `TB80`, `TB80.EXE`, `8.10.131`, and `Click2learn, Inc.`. The same five strings are in `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk`.
