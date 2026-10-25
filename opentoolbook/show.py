@@ -126,11 +126,12 @@ def show_page(data: bytes, page_id: str, view_width: int, view_height: int) -> D
 def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
-    The page id is the one the caller typed. Startup handlers are not
-    followed. A button whose handler quotes a page opens that page. A
-    quoted book is that filename in the directory of ``book``, exact
-    case, and nowhere else. A quiz page with no quiz running still uses
-    OK, Next, and Skip for the next page and Back for the previous page.
+    The page id is the one the caller passed. This function does not
+    follow startup handlers. A button whose handler quotes a page opens
+    that page. A quoted book is that filename in the directory of
+    ``book``, exact case, and nowhere else. A quiz page with no quiz
+    running still uses OK, Next, and Skip for the next page and Back
+    for the previous page.
     """
     import tkinter as tk
     from pathlib import Path

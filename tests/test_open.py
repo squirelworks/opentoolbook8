@@ -57,7 +57,7 @@ class OpenTests(unittest.TestCase):
 
             buf = io.StringIO()
             with contextlib.redirect_stdout(buf):
-                code = main(["opentoolbook", "--home", str(home), str(book)])
+                code = main(["opentoolbook", "--report", "--home", str(home), str(book)])
             self.assertEqual(code, 0)
             self.assertIn("records ", buf.getvalue())
             self.assertIn("minstb32.dll  named, not shipped", buf.getvalue())
@@ -127,7 +127,7 @@ class OpenTests(unittest.TestCase):
 
             buf = io.StringIO()
             with contextlib.redirect_stdout(buf):
-                code = main(["opentoolbook", "--home", str(home), str(book)])
+                code = main(["opentoolbook", "--report", "--home", str(home), str(book)])
             text = buf.getvalue()
         self.assertEqual(code, 0)
         self.assertIn("records ", text)
@@ -237,7 +237,7 @@ class OpenTests(unittest.TestCase):
 
             buf = io.StringIO()
             with contextlib.redirect_stdout(buf):
-                code = main(["opentoolbook", str(lesson)])
+                code = main(["opentoolbook", "--report", str(lesson)])
             text = buf.getvalue()
         self.assertEqual(code, 0)
         for name in parent_files:

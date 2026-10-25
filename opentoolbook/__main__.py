@@ -1,13 +1,15 @@
-"""Print a book report, a NIDA menu, or the install folder beside them.
+"""Open a book, or print a report, a NIDA menu, or an install folder.
 
-A book with no other flag prints the record count, the files the book
-names, and the startup call names. It does not open a window and it does
-not run ``enterapplication``, ``entersystem``, ``gotopagelist``, or
-``opensession``. ``--show PAGE`` opens a Tk window on that page id. It
-does not follow those handlers to the book's opening page.
+``python3 -m opentoolbook book.tbk`` opens the book on the page its
+startup handlers name, or on the first stored page when they do not
+name one. ``--report`` prints the record count, the files the book
+names, and the startup call names, and does not open a window.
+``--show PAGE`` opens that page id and does not follow startup handlers.
 
-Record text is not printed. A menu run prints course ids, titles, and
-counts.
+A ``linkDLL`` line is not called. ``forward`` is not executed.
+``gotoPageList`` names pages that are not quoted, so a resumed session
+is not the page the window opens on. Record text is not printed. A menu
+run prints course ids, titles, and counts.
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from opentoolbook.entry import opening_page
 from opentoolbook.nida import discs_for, parse_cailt, parse_catalog, read_keydisk, zip_names_for
 from opentoolbook.show import open_page
 from opentoolbook.shelf import (
@@ -34,7 +37,12 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "book",
         nargs="?",
-        help="a .tbk or .sbk. Alone, print a report and do not open a window",
+        help="a .tbk or .sbk. Opens the book on its opening page",
+    )
+    parser.add_argument(
+        "--report",
+        action="store_true",
+        help="print the book report and do not open a window",
     )
     parser.add_argument("--catalog", help="courses.xml, or a folder that contains it")
     parser.add_argument(
@@ -51,7 +59,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--show",
         metavar="PAGE",
-        help="open a Tk window on this page id, not on the book's startup page",
+        help="open a Tk window on this page id. Does not follow startup handlers",
     )
     args = parser.parse_args(argv[1:])
     if args.show:
@@ -60,6 +68,18 @@ def main(argv: list[str]) -> int:
             return 2
         opened = Path(args.book)
         open_page(opened.read_bytes(), args.show, str(opened))
+        return 0
+    if args.book and not args.report:
+        if any((args.catalog, args.cailt, args.keydisk)):
+            code = _print_side(args)
+            if code:
+                return code
+        try:
+            entry = opening_page(Path(args.book), Path(args.home) if args.home else None)
+        except ValueError as exc:
+            print(exc, file=sys.stderr)
+            return 2
+        open_page(entry.data, entry.page_id, str(entry.book))
         return 0
     if not any((args.book, args.catalog, args.cailt, args.keydisk, args.home)):
         parser.print_usage(sys.stderr)
@@ -83,6 +103,25 @@ def main(argv: list[str]) -> int:
         _print_home(Path(args.home), Path(args.book) if args.book else None)
     elif args.book:
         _print_book(Path(args.book), None)
+    return 0
+
+
+def _print_side(args) -> int:
+    """Print a catalog, a disc row, or a key disk. ``--home`` is not a report here."""
+    if args.catalog:
+        courses, programs = _catalog_paths(Path(args.catalog))
+        if courses is None and programs is None:
+            print(f"no courses.xml in {args.catalog}", file=sys.stderr)
+            return 2
+        if courses is None:
+            _print_programs(programs)
+        else:
+            _print_catalogs(courses, programs)
+    if args.cailt:
+        table, lesson = args.cailt
+        _print_discs(Path(table).read_text(encoding="latin1"), lesson, ())
+    if args.keydisk:
+        _print_keydisk(Path(args.keydisk))
     return 0
 
 

@@ -10,11 +10,13 @@ A record is one object in the book's directory, with a file position and a lengt
 
 ## Commands
 
-`python3 -m opentoolbook path/to/book.tbk` prints a book report: the record count, the follow-up reads, the files the book names, and the startup call names. Those names are `enterapplication`, `entersystem`, `gotopagelist`, `opensession`, and the `initialize*` calls. The report does not open a Tk window and does not run those calls. A bare invocation does not start at the beginning of the course.
+`python3 -m opentoolbook path/to/book.tbk` opens the book, the way ToolBook opens it. The window shows the page the startup handlers land on. Those handlers are `enterSystem`, then `enterApplication`, and the calls they make: `enterapplication`, `entersystem`, `gotopagelist`, `opensession`, and the `initialize*` calls. A quoted `go to page` in a branch the reader takes is that page. A missing `sysLevel` is `reader`. When the handlers do not name a page, the window opens on the first page stored in the book. On Logic Families that first page's `enterPage` goes to `P0` of the book `getLogoBook` names, which is `nida81.tbk` unless `logo81.tbk` or `mrj81.tbk` is found by the same search as the report. `linkDLL` is not called. `forward` is not executed. `gotoPageList` walks names that are not quoted, and the session DLL is not called, so a resumed session is not the page that opens.
 
-`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id you typed. It draws that page and runs the OpenScript the window knows for that page. It does not follow the startup handlers to the book's opening page. `--home` is not consulted.
+`python3 -m opentoolbook path/to/book.tbk --report` prints the book report: the record count, the follow-up reads, the files the book names, and the startup call names. It does not open a window. `--report path/to/book.tbk` is the same report.
 
-On a report, companion books such as `nida81.tbk` and `nc81*.sbk` are looked up in the book's directory, then in the parent of that directory, then in `--home`, `--home/courses`, and `--home/Nida98/Lessons`. The match ignores case. `SETTLED.md` has the full order. A quoted `of book` click looks only for that exact filename in the directory of the book passed to `--show`.
+`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id you typed. It draws that page and runs the OpenScript the window knows for that page. It does not follow the startup handlers to the book's opening page. `--home` is not consulted for `--show`. With a book and no `--report`, `--home` is a place to search for companion books.
+
+Companion books such as `nida81.tbk` and `nc81*.sbk` are looked up, for the report and for opening the book, in the book's directory, then in the parent of that directory, then in `--home`, `--home/courses`, and `--home/Nida98/Lessons`. The match ignores case. `SETTLED.md` has the full order. A quoted `of book` click looks only for that exact filename in the directory of the book passed to `--show`.
 
 ## What the window does
 
@@ -22,7 +24,7 @@ On a report, companion books such as `nida81.tbk` and `nc81*.sbk` are looked up 
 - On a quiz page opened with no quiz running, OK, Next, and Skip draw the next page, and Back draws the previous page.
 - A button that quotes a page opens that page. Next on `P300` opens `P400`. Selection1 names `P310` of `nida81.tbk`.
 - The background, rectangles, ellipses, lines, class `0x10` polygons, fields, and button pictures are painted. The page walk also finds classes `0xD`, `0x11`, `0x13`, `0x15`, and `0x19`, and the window does not paint those. A group is not a paint; its children are. Class `0x12` pies and class `0x17` records are outside that walk and are not painted. Pattern 254 is a solid fill. Pattern 253 paints no fill. Another pattern byte is not drawn as a hatch.
-- The OpenScript that runs is the subset in `SETTLED.md`: some `enterPage` field writes, a quoted `go to page`, `send next`, `send previous`, and the quiz-button cases. `forward` has no body here. A `linkDLL` line is not called.
+- The OpenScript that runs is the subset in `SETTLED.md`: some `enterPage` field writes, a quoted `go to page`, `send next`, `send previous`, and the quiz-button cases. Opening the book follows that quoted `go to page` in the startup handlers and in the entry page's `enterPage`. `forward` has no body here. A `linkDLL` line is not called.
 
 Also in this tree, and named in `SETTLED.md`: the object directory and the two-byte follow-up, the class-slot lookup for message `0xE` (index 0, not a DLL call), the NIDA menu export (`nida:m3search`), the disc table (`CAILT.DAT`), the install list (`toolbook.lst`), the system books a lesson names, and one key-disk rating folder. There is no authoring path.
 
@@ -65,10 +67,11 @@ python3 -m opentoolbook --help
 
 `source .venv/bin/activate` is what makes `python3` see this install. Each new terminal starts without it. From `~/FU/opentoolbook8`, run `source .venv/bin/activate` again before the commands below.
 
-The commands below take a book or a NIDA folder that is already on your computer. Put its path in the command. The first command prints a report and does not open a window. `--show` opens the page id written in that command. The other flags print a menu, a disc row, an install folder, or a key-disk rating.
+The commands below take a book or a NIDA folder that is already on your computer. Put its path in the command. The first command opens the book on its opening page. `--report` prints the report and does not open a window. `--show` opens the page id written in that command. The other flags print a menu, a disc row, an install folder, or a key-disk rating.
 
 ```bash
 python3 -m opentoolbook path/to/book.tbk
+python3 -m opentoolbook path/to/book.tbk --report
 python3 -m opentoolbook --show P300 path/to/book.tbk
 python3 -m opentoolbook --catalog path/to/courses.xml
 python3 -m opentoolbook --catalog path/to/TBK
@@ -121,10 +124,11 @@ If activation says running scripts is disabled, run this once, then the activate
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
-A new PowerShell window needs `.\.venv\Scripts\Activate.ps1` from the repo folder before the next commands. Use `python` in that window. The first command prints a report and does not open a window. `--show` opens the page id written in that command.
+A new PowerShell window needs `.\.venv\Scripts\Activate.ps1` from the repo folder before the next commands. Use `python` in that window. The first command opens the book on its opening page. `--report` prints the report and does not open a window. `--show` opens the page id written in that command.
 
 ```powershell
 python -m opentoolbook path\to\book.tbk
+python -m opentoolbook path\to\book.tbk --report
 python -m opentoolbook --show P300 path\to\book.tbk
 python -m opentoolbook --catalog path\to\courses.xml
 python -m opentoolbook --catalog path\to\TBK

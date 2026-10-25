@@ -237,8 +237,16 @@ A `buttonClick` handler is the text the reader already returns. A quoted `go to 
 
 Resource type 16 in the PE resource directory is a version resource. The reader returns `FileDescription`, `InternalName`, `OriginalFilename`, `ProductVersion`, and `CompanyName` from that resource. On `otb-line-rect.tbk`, `nida81.tbk`, and `9e954d01.tbk` those strings are `Toolbook II`, `TB80`, `TB80.EXE`, `8.10.131`, and `Click2learn, Inc.`. The same five strings are in `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk`.
 
-## Commands
+## Opening the book
 
-`python3 -m opentoolbook path/to/book.tbk` prints the record count, the follow-up reads, the files the book names, and the startup call names. It does not open a window. It does not run `enterapplication`, `entersystem`, `gotopagelist`, or `opensession`. That is why a bare invocation does not start at the beginning of the course.
+`python3 -m opentoolbook path/to/book.tbk` opens a Tk window on the book's opening page. `enterSystem` runs, then `enterApplication`, when the book defines them. A `get` call in a branch the reader takes runs that handler when its body is in the book or in a companion the report's search finds. A quoted `go to page` in a taken branch is the page. A missing `sysLevel` is `reader`, so `sysLevel = "reader"` is the branch that runs. `forward` is not executed. A `linkDLL` line is not called.
+
+`openSession` returns 0 when `__studentRecords` has not been set. `if it is 1` does not run, so `gotoPageList` does not run. `gotoPageList` says `go to page(pagename) of book(bookname)`. Those names are not quoted. The list is filled by the session DLL, which is not called. A resumed session is not the page the window opens.
+
+When the startup handlers do not name a page, the opening page is the first page in the page list at book `+0x10`. That page's `enterPage` is read the same way. On `P0` of `9e954d01.tbk` the reader branch is `go to page "P0" of book getLogoBook()`. `getLogoBook` in `nc81base.sbk` sets the book to `nida81.tbk`, then to `logo81.tbk` when that file is found, otherwise to `mrj81.tbk` when that file is found. `fileExists32` is not called. The quoted name is found by the same search as the report: the lesson directory, its parent, then `--home`, `--home/courses`, and `--home/Nida98/Lessons`. The window opens on `P0` of that book. `otb-line-rect.tbk` has no such handlers. Its one stored page is the opening page, and that page id is empty.
+
+A book with no startup page and no stored page is an error. The error names the book. A handler that does not return a book name is an error. The error names the handler and the page. A book file the search does not find is an error. The error names that file and the page.
+
+`python3 -m opentoolbook path/to/book.tbk --report` prints the record count, the follow-up reads, the files the book names, and the startup call names. It does not open a window. `--report path/to/book.tbk` prints the same report. `--home` with a book and without `--report` opens the book and searches that install. It does not print the install list. `--home` without a book still prints the install folder.
 
 `python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds classes `0xD`, `0x11`, `0x13`, `0x15`, and `0x19`, and the window does not paint those. Class `0x12` pies and class `0x17` records are outside that walk and are not painted.

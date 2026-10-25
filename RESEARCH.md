@@ -54,7 +54,7 @@ The decompile record's 11.5 export of this book has 131 `Page.xml` files, 654 `I
 
 ## What this repository does
 
-`python3 -m opentoolbook path/to/book.tbk` prints the book report. It does not open a window and it does not run `enterapplication`, `entersystem`, `gotopagelist`, or `opensession`.
+`python3 -m opentoolbook path/to/book.tbk` opens the book on its opening page. `--report` prints the book report and does not open a window. The opening page is the quoted `go to page` a taken startup branch names, or the first page in the book's page list when no branch names one. `enterSystem` in `9e954d01.tbk` calls `openSession` and, only when that returns 1, `gotoPageList`. `openSession` in `nc81recs.sbk` returns 0 when `__studentRecords` is 0. `getStudentInfo` sets that from `GetPrivateProfileIntA`, whose default in the script is 0, and the reader does not call the DLL. `gotoPageList` in `nc81base.sbk` says `go to page(pagename) of book(bookname)`. Those names are not quoted. A resumed session is not the page that opens. The first stored page of the lesson is `P0`. Its `enterPage`, on the reader branch, says `go to page "P0" of book getLogoBook()`. `getLogoBook` returns `nida81.tbk` unless the same file search finds `logo81.tbk` or `mrj81.tbk`. `fileExists32` is not called. `forward` has no body here.
 
 `python3 -m opentoolbook --show P300 path/to/9e954d01.tbk` opens that page. The same display list is built without a screen. On `P10` the `enterPage` handler writes the greeting into field `first`. The facts of that paint and that write are in `SETTLED.md`. What the window does not paint, and which handlers it does not run, is under Still open.
 
@@ -80,7 +80,7 @@ Settled behavior is in `SETTLED.md`. These are the gaps.
 
 The disk-to-object reader in `TB80BAS` has no export name. This tree does not call that DLL. There is no authoring path and no writer.
 
-Nothing runs `enterapplication`, `entersystem`, `gotopagelist`, or `opensession`. The default command prints those names. `--show` draws the page id it is given. Neither one follows the startup handlers to the book's opening page.
+The default command runs `enterSystem` and `enterApplication`, and the `get` calls those handlers make, as far as a quoted `go to page` and the reader branch go. `--report` prints the startup names and does not run them. `--show` draws the page id it is given and does not follow the startup handlers. `gotoPageList` is not a quoted page. `forward` is not executed. A `linkDLL` line is not called.
 
 Book script is expanded to source. The page window runs a subset of it: the `enterPage` field writes in `SETTLED.md`, a quoted `go to page`, `send next`, `send previous`, and the quiz-button cases. It does not execute a handler as a language. `forward` has no body in the lesson or the four system books, and the reader does not invent one. A `linkDLL` line is not called.
 

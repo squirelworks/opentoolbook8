@@ -1,8 +1,11 @@
 """A ToolBook 8 reader.
 
 It opens a book, draws a page, and runs part of the book's OpenScript.
-The default command prints a report. It does not open a window, and it
-does not run the startup handlers that would land on the opening page.
+The default command opens the book on the page its startup handlers
+name, or on the first stored page when they do not name one.
+``--report`` prints the book report and does not open a window.
+``--show PAGE`` draws that page id and does not follow startup handlers.
+``linkDLL`` and ``forward`` are not executed.
 """
 
 from opentoolbook.nida import Catalog, discs_for, parse_catalog
