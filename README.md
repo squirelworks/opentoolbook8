@@ -10,7 +10,7 @@ The message after a load is 0xe, passed to the procedure at the start of the cla
 
 What works in this tree:
 
-- A page window: `python3 -m opentoolbook --show P300 path/to/book.tbk` draws that page. On `P10` the field `first` reads `Hello Student, this lesson is about:`.
+- A page window: `python3 -m opentoolbook --show P300 path/to/book.tbk` draws that page. On `P10` the field `first` reads `Hello Student, this lesson is about:`. On a quiz page opened with no quiz running, OK, Next, and Skip draw the next page, and Back draws the previous page.
 - The object directory, the body read, and the two-byte follow-up when the entry asks for one.
 - The class procedure for message `0xE`. It is the far pointer at the start of that class's `0x76`-byte slot. The lookup uses index 0.
 - The NIDA menu export (`nida:m3search`), the disc table (`CAILT.DAT`), the install list (`toolbook.lst`), and the system books a lesson names.

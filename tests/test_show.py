@@ -70,6 +70,7 @@ class SceneTests(unittest.TestCase):
             [(item.kind, item.object_id, item.name) for item in shown.items],
             [
                 ("background", None, ""),
+                ("field", 5, "Page#"),
                 ("button", 16, "selection1"),
                 ("button", 1, "Next"),
                 ("button", 19, "MenuFrame"),
@@ -82,6 +83,8 @@ class SceneTests(unittest.TestCase):
         )
         self.assertLess(_index(shown, "button", 19), _index(shown, "field", 17))
         background = shown.items[0]
+        number = next(item for item in shown.items if item.name == "Page#")
+        self.assertEqual(number.text, "P300")
         self.assertEqual(background.pattern, 254)
         self.assertEqual(background.fill, (0, 0, 191))
         self.assertEqual(background.bounds, (0, 0, 9360, 6624))

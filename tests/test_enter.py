@@ -41,6 +41,7 @@ class ConcatenationTests(unittest.TestCase):
         self.assertEqual(get_first("  Ada  "), "Ada")
         expression = '"Hello" && getFirst() & ", this lesson is about:"'
         self.assertEqual(concatenate(expression), GREETING)
+        self.assertEqual(concatenate("name of this page", page_id="P300"), "P300")
         self.assertEqual(concatenate(expression, student_first="  Ada  "), "Hello Ada, this lesson is about:")
 
     def test_a_covering_run_covers_the_new_string(self):

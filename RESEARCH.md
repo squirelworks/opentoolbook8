@@ -60,6 +60,8 @@ A page is drawn from the readers. `python3 -m opentoolbook --show P300 path/to/9
 
 `forward` is a statement in the `enterPage` handler of pages `P10`, `PINFO`, and `PQINFO` in `9e954d01.tbk`. Searched 25 October 2026: none of `9e954d01.tbk`, `nida81.tbk`, `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, or `nc81trnr.sbk` stores `to handle forward` or `to get forward`. The reader does not invent that body. `setSection` is not in this list: its body is `to get setSection` in `nc81base.sbk`, and that body calls `kernel32.dll`. The reader does not call the DLL.
 
+`send next` and `send previous` are the statements `gotoNextQuestionEx` and `gotoPreviousQuestionEx` in `nc81test.sbk` run when `__quizPass` is 8. The same search found no `to handle next` and no `to handle previous`. The Next and Back handlers on page `P100` of `9e954d01.tbk` are those two statements, and the comments on those handlers are `Go to next page` and `Go to previous page`. A list-opened quiz page uses the next and previous ids in the stored page list. The reader does not invent another body.
+
 ## Where ToolBook checks for a page
 
 From the unpacked `TB80BAS` image on this machine, searched 24 October 2026. The four bytes `80 65 00 05` and `81 65 00 05` do not occur in `TB80BAS.DLL` or in the unpacked image. No code compare uses the immediate `0x6580` or `0x6581`, and no code compare tests the size word against the constant `0x65`.

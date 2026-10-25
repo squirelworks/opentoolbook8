@@ -221,6 +221,14 @@ On `P10` of `9e954d01.tbk` the `enterPage` handler sets the text of field `First
 
 On `PINFO` and `PQINFO` the handler sets field `version` to `"Version: " & __nidaVersion of this book`. That value still contains `__` and `of this book`, so it is not written. The stored line `Version: 2.003.0001` stays.
 
+## Quiz page click
+
+The background a page names is painted under the page. Its fields and buttons use the same readers as the page. Class `0x15` records on that background are not painted. On the `Test` background the buttons are `Back`, `OK`, `Help`, `Skip`, and `Next`, and each has an up picture. The book `enterPage` sets field `page#` to the name of the page when that field is on the background. On `P300` that field reads `P300`.
+
+`P10210` is a question page. Its letter buttons keep the up picture. The checked picture stays off the page while no letter is checked. The rectangle named `Correct` sits on the answer and its pattern is 253. It is not painted. No quiz pass has shown it, and a letter is not drawn as the correct answer. Shared script 103 and the `Test` background both call `handleQuizClick`. In `nc81test.sbk` that handler, when `__quizPass` is in `1,2` and `getQuizResponse()` is empty, runs `beep(1)` and `return 0`. The page stays. A checked letter on that pass does not beep, and it does not change the page: `gotoNextQuestionEx` calls `getNextQuestion`, and that returns `getNextRandomX` of the pool. The pool is not a page id.
+
+A list-opened question page has no quiz running. `OK`, `Next`, and `Skip` go to the next page in the stored page list. `Back` goes to the previous page. On `9e954d01.tbk` those pages around `P10210` are `P10004` and `P10211`. A letter click stays. `__quizPass` 8 is the same next and previous pages: `gotoNextQuestionEx` runs `send next`, and `gotoPreviousQuestionEx` runs `send previous`. `Skip` on that pass, when a letter is checked, runs `beep(1)` and a request, so the page stays.
+
 ## Version strings
 
 Resource type 16 in the PE resource directory is a version resource. The reader returns `FileDescription`, `InternalName`, `OriginalFilename`, `ProductVersion`, and `CompanyName` from that resource. On `otb-line-rect.tbk`, `nida81.tbk`, and `9e954d01.tbk` those strings are `Toolbook II`, `TB80`, `TB80.EXE`, `8.10.131`, and `Click2learn, Inc.`. The same five strings are in `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk`.

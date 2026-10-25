@@ -10,7 +10,7 @@ over the field.
 from __future__ import annotations
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
-from opentoolbook.script import _script
+from opentoolbook.script import _script, resource_scripts
 
 _PAGE = 5
 
@@ -23,7 +23,12 @@ def get_first(student_first: str | None) -> str:
     return stripped if stripped else "Student"
 
 
-def concatenate(expression: str, *, student_first: str | None = None) -> str:
+def concatenate(
+    expression: str,
+    *,
+    student_first: str | None = None,
+    page_id: str | None = None,
+) -> str:
     """Join one expression. ``&&`` inserts a space. ``&`` does not."""
     tokens = list(_tokens(expression))
     parts: list[list[tuple[str, str, str]]] = [[]]
@@ -34,7 +39,7 @@ def concatenate(expression: str, *, student_first: str | None = None) -> str:
             operators.append(kind)
             continue
         parts[-1].append((kind, value, source))
-    values = [_operand(part, student_first) for part in parts]
+    values = [_operand(part, student_first, page_id) for part in parts]
     result = values[0] if values else ""
     for operator, value in zip(operators, values[1:]):
         result = f"{result} {value}" if operator == "andand" else result + value
@@ -90,11 +95,18 @@ def enter_fields(
     ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
     """
     handler = _enter_page(page_source(data, page_id))
-    if not handler:
+    book = _book_enter(data)
+    if not handler and not book:
         return fields
     reader = (sys_level is None) or sys_level.lower() == "reader"
+    names = tuple(name for name, _text, _runs in fields)
+    found = []
+    if handler:
+        found.extend(_assignments(handler.splitlines(), reader, student_first, page_id, names))
+    if book:
+        found.extend(_assignments(book.splitlines(), reader, student_first, page_id, names))
     out = list(fields)
-    for name, value in _assignments(handler.splitlines(), reader, student_first):
+    for name, value in found:
         if blocks_write(value):
             continue
         for index, (field_name, text, runs) in enumerate(out):
@@ -125,7 +137,13 @@ def page_source(data: bytes, page_id: str) -> str:
     return ""
 
 
-def _assignments(lines: list[str], reader: bool, student_first: str | None):
+def _assignments(
+    lines: list[str],
+    reader: bool,
+    student_first: str | None,
+    page_id: str,
+    names: tuple[str, ...],
+):
     index = 0
     while index < len(lines):
         low = _norm(lines[index])
@@ -133,15 +151,26 @@ def _assignments(lines: list[str], reader: bool, student_first: str | None):
             condition = low[3:-5].strip()
             index += 1
             taken, skipped, index = _split_if(lines, index)
-            if condition == "syslevel = reader":
-                chosen = taken if reader else skipped
-                yield from _assignments(chosen, reader, student_first)
+            chosen = _branch(condition, reader, names, taken, skipped)
+            if chosen is not None:
+                yield from _assignments(chosen, reader, student_first, page_id, names)
             continue
         found = _set_text(lines[index])
         if found is not None:
             name, expression = found
-            yield name, concatenate(expression, student_first=student_first)
+            yield name, concatenate(expression, student_first=student_first, page_id=page_id)
         index += 1
+
+
+def _branch(condition: str, reader: bool, names: tuple[str, ...], taken: list[str], skipped: list[str]):
+    if condition == "syslevel = reader":
+        return taken if reader else skipped
+    folded = condition.replace(" ", "")
+    if folded == 'isobject(field"page#"ofparentofthispage)':
+        if any(name.lower() == "page#" for name in names):
+            return taken
+        return skipped
+    return None
 
 
 def _split_if(lines: list[str], index: int):
@@ -182,6 +211,10 @@ def _set_text(line: str) -> tuple[str, str] | None:
     name = text[mark + 1:end]
     rest = text[end + 1:].strip()
     folded = rest.lower()
+    parent = "of parent of this page"
+    if folded.startswith(parent):
+        rest = rest[len(parent):].strip()
+        folded = rest.lower()
     if not folded.startswith("to "):
         return None
     return name, rest[3:].strip()
@@ -211,7 +244,20 @@ def _enter_page(source: str) -> str:
     return "\n".join(lines[start:stop])
 
 
-def _operand(tokens: list[tuple[str, str, str]], student_first: str | None) -> str:
+def _book_enter(data: bytes) -> str:
+    """The book ``enterPage`` that names field ``page#``. Empty when there is none."""
+    try:
+        scripts = resource_scripts(data)
+    except (ValueError, IndexError):
+        return ""
+    for item in scripts:
+        handler = _enter_page(item.source)
+        if "page#" in handler.lower():
+            return handler
+    return ""
+
+
+def _operand(tokens: list[tuple[str, str, str]], student_first: str | None, page_id: str | None) -> str:
     if len(tokens) == 1 and tokens[0][0] == "str":
         return tokens[0][1]
     if (
@@ -222,6 +268,8 @@ def _operand(tokens: list[tuple[str, str, str]], student_first: str | None) -> s
         and tokens[2][0] == ")"
     ):
         return get_first(student_first)
+    if page_id is not None and _source(tokens).lower() == "name of this page":
+        return page_id
     return _source(tokens)
 
 

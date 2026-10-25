@@ -24,11 +24,13 @@ from opentoolbook.field import (
     _field_text,
     _name_table,
     _page_handles,
+    page_ids,
     _segments,
     _style_runs,
     _trailer,
     _u16,
 )
+from opentoolbook.quiznav import quiz_click
 from opentoolbook.page import _child_nears, _object_name, _objects
 from opentoolbook.pixels import picture_rgb
 from opentoolbook.size import page_size
@@ -112,16 +114,21 @@ def show_page(data: bytes, page_id: str, view_width: int, view_height: int) -> D
 
 
 def open_page(data: bytes, page_id: str) -> None:
-    """Open a Tk window on the page at 96 dpi, fitted to the screen once."""
+    """Open a Tk window on the page at 96 dpi, fitted to the screen once.
+
+    A quiz page opened this way has no quiz running. OK, Next, and Skip
+    draw the next page. Back draws the previous page. OK on pass 1 or 2
+    with no choice beeps and stays; that pass is not this opening.
+    """
     import tkinter as tk
 
     width, height = page_size(data)
+    pages = page_ids(data)
     root = tk.Tk()
     try:
         root.update_idletasks()
         view_w = max(1, min(_pixels(width), root.winfo_screenwidth() - 48))
         view_h = max(1, min(_pixels(height), root.winfo_screenheight() - 96))
-        listed = show_page(data, page_id, view_w, view_h)
         root.title(page_id)
         canvas = tk.Canvas(
             root,
@@ -131,11 +138,47 @@ def open_page(data: bytes, page_id: str) -> None:
             background="#ffffff",
         )
         canvas.pack()
-        draw_page(canvas, listed)
+        shown = {"page": page_id}
+
+        def redraw() -> None:
+            listed = show_page(data, shown["page"], view_w, view_h)
+            canvas.delete("all")
+            draw_page(canvas, listed)
+            canvas.listed = listed
+
+        def on_click(event) -> None:
+            listed = getattr(canvas, "listed", None)
+            if listed is None:
+                return
+            name = button_at(listed, event.x, event.y)
+            if not name:
+                return
+            result = quiz_click(pages, shown["page"], name)
+            if result.beep:
+                root.bell()
+            if result.page_id == shown["page"]:
+                return
+            shown["page"] = result.page_id
+            root.title(result.page_id)
+            redraw()
+
+        canvas.bind("<Button-1>", on_click)
+        redraw()
         root.mainloop()
     finally:
         if root.winfo_exists():
             root.destroy()
+
+
+def button_at(listed: DisplayList, x: float, y: float) -> str | None:
+    """The topmost button whose device bounds contain the point."""
+    for item in reversed(listed.items):
+        if item.kind != "button" or item.bounds is None or not item.name:
+            continue
+        left, top, right, bottom = (unit_to_px(value, listed.scale) for value in item.bounds)
+        if left <= x < right and top <= y < bottom:
+            return item.name
+    return None
 
 
 def draw_page(canvas, listed: DisplayList) -> None:
@@ -183,6 +226,19 @@ def _stored(data: bytes, page_id: str, width: int, height: int) -> list[Paint]:
             continue
         paint = background(data, page_id)
         items = [_background(paint, width, height)]
+        far = struct.unpack_from("<I", data, record + 0x47)[0]
+        owner = by_key.get(far >> 16)
+        if owner is not None:
+            found = owner.base + (far & 0xFFFF)
+            if found >= 2 and found + 8 <= len(data) and _u16(data, found - 2) == 4:
+                items.extend(_walk(
+                    data,
+                    owner,
+                    _trailer(data, owner),
+                    base,
+                    known,
+                    found - owner.base,
+                ))
         trailer = _trailer(data, segment)
         items.extend(_walk(data, segment, trailer, base, known, record - segment.base))
         return items
@@ -239,6 +295,9 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
     name = _object_name(data, trailer, at) if trailer is not None else ""
     object_id = _u16(data, at)
     bounds = _bounds(data, at)
+    # The rectangle named Correct is the answer mark. No quiz pass has shown it.
+    if kind == _RECTANGLE and name.lower() == "correct":
+        return None
     if kind in (_RECTANGLE, _ELLIPSE, _POLYGON):
         fill, stroke = _colors(data, at)
         points = _polygon_points(data, segment, at) if kind == _POLYGON else ()
