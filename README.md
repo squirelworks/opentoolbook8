@@ -10,6 +10,7 @@ The message after a load is 0xe, passed to the procedure at the start of the cla
 
 What works in this tree:
 
+- A page window: `python3 -m opentoolbook --show P300 path/to/book.tbk` draws that page.
 - The object directory, the body read, and the two-byte follow-up when the entry asks for one.
 - The class procedure for message `0xE`. It is the far pointer at the start of that class's `0x76`-byte slot. The lookup uses index 0.
 - The NIDA menu export (`nida:m3search`), the disc table (`CAILT.DAT`), the install list (`toolbook.lst`), and the system books a lesson names.
@@ -60,6 +61,7 @@ The commands below take a book or a NIDA folder that is already on your computer
 
 ```bash
 python3 -m opentoolbook path/to/book.tbk
+python3 -m opentoolbook --show P300 path/to/book.tbk
 python3 -m opentoolbook --catalog path/to/courses.xml
 python3 -m opentoolbook --catalog path/to/TBK
 python3 -m opentoolbook --cailt path/to/CAILT.DAT 9E954D01
@@ -115,6 +117,7 @@ A new PowerShell window needs `.\.venv\Scripts\Activate.ps1` from the repo folde
 
 ```powershell
 python -m opentoolbook path\to\book.tbk
+python -m opentoolbook --show P300 path\to\book.tbk
 python -m opentoolbook --catalog path\to\courses.xml
 python -m opentoolbook --catalog path\to\TBK
 python -m opentoolbook --cailt path\to\CAILT.DAT 9E954D01

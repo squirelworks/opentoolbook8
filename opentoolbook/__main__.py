@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 from opentoolbook.nida import discs_for, parse_cailt, parse_catalog, read_keydisk, zip_names_for
+from opentoolbook.show import open_page
 from opentoolbook.shelf import (
     CALL_BOOKS,
     find_file,
@@ -30,7 +31,14 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--cailt", nargs=2, metavar=("TABLE", "LESSON"))
     parser.add_argument("--keydisk", help="one rating folder from the key-disk creator")
     parser.add_argument("--home", help="a ToolBook install directory")
+    parser.add_argument("--show", metavar="PAGE", help="open a window on one page")
     args = parser.parse_args(argv[1:])
+    if args.show:
+        if not args.book:
+            parser.print_usage(sys.stderr)
+            return 2
+        open_page(Path(args.book).read_bytes(), args.show)
+        return 0
     if not any((args.book, args.catalog, args.cailt, args.keydisk, args.home)):
         parser.print_usage(sys.stderr)
         return 2
