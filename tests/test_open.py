@@ -169,6 +169,84 @@ class OpenTests(unittest.TestCase):
                     self.assertIsNone(nida_notes["nida71.tbk"].path)
                     self.assertEqual(nida_notes["nida71.tbk"].note, "named, not shipped")
 
+    def test_open_resolves_books_in_the_parent_of_the_lesson(self):
+        """A lesson resolves names beside it, then in the parent of that directory."""
+        from opentoolbook.shelf import search_roots
+
+        parent_files = (
+            "nida81.tbk",
+            "nc81base.sbk",
+            "nc81recs.sbk",
+            "nc81test.sbk",
+            "nc81trnr.sbk",
+        )
+        missing = ("93954d01.tbk", "tb80anm.sbk", "tb80r.sbk", "minstb32.dll")
+        guest = Path("/tmp/refs/guest/9e954d01.tbk")
+        settled = Path("SETTLED.md").read_text(encoding="utf-8")
+        self.assertIn("the parent of that directory", settled)
+        with tempfile.TemporaryDirectory() as tmp:
+            parent = Path(tmp)
+            courses = parent / "courses"
+            courses.mkdir()
+            lesson = courses / "9e954d01.tbk"
+            if guest.is_file():
+                try:
+                    os.link(guest, lesson)
+                except OSError:
+                    lesson.write_bytes(guest.read_bytes())
+            else:
+                named = (
+                    b"MINSTB32.dll",
+                    b"TB80ANM.SBK",
+                    b"TB80R.SBK",
+                    b"nc81trnr.sbk",
+                    b"nc81base.sbk",
+                    b"nc81recs.sbk",
+                    b"nc81test.sbk",
+                    b"nida81.tbk",
+                    b"93954d01.TBK",
+                    b"93954302.tbk",
+                )
+                lesson.write_bytes(_book_naming(b"\x00".join(named) + b"\x00"))
+            for name in parent_files:
+                (parent / name).write_bytes(b"parent " + name.encode("ascii"))
+            beside = courses / "93954302.TBK"
+            beside.write_bytes(b"beside the lesson")
+            (parent / "93954302.tbk").write_bytes(b"parent copy loses")
+            other = parent / "other"
+            other.mkdir()
+            (other / "93954d01.TBK").write_bytes(b"not this directory")
+            (other / "nida81.tbk").write_bytes(b"not this directory")
+            nested = courses / "nested"
+            nested.mkdir()
+            (nested / "93954d01.TBK").write_bytes(b"not a child directory")
+            self.assertEqual(search_roots(lesson, None), (courses, parent))
+            opened = open_book(lesson)
+            found = {item.name.lower(): item for item in opened.files}
+            for name in parent_files:
+                self.assertEqual(found[name].path, parent / name)
+                self.assertEqual(found[name].note, "")
+            self.assertEqual(found["93954302.tbk"].path, beside)
+            for name in missing:
+                self.assertIn(name, found)
+                self.assertIsNone(found[name].path)
+            import contextlib
+            import io
+
+            from opentoolbook.__main__ import main
+
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                code = main(["opentoolbook", str(lesson)])
+            text = buf.getvalue()
+        self.assertEqual(code, 0)
+        for name in parent_files:
+            self.assertIn(f"{found[name].name}  {parent / name}", text)
+        self.assertIn(str(beside), text)
+        self.assertNotIn(str(parent / "93954302.tbk"), text)
+        self.assertNotIn(str(other / "93954d01.TBK"), text)
+        self.assertNotIn(str(nested / "93954d01.TBK"), text)
+
 
 if __name__ == "__main__":
     unittest.main()

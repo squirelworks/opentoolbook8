@@ -33,7 +33,7 @@ The other four calls are `nida81.tbk`.
 
 ## Resolve on open
 
-On open, those filenames are looked up in this order: the book's directory, `--home`, `--home/courses`, then `--home/Nida98/Lessons`. The match ignores case. The report prints the path that was found. The book still opens when `minstb32.dll`, `93954302.tbk`, or `93954d01.tbk` is absent.
+On open, those filenames are looked up in this order: the book's directory, the parent of that directory, `--home`, `--home/courses`, then `--home/Nida98/Lessons`. The match ignores case. The report prints the path that was found. The book still opens when `minstb32.dll`, `93954302.tbk`, or `93954d01.tbk` is absent. `nida81.tbk`, `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk` in the parent directory are that path. `93954302.tbk` beside the lesson stays the file in the book's directory. A name that is not in those directories stays missing. The lookup does not read any other directory.
 
 ## Field text
 
