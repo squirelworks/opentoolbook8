@@ -54,11 +54,11 @@ The decompile record's 11.5 export of this book has 131 `Page.xml` files, 654 `I
 
 ## What this repository does
 
-A page can be read when the bytes name the text, the page, and the stored shapes. That is partial: field text, page ids, background pattern and color, stored polygon points, arc endpoints, four huge bitmaps, and the twenty quiz records are read. They are not composed into a page.
+A page is drawn from the readers. `python3 -m opentoolbook --show P300 path/to/9e954d01.tbk` opens that page, and the same display list is built without a screen. On `P10` the `enterPage` handler writes the greeting into field `first`. The facts of that paint and that write are in `SETTLED.md`.
 
-A lesson can be walked when Next, Back, the menus, and the quiz follow the handlers. Menu and quiz targets are known as text. Nothing sends them.
+## Core calls with no body
 
-A lesson can be run when the system books load, the initialize calls do what the DLLs imply, pictures land on their widgets, and the unnamed reader is implemented. That is not started. There is no window, no script engine, and no GDI.
+`forward` is a statement in the `enterPage` handler of pages `P10`, `PINFO`, and `PQINFO` in `9e954d01.tbk`. Searched 25 October 2026: none of `9e954d01.tbk`, `nida81.tbk`, `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, or `nc81trnr.sbk` stores `to handle forward` or `to get forward`. The reader does not invent that body. `setSection` is not in this list: its body is `to get setSection` in `nc81base.sbk`, and that body calls `kernel32.dll`. The reader does not call the DLL.
 
 ## Where ToolBook checks for a page
 

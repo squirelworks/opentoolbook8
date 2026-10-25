@@ -13,7 +13,7 @@ front of a shape that contains the label.
 from __future__ import annotations
 
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from opentoolbook.background import background
 from opentoolbook.bitmap import _graphic_word
@@ -107,7 +107,7 @@ def show_page(data: bytes, page_id: str, view_width: int, view_height: int) -> D
     """The display list for one page. It does not open a window."""
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
-    items = _ordered(_stored(data, page_id, width, height))
+    items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)))
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
 
 
@@ -148,6 +148,22 @@ def draw_page(canvas, listed: DisplayList) -> None:
 
 def _pixels(units: int) -> int:
     return max(1, round(unit_to_px(units, 1)))
+
+
+def _entered(data: bytes, page_id: str, items: tuple[Paint, ...]) -> tuple[Paint, ...]:
+    """Run the page's enterPage text. A missing sysLevel is reader."""
+    from opentoolbook.enter import enter_fields
+
+    indexes = [index for index, item in enumerate(items) if item.kind == "field"]
+    packed = tuple((items[index].name, items[index].text or "", items[index].runs) for index in indexes)
+    changed = enter_fields(data, page_id, packed)
+    if changed == packed:
+        return items
+    out = list(items)
+    for index, (_name, text, runs) in zip(indexes, changed):
+        if text != (out[index].text or "") or runs != out[index].runs:
+            out[index] = replace(out[index], text=text, runs=runs)
+    return tuple(out)
 
 
 def _stored(data: bytes, page_id: str, width: int, height: int) -> list[Paint]:
