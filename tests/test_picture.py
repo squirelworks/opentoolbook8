@@ -73,6 +73,24 @@ class SyntheticPictureTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             metafile_picture(_metafile(only))
 
+    def test_unknown_records_around_the_dibs_are_skipped(self):
+        only = _stretch_dib(SRCCOPY, 2, 1, [(1, 2, 3), (4, 5, 6)], [[1, 0]])
+        # An extra SaveDC (0x001E) between the frame and the DIB is skipped.
+        records = [
+            _record(0x001E, b""),
+            _record(0x020B, struct.pack("<hh", 0, 0)),
+            _record(0x020C, struct.pack("<hh", 1, 2)),
+            _record(0x001E, b""),
+            only,
+            _record(0x0127, struct.pack("<h", -1)),
+            _record(0x0000, b""),
+        ]
+        body = b"".join(records)
+        metafile = struct.pack("<HHHIHIH", 1, 9, 0x300, (18 + len(body)) // 2, 0, 0, 0) + body
+        drawn = metafile_picture(metafile)
+        self.assertEqual((drawn.width, drawn.height), (2, 1))
+        self.assertEqual(drawn.rgb, bytes((4, 5, 6, 1, 2, 3)))
+
     def test_the_stretch_fills_the_bounds_and_leaves_the_mask_clear(self):
         width, height, rgba = _stretch((2, 1, bytes((9, 9, 9, 7, 7, 7))), bytes((0, 1)), 4, 2)
         self.assertEqual((width, height), (4, 2))

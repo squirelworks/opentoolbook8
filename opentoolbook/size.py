@@ -1,8 +1,8 @@
 """The page width and height stored on the book record.
 
 The word at ``+0x20`` is the width. The word at ``+0x1E`` is the height.
-Both are signed. A blank Instructor 8.1 book stores 9000 and 6000. Both
-NIDA lessons store 9360 and 6624.
+Both are signed. A blank Instructor 8.1 book stores 9000 and 6000. Other
+books store their own sizes on the same fields.
 """
 
 from __future__ import annotations

@@ -1540,3 +1540,7 @@ Source: the Cursor handoff that lists M1 test hygiene (2026-10-31). Lesson-speci
 ## Missing export DLL is a report note
 
 Source: the Cursor handoff M2 (2026-10-31). A missing PE export DLL such as the one Instructor books name stays a shelf note for `--report`. The page window no longer draws a permanent status line for it.
+
+## Page size and metafile records
+
+Source: the Cursor handoff M2 (2026-10-31). Page width and height are the signed words on the book record for every book. A class `0x19` metafile is played from its own records: window org/ext, optional clip, and StretchDIB forms the reader knows; other functions are skipped. Specimen books such as `nida81.tbk` still exercise that path, but the reader does not branch on their names.

@@ -9,12 +9,14 @@ metafile is packed, and 0 when it is stored as is. The word at ``+0x4D``
 is a 1-based row of the huge table at header ``+0x104``, and that row's
 third dword is the file offset of the stored bytes.
 
-Every metafile in ``nida81.tbk`` is the same list of records around one
-or two ``StretchDIB`` records. The window extent is about the picture's own size. The window draws that extent, from its
-origin, into the record's bounds. One record with ``SRCCOPY`` is the
-picture. Two records are ``SRCPAINT`` then ``SRCAND``. Where the first
-picture is black and the second is white, the page shows through. Every
-other pixel is the first picture AND the second.
+The reader walks the metafile's own records. It plays
+``SetWindowOrg`` / ``SetWindowExt``, an optional clip rectangle, and one
+or two ``StretchDIB`` records it understands; every other function is
+skipped. The window extent is drawn from its origin into the record's
+bounds. One ``SRCCOPY`` StretchDIB is the picture. Two records are
+``SRCPAINT`` then ``SRCAND``. Where the first picture is black and the
+second is white, the page shows through. Every other pixel is the first
+picture AND the second.
 """
 
 from __future__ import annotations
@@ -29,13 +31,13 @@ from opentoolbook.record import Book
 PICTURE = 0x19
 PICTURE_BYTES = 89
 _STRETCH_DIB = 0x0F43
+_SET_WINDOW_ORG = 0x020B
+_SET_WINDOW_EXT = 0x020C
+_SELECT_CLIP_REGION = 0x0416
 _EOF = 0x0000
 SRCCOPY = 0x00CC0020
 SRCPAINT = 0x00EE0086
 SRCAND = 0x008800C6
-# The records each metafile in nida81.tbk plays before and after its DIBs.
-_FRAME = (0x001E, 0x0102, 0x020B, 0x020C, 0x0107, 0x0416, 0x0106, 0x0104)
-_CLOSE = (0x0104, 0x0127, _EOF)
 
 
 @dataclass(frozen=True)
@@ -90,17 +92,23 @@ def picture_pixels(data: bytes, at: int) -> Picture:
 def metafile_picture(metafile: bytes) -> Picture:
     """The picture a metafile draws, one pixel per unit of its window extent."""
     records = metafile_records(metafile)
-    functions = tuple(function for function, _at, _words in records)
     dibs = [offset for function, offset, _words in records if function == _STRETCH_DIB]
-    if functions != _FRAME + (_STRETCH_DIB,) * len(dibs) + _CLOSE or len(dibs) not in (1, 2):
-        raise ValueError("picture metafile is not the stored frame")
-    params = {function: offset + 6 for function, offset, _words in records}
-    origin_y, origin_x = struct.unpack_from("<hh", metafile, params[0x020B])
-    extent_h, extent_w = struct.unpack_from("<hh", metafile, params[0x020C])
-    clip = struct.unpack_from("<hhhh", metafile, params[0x0416])
+    if len(dibs) not in (1, 2):
+        raise ValueError("picture metafile has no StretchDIB the reader plays")
+    params: dict[int, int] = {}
+    for function, offset, _words in records:
+        if function in (_SET_WINDOW_ORG, _SET_WINDOW_EXT, _SELECT_CLIP_REGION):
+            params[function] = offset + 6
+    if _SET_WINDOW_ORG not in params or _SET_WINDOW_EXT not in params:
+        raise ValueError("picture metafile has no window")
+    origin_y, origin_x = struct.unpack_from("<hh", metafile, params[_SET_WINDOW_ORG])
+    extent_h, extent_w = struct.unpack_from("<hh", metafile, params[_SET_WINDOW_EXT])
     if extent_w <= 0 or extent_h <= 0:
         raise ValueError("picture window is empty")
-    bottom, right, top, left = clip
+    if _SELECT_CLIP_REGION in params:
+        bottom, right, top, left = struct.unpack_from("<hhhh", metafile, params[_SELECT_CLIP_REGION])
+    else:
+        left, top, right, bottom = origin_x, origin_y, origin_x + extent_w, origin_y + extent_h
     window = (origin_x, origin_y, extent_w, extent_h)
     drawn = [_place(metafile, offset, window, (left, top, right, bottom)) for offset in dibs]
     if len(drawn) == 1:
