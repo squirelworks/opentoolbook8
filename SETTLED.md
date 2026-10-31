@@ -243,7 +243,7 @@ Opening a book and clicking a button raise the same error when the shelf search 
 
 ## nida71.tbk stays missing
 
-`nida81.tbk` quotes `go to page "P12060" of book "nida71.tbk"` in the `Retry` button of pages `P12000`, `P12001`, `P12002`, and `P12003`. The file is not shipped and is not vendored. The shelf search does not find it, so a click that reaches that line is the missing-book error: `nida71.tbk was not found; P12060 of that book does not open`. The window prints it and stays on the page. On `P12001` the runner reaches that line, because the `conditions` block is not evaluated and the first quoted `go to page` stands before `break`. `verifyswitches130a`, whose result picks the branch, has no body in the lesson or the four system books, so the branch ToolBook takes is not known. On `P12000`, `P12002`, and `P12003` a later `go to page "p12050"` in the same handler is the last quoted page before `break`, so that click does not name `nida71.tbk`.
+`nida81.tbk` quotes `go to page "P12060" of book "nida71.tbk"` in the `Retry` button of pages `P12000`, `P12001`, `P12002`, and `P12003`. The file is not shipped and is not vendored. The shelf search does not find it, so a click that reaches that line is the missing-book error: `nida71.tbk was not found; P12060 of that book does not open`. The window prints it and stays on the page. That holds for `Retry` on all four pages. The runner skips the `if ntries = 4 then` branch it cannot decide, as the Statement walker section says, so the first quoted `go to page` before `break` is the `nida71.tbk` line on each page. `verifyswitches130a`, whose result picks the branch, has no body in the lesson or the four system books, so the branch ToolBook takes is not known.
 
 ## A missing lesson names its disc
 
