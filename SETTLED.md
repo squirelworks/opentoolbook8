@@ -155,6 +155,10 @@ A class `0xA` field is 61 bytes. The reader returns the word at `+0x28`, the wor
 
 A class `0x17` record is 17 bytes. The word at `+0x04` is a near pointer to a class `0xA` field, and that field is named `Text`. The reader returns the pointer and the name. `9e954d01.tbk` has five. On `P1080` the word is `0x240`. On `P1082` it is `0x9C`. `nida81.tbk` has no class `0x17` record.
 
+## Hotwords on the page walk
+
+A class `0x17` record is a hotword. The page walk returns it as a child of the class `0xA` field its word at `+0x04` names, in stored order. It is not an object of the page by itself. Its name is the trailer name its word at `+0x06` names, as for other objects. On `9e954d01.tbk` the five are `tolerance` on `P1080` and `P1082`, `propagation delay` on `P1200` and `P1207`, and `impedance` on `P2070`, each under that page's field `Text`. The TBKX export lists the same five names inside the same fields. The window paints the field's text once and does not paint the hotword. A page with no hotword walks as before.
+
 ## Page body
 
 The page body is that field, not a second store. A class `0xA` field names the character record through word 1 of the block at `+0x24`, and those bytes are the record in the gap after the page's directory body. The reader returns that file offset and the characters. On `9e954d01.tbk` page `P440` the field `Text` is the record at file `0xcbad7`. The same holds for every page of that book and of `nida81.tbk`: the text block is past the directory body, and the directory body does not hold a second copy.
@@ -249,4 +253,4 @@ A book with no startup page and no stored page is an error. The error names the 
 
 `python3 -m opentoolbook path/to/book.tbk --report` prints the record count, the follow-up reads, the files the book names, and the startup call names. It does not open a window. `--report path/to/book.tbk` prints the same report. `--home` with a book and without `--report` opens the book and searches that install. It does not print the install list. `--home` without a book still prints the install folder.
 
-`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds classes `0xD`, `0x11`, `0x13`, `0x15`, and `0x19`, and the window does not paint those. Class `0x12` pies and class `0x17` records are outside that walk and are not painted.
+`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds classes `0xD`, `0x11`, `0x13`, `0x15`, and `0x19`, and the window does not paint those. Class `0x12` pies are outside that walk and are not painted. Class `0x17` hotwords are on that walk under their field and are not painted a second time.

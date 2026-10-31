@@ -6,6 +6,10 @@ page's near offset. Those objects are returned in the order the records
 are stored. A class ``0x0B`` group's children are the objects whose word
 at ``+0x04`` names the group, in the order of the 10-byte entries at
 ``+0x2E``.
+
+A class ``0x17`` hotword is 17 bytes, and its word at ``+0x04`` names a
+class ``0xA`` field. The walk returns a field's hotwords as that field's
+children, in stored order. A hotword is not on the page by itself.
 """
 
 from __future__ import annotations
@@ -24,7 +28,9 @@ from opentoolbook.field import (
 )
 
 PAGE = 5
+FIELD = 0x0A
 GROUP = 0x0B
+HOTWORD = 0x17
 # Class and length of a record the walk can name. Each length repeats.
 _BYTES = {
     0x08: 41,
@@ -38,6 +44,7 @@ _BYTES = {
     0x11: 61,
     0x13: 55,
     0x15: 89,
+    HOTWORD: 17,
     0x19: 89,
 }
 
@@ -119,6 +126,12 @@ def _object(data, segment, trailer, by_near, at: int, kind: int) -> PageObject:
                 continue
             nested.append(_object(data, segment, trailer, by_near, child[0], child[1]))
         children = tuple(nested)
+    elif kind == FIELD:
+        children = tuple(
+            _object(data, segment, trailer, by_near, hot_at, hot_kind)
+            for hot_at, hot_kind in by_near.values()
+            if hot_kind == HOTWORD and _u16(data, hot_at + 4) == near
+        )
     return PageObject(kind, _u16(data, at), _object_name(data, trailer, at), near, children)
 
 
