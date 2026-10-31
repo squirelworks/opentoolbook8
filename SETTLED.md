@@ -213,6 +213,10 @@ The book record stores the page width at `+0x20` and the page height at `+0x1E`.
 
 An inline type-1 picture stores a `BM` file eight bytes after `01 02 01 00`. On `9e954d01.tbk` that marker is at byte 18 of all 63 inline pictures. On `nida81.tbk` it is at byte 18 of 21 pictures and at byte 36 of the other 2. A huge-table picture keeps the `BM` file after the 8-byte prefix.
 
+## Arrow keys
+
+The Right key runs the click of the button named `Next` on the page, and the Left key the click of the button named `Back`. The name match ignores case and takes buttons from the page and from its background. It is the same path as clicking that button, including `enterPage` on the page it lands on. On `P300` of `9e954d01.tbk` Right opens `P400` and Left opens `P100`. On `P400` Left opens `P300`, the page its `Back` handler quotes. On the question page `P10210` Right is the `Test` background's `Next` and opens `P10211`. A page with neither button ignores the keys. Escape closes the window. The book's own key handlers are not run.
+
 ## Enter page greeting
 
 On `P10` of `9e954d01.tbk` the `enterPage` handler sets the text of field `First` to `"Hello" && getFirst() & ", this lesson is about:"` when `sysLevel` is `reader`, and to `"Hello, this lesson is about:"` otherwise. The field's stored name is `first`. A missing `sysLevel` is `reader`. `getFirst` in `nc81recs.sbk` returns `__studentFirst`. The reader strips the ends of that variable, and returns `Student` when it is empty. `&&` is one operator and is recognized before `&`. `&&` concatenates with a space. `&` concatenates. The display list for `P10` shows `Hello Student, this lesson is about:`. The one style run at offset 0, face `Arial`, covered the stored string and covers the new string. The field `Text` stays `LOGIC FAMILIES`.
