@@ -10,6 +10,7 @@ over the field.
 from __future__ import annotations
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
+from opentoolbook.props import UserProperties
 from opentoolbook.script import _script, resource_scripts
 
 _PAGE = 5
@@ -88,12 +89,17 @@ def enter_fields(
     *,
     student_first: str | None = None,
     sys_level: str | None = None,
+    props: UserProperties | None = None,
 ) -> tuple[tuple[str, str, tuple[tuple[int, str | None], ...]], ...]:
     """Field text after the page's ``enterPage`` handler.
 
     ``fields`` is ``(name, text, runs)`` in paint order. ``sys_level``
     ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
+    ``student_first`` ``None`` reads ``__studentFirst`` from ``props``.
     """
+    if student_first is None and props is not None:
+        stored = props.get("__studentFirst")
+        student_first = None if stored is None else str(stored)
     handler = _enter_page(page_source(data, page_id))
     book = _book_enter(data)
     if not handler and not book:

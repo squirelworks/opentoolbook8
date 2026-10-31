@@ -1,13 +1,16 @@
-"""The two points stored on a class ``0x11`` arc.
+"""The points stored on a class ``0x11`` arc.
 
-They are the signed pairs at ``+0x25`` and ``+0x29``. The record is not
-filled, and the points are not moved onto the bounds. The page window
-does not paint this record.
+They are the signed pairs at ``+0x25`` and ``+0x29``, and a third pair at
+``+0x2D``. The record is not filled, and the points are not moved onto
+the bounds. Arcs with different bounds store the same three pairs, so
+the pairs are not page positions. The page window does not paint this
+record.
 """
 
 from __future__ import annotations
 
 import struct
+from dataclasses import dataclass
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
 
@@ -15,6 +18,44 @@ ARC = 0x11
 # Measured length of a class 0x11 record. P1140 object 80 is one.
 ARC_BYTES = 61
 PAGE = 5
+
+
+@dataclass(frozen=True)
+class Arc:
+    """One class ``0x11`` record: its id, the rectangle at ``+0x0F``, and three stored pairs."""
+
+    object_id: int
+    bounds: tuple[int, int, int, int]
+    points: tuple[tuple[int, int], tuple[int, int], tuple[int, int]]
+
+
+def stored_arcs(data: bytes) -> tuple[Arc, ...]:
+    """Every class ``0x11`` record of the measured length, in stored order."""
+    found: list[Arc] = []
+    for segment in _segments(data):
+        end = segment.file_at + segment.size
+        at = segment.base + 0x18
+        while at + ARC_BYTES <= end and at >= 4:
+            kind = _u16(data, at - 2)
+            size = _u16(data, at - 4) - (at - segment.base)
+            if kind == ARC and size == ARC_BYTES:
+                found.append(_arc_record(data, at))
+                at += size
+                continue
+            at += 1
+    return tuple(found)
+
+
+def _arc_record(data: bytes, at: int) -> Arc:
+    return Arc(
+        _u16(data, at),
+        struct.unpack_from("<hhhh", data, at + 0x0F),
+        (
+            struct.unpack_from("<hh", data, at + 0x25),
+            struct.unpack_from("<hh", data, at + 0x29),
+            struct.unpack_from("<hh", data, at + 0x2D),
+        ),
+    )
 
 
 def arc_points(data: bytes, page_id: str, object_id: int) -> tuple[tuple[int, int], tuple[int, int]]:
