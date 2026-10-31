@@ -20,6 +20,7 @@ import struct
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from opentoolbook.classtbl import bound_sysbooks
 from opentoolbook.enter import _enter_page
 from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
@@ -102,7 +103,7 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
     pages = _pages(data)
     roots = search_roots(path, home)
     handlers = _handler_map(data)
-    sysbooks: list[str] = []
+    sysbooks = add_bound_sysbooks([], data, roots)
     page, other = choose_opening(
         pages,
         handlers,
@@ -393,6 +394,28 @@ def _merge_sysbooks(state: _State) -> None:
             merged.setdefault(handler, body)
     state.handlers.clear()
     state.handlers.update(merged)
+
+
+def add_bound_sysbooks(sysbooks: list[str], data: bytes, roots: tuple[Path, ...]) -> list[str]:
+    """Append the book's bound system books that ``sysBooks`` lacks, as a book open does.
+
+    A bound book that the shelf finds adds its own bound books the same
+    way, because it is an open book too. Names are kept in lower case.
+    """
+    pending = [data]
+    while pending:
+        for name in bound_sysbooks(pending.pop(0)):
+            key = name.lower()
+            if key in sysbooks:
+                continue
+            sysbooks.append(key)
+            found = find_file(roots, key)
+            if found is not None:
+                try:
+                    pending.append(found.read_bytes())
+                except OSError:
+                    pass
+    return sysbooks
 
 
 def sysbook_handlers(roots: tuple[Path, ...], name: str) -> dict[str, str]:

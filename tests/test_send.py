@@ -66,7 +66,7 @@ class SendTests(unittest.TestCase):
         lesson = Path(path)
         roots = search_roots(lesson, None)
         sysbooks = opening_page(lesson).sysbooks
-        self.assertEqual(sysbooks, ("nc81trnr.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81base.sbk", "tb80r.sbk"))
+        self.assertEqual(sysbooks, ("nc81trnr.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81base.sbk", "tb80anm.sbk", "tb80r.sbk"))
         chain = handler_chain(lesson.read_bytes(), lesson.name, roots, sysbooks)
         self.assertEqual([book.lower() for book, _ in chain.books[1:]], list(sysbooks))
         sent = send_message(chain, "getLogoBook", roots=roots, book_name=lesson.name)
