@@ -11,9 +11,12 @@ file and the page, in the same sentence as the open:
 ``nida81.tbk was not found; P310 of that book does not open``. A click
 that hits no button, or a button with no ``buttonClick``, goes to the
 page's own ``buttonClick``. A quiz button on a page whose background
-calls ``handleQuizClick`` uses the stored page list. A page id matches
+calls ``handleQuizClick`` uses the stored page list. A letter button on
+that page, ``A`` through ``E``, is ``manageQuizButtons``: the letter is
+checked and every other letter on the page is unchecked. The page stays. A page id matches
 regardless of case. A ``request`` the click runs is returned with the
-result, and the window shows it.
+result, and the window shows it. Field text a click writes, and objects
+it hides or shows, stay that way on the page until the page changes.
 
 The navigator keeps the stack of ``(book, page)`` it has shown, apart from
 the stored page list. ``back`` pops that stack. A book button that says
@@ -47,6 +50,13 @@ class Clicked:
     moved: bool
     beep: bool = False
     requests: tuple[str, ...] = ()
+    changed: bool = False
+    checked: bool = False
+
+
+# ``initializeTest`` sets ``__quizMaxResponse`` to 5, and
+# ``manageQuizButtons`` walks ``ansiToChar(96 + i)`` up to it.
+LETTERS = ("a", "b", "c", "d", "e")
 
 
 class Navigator:
@@ -73,6 +83,11 @@ class Navigator:
         self._handlers: dict[Path | None, dict[str, str]] = {}
         # Pages shown before this one, oldest first: (book, page id, book bytes).
         self.history: list[tuple[Path | None, str, bytes]] = []
+        # Field text a click wrote, by field name. Cleared when the page changes.
+        self.fields: dict[str, str] = {}
+        # Objects a click hid or showed, by (kind, name or id). Cleared when the page changes.
+        self.visible: dict[tuple[str, str | int], bool] = {}
+        self.letters: dict[tuple[str, str], str] = {}
 
     @property
     def book_name(self) -> str:
@@ -98,17 +113,19 @@ class Navigator:
             raise MissingBook(name, page_id, roots)
         return found
 
-    def click(self, button: str | None) -> Clicked:
+    def click(self, button: str | None, shown: dict[str, str] | None = None) -> Clicked:
         """Run one click. ``button`` None is a click that hits no button.
 
-        The page and book change in place.
+        The page and book change in place. ``shown`` is the field text the
+        page shows now. Field text the click writes is kept in ``fields``
+        until the page changes.
 
         The page shown before a click that moves is pushed on ``history``.
         """
-        shown = (self.book, self.page_id, self.data)
-        result = self._click(button)
+        before = (self.book, self.page_id, self.data)
+        result = self._click(button, shown)
         if result.moved:
-            self.history.append(shown)
+            self.history.append(before)
         return result
 
     def back(self) -> bool:
@@ -119,24 +136,39 @@ class Navigator:
         if data is not self.data:
             self.pages = page_ids(data)
         self.book, self.page_id, self.data = book, page_id, data
+        self.fields = {}
+        self.visible = {}
         return True
 
-    def _click(self, button: str | None) -> Clicked:
+    def _click(self, button: str | None, shown: dict[str, str] | None) -> Clicked:
         acted = None
         if button:
-            acted = follow_click(self.data, self.page_id, button, self.pages, self.variables, self.book_name)
+            acted = follow_click(
+                self.data, self.page_id, button, self.pages, self.variables, self.book_name, shown
+            )
         if acted is None:
-            acted = page_click(self.data, self.page_id, self.pages, self.variables, self.book_name)
+            acted = page_click(self.data, self.page_id, self.pages, self.variables, self.book_name, shown)
         if acted is None:
             if not button or not quiz_background(self.data, self.page_id):
                 return Clicked(False)
-            result = quiz_click(self.pages, self.page_id, button)
+            name = button.strip().lower()
+            if name in LETTERS:
+                self.letters[self._key()] = name
+                return Clicked(False, checked=True)
+            result = quiz_click(self.pages, self.page_id, button, checked=self.letters.get(self._key()))
             asked = (result.request,) if result.request else ()
             if result.page_id == self.page_id:
                 return Clicked(False, result.beep, asked)
             self.page_id = result.page_id
+            self.fields = {}
+            self.visible = {}
             return Clicked(True, result.beep, asked)
         beep, asked = acted.beeps > 0, acted.requests
+        changed = bool(acted.fields or acted.visible)
+        for name, text in acted.fields:
+            self.fields[name] = text
+        for key, shown_now in acted.visible:
+            self.visible[key] = shown_now
         data, pages, book = self.data, self.pages, self.book
         if acted.book and acted.book.lower() != self.book_name.lower():
             book = self.find_book(acted.book, acted.page_id)
@@ -144,11 +176,13 @@ class Navigator:
             pages = page_ids(data)
         page = _match(pages, acted.page_id)
         if page is None:
-            return Clicked(False, beep, asked)
+            return Clicked(False, beep, asked, changed)
         if book == self.book and page == self.page_id:
-            return Clicked(False, beep, asked)
+            return Clicked(False, beep, asked, changed)
         self.data, self.pages, self.book = data, pages, book
         self.page_id = page
+        self.fields = {}
+        self.visible = {}
         self.enter()
         return Clicked(True, beep, asked)
 
@@ -156,7 +190,17 @@ class Navigator:
         """The display list of the page on screen, after its ``enterPage``."""
         from opentoolbook.show import show_page
 
-        return show_page(self.data, self.page_id, view_width, view_height, props)
+        return show_page(self.data, self.page_id, view_width, view_height, props, fields=self.fields, visible=self.visible, checked=self.checked_buttons())
+
+    def checked_buttons(self) -> dict[str, bool]:
+        """The letter states a click set on this page, for ``show_page``."""
+        letter = self.letters.get(self._key())
+        if letter is None:
+            return {}
+        return {name: name == letter for name in LETTERS}
+
+    def _key(self) -> tuple[str, str]:
+        return (str(self.book or ""), self.page_id)
 
     def enter(self) -> None:
         """Run the ``enterPage`` of the page on screen and follow a quoted move."""
