@@ -486,3 +486,7 @@ A handler outside the four `initialize*` handlers runs only when it reaches no D
 ## Window title
 
 The window title is the book file name, a dash, and the page id, such as `nida81.tbk - P0`. It changes on every navigation, including a book switch. The bare command on `9e954d01.tbk` opens with `nida81.tbk - P0`. `Next` from `P300` of the lesson shows `9e954d01.tbk - P400`, and `Selection1` from `P300` shows `nida81.tbk - P310`. A window opened without a book file shows the page id alone.
+
+## Viewer history
+
+The window keeps the stack of book and page it has shown, apart from the stored page list. A click that changes the page pushes the page that was on screen. The window's own `Viewer back` control, above the page, pops that stack and shows that page of that book. It is a viewer control, not a book button. A book button that says `send previous` still opens the previous page in the stored list. On `9e954d01.tbk`, `Next` from `P300` opens `P400`, and `Viewer back` returns to `P300`. `Selection1` from `P300` opens `P310` of `nida81.tbk`, whose stored previous page is `P0`, and `Viewer back` returns to `P300` of the lesson. With nothing shown before, `Viewer back` beeps and the page stays.

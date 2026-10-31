@@ -132,6 +132,34 @@ class TitleTests(unittest.TestCase):
         switched.click("Selection1")
         self.assertEqual(switched.title(), "nida81.tbk - P310")
 
+class HistoryTests(unittest.TestCase):
+    def test_nothing_shown_before_is_a_viewer_back_that_stays(self):
+        nav = Navigator(FIXTURE.read_bytes(), "", FIXTURE)
+        self.assertEqual(nav.history, [])
+        self.assertFalse(nav.back())
+        self.assertFalse(nav.click("nothing").moved)
+        self.assertEqual(nav.history, [])
+
+    def test_viewer_back_pops_the_shown_pages_not_the_stored_list(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        nav = Navigator(path.read_bytes(), "P300", path)
+        nav.click("Next")
+        self.assertEqual(nav.page_id, "P400")
+        self.assertTrue(nav.back())
+        self.assertEqual((nav.book, nav.page_id), (path, "P300"))
+        nav.click("Selection1")
+        self.assertEqual((nav.book.name, nav.page_id), ("nida81.tbk", "P310"))
+        self.assertEqual(nav.pages[nav.pages.index("P310") - 1], "P0")
+        self.assertTrue(nav.back())
+        self.assertEqual((nav.book, nav.page_id), (path, "P300"))
+        self.assertIn("P400", nav.pages)
+        self.assertFalse(nav.back())
+        stored = Navigator(path.read_bytes(), "P400", path)
+        stored.click("Back")
+        self.assertEqual(stored.page_id, "P300")
+
 
 class LessonTests(unittest.TestCase):
     def test_selection1_on_p300_opens_p310_of_nida81_in_the_parent(self):

@@ -232,8 +232,10 @@ def open_page(
     ``lesson`` is the path the user passed when the window opens on
     another book. A click still searches beside it.
     ``variables`` are the system variables startup assigned.
-    The title is the book file and the page id, and it changes on every
-    navigation, including a book switch. The return is every click error the window printed,
+    The window's own "Viewer back" control returns to the page it showed
+    before, which is not the book's stored previous page. The title is the
+    book file and the page id, and it changes on every navigation,
+    including a book switch. The return is every click error the window printed,
     in order, so the caller can exit non-zero.
     """
     import tkinter as tk
@@ -256,7 +258,6 @@ def open_page(
         )
         if status:
             tk.Label(root, text=status, anchor="w").pack(side="bottom", fill="x")
-        canvas.pack(fill="both", expand=True)
         nav = Navigator(data, page_id, book, home, lesson, variables)
         root.title(nav.title())
         state = {
@@ -264,6 +265,18 @@ def open_page(
             "view": (view_w, view_h),
         }
         errors: list[str] = []
+
+        def on_back() -> None:
+            if nav.back():
+                redraw()
+            else:
+                root.bell()
+
+        bar = tk.Frame(root)
+        bar.pack(fill="x")
+        # A viewer control, not a book button: it pops the pages this window showed.
+        tk.Button(bar, text="\u25c0 Viewer back", command=on_back).pack(side="left")
+        canvas.pack(fill="both", expand=True)
 
         def redraw() -> None:
             listed = nav.display(*state["view"], state["props"])
