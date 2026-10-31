@@ -10,6 +10,8 @@ from unittest.mock import patch
 from opentoolbook.entry import choose_opening, opening_page
 from opentoolbook.record import FOLLOW_UP
 
+from lesson import companion
+
 FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
 
 ENTER_APPLICATION = """
@@ -185,9 +187,7 @@ class OpeningPageTests(unittest.TestCase):
         self.assertIn(entry.book.name.lower(), {"nida81.tbk", "logo81.tbk", "mrj81.tbk"})
         self.assertNotEqual(entry.book.resolve(), lesson.resolve())
         self.assertGreater(len(entry.data), 1000)
-        nida = lesson.with_name("nida81.tbk")
-        if not nida.is_file():
-            nida = lesson.parent.parent / "nida81.tbk"
+        nida = companion(lesson, "nida81.tbk")
         if nida.is_file():
             shell = opening_page(nida)
             self.assertEqual(shell.page_id, "P0")
@@ -198,7 +198,7 @@ class CommandTests(unittest.TestCase):
     def test_the_bare_command_opens_the_viewer_and_does_not_print_the_report(self):
         from opentoolbook.__main__ import main
 
-        with patch("opentoolbook.__main__.open_page") as open_page:
+        with patch("opentoolbook.__main__.open_page", return_value=()) as open_page:
             code = main(["opentoolbook", str(FIXTURE)])
         self.assertEqual(code, 0)
         self.assertEqual(open_page.call_args.args[1], "")
