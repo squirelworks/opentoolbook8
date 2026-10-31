@@ -12,7 +12,9 @@ picture at byte ``0x39`` when that word is not 0. The border byte at
 frames the bounds, ``radioButton3d`` (9) frames a box one pixel inside
 them, and ``none`` (1) draws no frame. A letter click on a quiz page
 checks that letter and unchecks the other letters, and the page is drawn
-again with those states. The invert picture is not drawn.
+again with those states. While a button is held down it draws the
+picture at byte ``0x27`` of its graphics block when that word is not 0,
+and letting go draws the up picture again.
 A field that
 contains a shape is painted under that shape. A label that contains no
 shape is painted in front of a shape that contains the label.
@@ -117,6 +119,7 @@ class Paint:
     frame: tuple[int, int, int, int] | None = None
     up_id: int | None = None
     checked_id: int | None = None
+    invert_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -261,11 +264,29 @@ def open_page(
                 return
             paint(refit(listed, *view))
 
-        def on_click(event) -> None:
+        def on_press(event) -> None:
             listed = getattr(canvas, "listed", None)
             if listed is None:
                 return
             name = button_at(listed, event.x, event.y)
+            state["pressed"] = name
+            if not name:
+                return
+            held = pressed(nav.data, listed, name)
+            if held != listed:
+                canvas.delete("all")
+                draw_page(canvas, held)
+
+        def on_click(event) -> None:
+            listed = getattr(canvas, "listed", None)
+            if listed is None:
+                return
+            name = state.pop("pressed", None)
+            if name:
+                canvas.delete("all")
+                draw_page(canvas, listed)
+            if button_at(listed, event.x, event.y) != name:
+                return
             result = click_reported(nav, name, errors)
             if result is None:
                 root.bell()
@@ -299,7 +320,8 @@ def open_page(
             if result.moved or result.checked:
                 redraw()
 
-        canvas.bind("<Button-1>", on_click)
+        canvas.bind("<ButtonPress-1>", on_press)
+        canvas.bind("<ButtonRelease-1>", on_click)
         root.bind("<Right>", on_key)
         root.bind("<Left>", on_key)
         root.bind("<Return>", on_key)
@@ -402,6 +424,26 @@ def button_at(listed: DisplayList, x: float, y: float) -> str | None:
         if left <= x < right and top <= y < bottom:
             return item.name
     return None
+
+
+def pressed(data: bytes, listed: DisplayList, name: str) -> DisplayList:
+    """The display list while the named button is held down.
+
+    A button with an invert picture draws it. A button without one, and
+    every other item, is unchanged. Letting go is the list without this
+    call, so the up picture comes back.
+    """
+    items = []
+    for item in listed.items:
+        if item.kind == "button" and item.name == name and item.invert_id:
+            try:
+                picture = picture_rgb(data, item.invert_id)
+            except ValueError:
+                picture = None
+            if picture is not None:
+                item = replace(item, picture_id=item.invert_id, picture_role="invert", picture=picture)
+        items.append(item)
+    return replace(listed, items=tuple(items))
 
 
 def draw_page(canvas, listed: DisplayList, make_photo=None) -> None:
@@ -660,6 +702,7 @@ def _button(data, segment, at: int, object_id: int, name: str, bounds) -> Paint:
         frame=_frame(data[at + 0x27], bounds),
         up_id=up or None,
         checked_id=checked_id or None,
+        invert_id=_graphic_word(data, segment, at, 0x27) or None,
     )
 
 
