@@ -5,15 +5,9 @@ import unittest
 from pathlib import Path
 
 from opentoolbook.entry import choose_opening
-from opentoolbook.walk import this_name
 
 
 class ThisNameTests(unittest.TestCase):
-    def test_the_two_expressions(self):
-        self.assertEqual(this_name("name of this page", "P300", "9e954d01.tbk"), "P300")
-        self.assertEqual(this_name("Name  of This Book", "P300", "9e954d01.tbk"), "9e954d01.tbk")
-        self.assertIsNone(this_name("name of this background", "P300", "9e954d01.tbk"))
-
     def test_a_startup_handler_returns_them(self):
         handlers = {
             "thisbook": "to get thisBook\n  return name of this book\nend\n",

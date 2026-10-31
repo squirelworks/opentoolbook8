@@ -351,11 +351,11 @@ Resource type 16 in the PE resource directory is a version resource. The reader 
 
 ## Opening the book
 
-`python3 -m opentoolbook path/to/book.tbk` opens a Tk window on the book's opening page. `enterSystem` runs, then `enterApplication`, then `enterBook`, each when a handler in the book or in `sysBooks` answers it. No other handler runs at startup because of its name: a book with only `openSession` or `initialize*` handlers runs none of them. A `get` call in a branch the reader takes runs that handler when its body is in the book or in a book in `sysBooks`. A quoted `go to page` in a taken branch is the page. A missing `sysLevel` is `reader`, so `sysLevel = "reader"` is the branch that runs. `forward` is not executed. A `linkDLL` line is not called.
+`python3 -m opentoolbook path/to/book.tbk` opens a Tk window on the book's opening page. `enterSystem` runs, then `enterApplication`, then `enterBook`, each when a handler in the book or in `sysBooks` answers it. No other handler runs at startup because of its name: a book with only `openSession` or `initialize*` handlers runs none of them. Those handlers run on the OpenScript interpreter, which calls a `get` handler in the book or in a book in `sysBooks` and passes `forward` up the path. A `go to page` they run is the page.
 
 `openSession` returns 0 when `__studentRecords` has not been set. `if it is 1` does not run, so `gotoPageList` does not run. `gotoPageList` says `go to page(pagename) of book(bookname)`. Those names are not quoted. The list is filled by the session DLL, which is not called. A resumed session is not the page the window opens.
 
-When the startup handlers do not name a page, the opening page is the first page in the page list at book `+0x10`. That page's `enterPage` is read the same way. On `P0` of `9e954d01.tbk` the reader branch is `go to page "P0" of book getLogoBook()`. `getLogoBook` in `nc81base.sbk` sets the book to `nida81.tbk`, then to `logo81.tbk` when that file is found, otherwise to `mrj81.tbk` when that file is found. `fileExists32` is not called. The quoted name is found by the same search as the report: the lesson directory, its parent, then `--home`. The window opens on `P0` of that book. `otb-line-rect.tbk` has no such handlers. Its one stored page is the opening page, and that page id is empty.
+When the startup handlers do not name a page, the opening page is the first page in the page list at book `+0x10`. That page's `enterPage` runs the same way. On `P0` of `9e954d01.tbk` the reader branch is `go to page "P0" of book getLogoBook()`. `getLogoBook` in `nc81base.sbk` sets the book to `nida81.tbk`, then to `logo81.tbk` when that file is found, otherwise to `mrj81.tbk` when that file is found. `fileExists32` is answered by the shelf, not a DLL. The quoted name is found by the same search as the report: the lesson directory, its parent, then `--home`. The window opens on `P0` of that book. `otb-line-rect.tbk` has no such handlers. Its one stored page is the opening page, and that page id is empty.
 
 A book with no startup page and no stored page is an error. The error names the book. A handler that does not return a book name is an error. The error names the handler and the page. A book file the search does not find is an error. The error names that file and the page.
 
@@ -373,8 +373,7 @@ A `__` name is a system variable the lesson and the four system books declare, s
 
 ## Statement walker
 
-Clicks and `enterPage` no longer walk; they run on the interpreter. An opening with no book bytes still walks a handler with one loop, in `walk.py`. `if`, `else`, `end if`, `break`, and `return` are that loop. `end` and `end if` both close an `if`, so `if error = 1 then` closed by `end` in `selection1` of `P10001` through `P10004` is one block. An `if` line with no `then`, such as `if sysLevel = reader` in `Next` of `P1270`, is a block. An `if` line with `then` and a statement after it is one line, not a block. A missing `sysLevel` is `reader`. A condition the caller cannot decide runs neither branch. `break` and `return` stop the handler. A `linkDLL` block is not called. `forward` has no body. `end` at the top of a handler, such as `end buttonClick`, ends it.
-
+There is no statement walker. Startup, `enterPage`, every click, and `send_message` run on the OpenScript interpreter; `walk.py` is gone. The interpreter's own `if`, `else`, `end if`, `break`, `return` and `conditions` are the control flow. A handler that links a DLL still returns without running in `send_message`.
 
 ## Logo page click
 

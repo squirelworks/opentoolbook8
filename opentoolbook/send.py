@@ -5,8 +5,7 @@ The handler is looked up in the open book first, then in each book of
 handlers pushed onto it. No system book is named here. The books are
 found with the same search as the book report. A handler whose body links or unlinks a DLL
 (``linkDLL``, ``linkDLL32``, or ``unlinkDLL``) returns without running, so no DLL is
-called. Every other handler runs with the statement walker that opening
-the book uses.
+called. Every other handler runs on the OpenScript interpreter.
 """
 
 from __future__ import annotations
@@ -118,9 +117,11 @@ def send_message(
     book_name: str = "book.tbk",
     props=None,
 ) -> Sent:
-    """Send ``name`` down ``chain``. A handler that links a DLL is skipped."""
-    from opentoolbook.entry import _call, _State
+    """Send ``name`` down ``chain`` on the interpreter. A handler that links a DLL is skipped."""
+    from opentoolbook.openscript.interp import Engine
+    from opentoolbook.openscript.values import ScriptError
     from opentoolbook.props import UserProperties
+    from opentoolbook.run import BookHost, chain_lookup
 
     found = chain.find(name)
     if found is None:
@@ -128,14 +129,20 @@ def send_message(
     book, source = found
     if calls_dll(source):
         return Sent(name, book, skipped=True)
-    state = _State(
-        pages,
-        chain.merged(),
-        roots,
-        book_name,
+    host = BookHost(pages, book_name, roots)
+    host.page_id = page_id
+    engine = Engine(
+        chain_lookup(lambda: [handlers for _book, handlers in chain.books]),
+        host,
         props=props if props is not None else UserProperties(),
     )
-    state.page_id = page_id
-    value = _call(name, state)
-    moved = state.page_id if state.page_id != page_id else None
-    return Sent(name, book, value, page_id=moved, book_name=state.book_name)
+    host.engine = engine
+    try:
+        if engine.handles(name):
+            value = engine.send(name)
+        else:
+            value = engine.get(name)
+    except ScriptError:
+        value = None
+    moved = host.page_id if host.page_id != page_id else None
+    return Sent(name, book, value, page_id=moved, book_name=host.book_name)

@@ -83,16 +83,25 @@ class SysBooksTests(unittest.TestCase):
 
     def test_a_pushed_book_answers_the_next_get(self):
         with tempfile.TemporaryDirectory() as tmp:
-            from opentoolbook.entry import _State, _statement, _condition, _call
-
-            state = _State(("P0",), {}, (Path(tmp),), "lesson.tbk")
-            self.assertTrue(_condition('"base.sbk" is not in sysBooks', state))
-            _statement('push "BASE.sbk" onto sysBooks', 'push "base.sbk" onto sysbooks', state)
-            self.assertEqual(state.sysbooks, ["base.sbk"])
-            self.assertFalse(_condition('"base.sbk" is not in sysBooks', state))
-            self.assertTrue(_condition('"Base.sbk" is in sysBooks', state))
-            _statement('push "other.sbk" onto sysBooks', 'push "other.sbk" onto sysbooks', state)
-            self.assertEqual(state.sysbooks, ["other.sbk", "base.sbk"])
+            handlers = {
+                "entersystem": (
+                    "to handle enterSystem\n"
+                    '  if "base.sbk" is not in sysBooks then\n'
+                    '    push "BASE.sbk" onto sysBooks\n'
+                    "  end if\n"
+                    '  if "Base.sbk" is in sysBooks then\n'
+                    '    push "other.sbk" onto sysBooks\n'
+                    "  end if\n"
+                    '  if "base.sbk" is not in sysBooks then\n'
+                    '    go to page "P1"\n'
+                    "  end if\n"
+                    "end\n"
+                ),
+            }
+            sysbooks: list = []
+            page = choose_opening(("P0", "P1"), handlers, roots=(Path(tmp),), sysbooks=sysbooks)
+        self.assertEqual(page, ("P0", None))
+        self.assertEqual(sysbooks, ["other.sbk", "base.sbk"])
 
     def test_startup_without_a_push_has_no_system_book(self):
         handlers = {
