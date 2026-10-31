@@ -156,6 +156,7 @@ def show_page(
     view_height: int,
     props: UserProperties | None = None,
     fields: dict[str, str] | None = None,
+    visible: dict[tuple[str, str | int], bool] | None = None,
     *,
     sys_level: str | None = None,
     checked: Mapping[str, bool] | None = None,
@@ -164,6 +165,8 @@ def show_page(
 
     ``props`` holds the ``__`` names the page's ``enterPage`` reads.
     ``fields`` is field text a handler wrote after ``enterPage``.
+    ``visible`` maps ``(kind, name or id)`` to whether a handler shows it.
+    An object a handler hid is not on the list.
     ``sys_level`` ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
     ``checked`` maps a button name, in any case, to the checked state a
     click gave it. It wins over bit 4 of that button's ``+0x26``.
@@ -175,6 +178,8 @@ def show_page(
         items = _written(items, fields)
     if checked:
         items = _checked(data, items, checked)
+    if visible:
+        items = tuple(item for item in items if _shown(item, visible))
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
 
 
@@ -512,6 +517,15 @@ def _entered(
 def field_texts(listed: DisplayList) -> dict[str, str]:
     """Each field name on the display list and the text it shows."""
     return {item.name: item.text or "" for item in listed.items if item.kind == "field" and item.name}
+
+
+def _shown(item: Paint, visible: dict[tuple[str, str | int], bool]) -> bool:
+    for key in ((item.kind, item.name.lower()), (item.kind, item.object_id)):
+        if key[1] in ("", None):
+            continue
+        if visible.get(key) is False:
+            return False
+    return True
 
 
 def _written(items: tuple[Paint, ...], fields: dict[str, str]) -> tuple[Paint, ...]:

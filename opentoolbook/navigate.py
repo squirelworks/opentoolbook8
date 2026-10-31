@@ -15,8 +15,8 @@ calls ``handleQuizClick`` uses the stored page list. A letter button on
 that page, ``A`` through ``E``, is ``manageQuizButtons``: the letter is
 checked and every other letter on the page is unchecked. The page stays. A page id matches
 regardless of case. A ``request`` the click runs is returned with the
-result, and the window shows it. Field text a click writes stays on the
-page until the page changes.
+result, and the window shows it. Field text a click writes, and objects
+it hides or shows, stay that way on the page until the page changes.
 
 The page a click lands on runs its ``enterPage`` the way the opening
 page does. A quoted ``go to page`` there moves the window again, to
@@ -79,6 +79,8 @@ class Navigator:
         self._handlers: dict[Path | None, dict[str, str]] = {}
         # Field text a click wrote, by field name. Cleared when the page changes.
         self.fields: dict[str, str] = {}
+        # Objects a click hid or showed, by (kind, name or id). Cleared when the page changes.
+        self.visible: dict[tuple[str, str | int], bool] = {}
         self.letters: dict[tuple[str, str], str] = {}
 
     @property
@@ -132,11 +134,14 @@ class Navigator:
                 return Clicked(False, result.beep, asked)
             self.page_id = result.page_id
             self.fields = {}
+            self.visible = {}
             return Clicked(True, result.beep, asked)
         beep, asked = acted.beeps > 0, acted.requests
-        changed = bool(acted.fields)
+        changed = bool(acted.fields or acted.visible)
         for name, text in acted.fields:
             self.fields[name] = text
+        for key, shown_now in acted.visible:
+            self.visible[key] = shown_now
         data, pages, book = self.data, self.pages, self.book
         if acted.book and acted.book.lower() != self.book_name.lower():
             book = self.find_book(acted.book, acted.page_id)
@@ -150,6 +155,7 @@ class Navigator:
         self.data, self.pages, self.book = data, pages, book
         self.page_id = page
         self.fields = {}
+        self.visible = {}
         self.enter()
         return Clicked(True, beep, asked)
 
@@ -157,7 +163,7 @@ class Navigator:
         """The display list of the page on screen, after its ``enterPage``."""
         from opentoolbook.show import show_page
 
-        return show_page(self.data, self.page_id, view_width, view_height, props, fields=self.fields, checked=self.checked_buttons())
+        return show_page(self.data, self.page_id, view_width, view_height, props, fields=self.fields, visible=self.visible, checked=self.checked_buttons())
 
     def checked_buttons(self) -> dict[str, bool]:
         """The letter states a click set on this page, for ``show_page``."""
