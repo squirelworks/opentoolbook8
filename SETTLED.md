@@ -167,6 +167,10 @@ A field's hotword character range is stored. A field style run whose word at byt
 
 The list at the book record's `+0x28` names font-table entries. An entry starts with the face name, and the signed word at entry `+0x20` is minus the character height in page units. A field's own font is the entry its word at `+0x22` names. A style run's size is the entry its word at byte 2 names, and a run word of 1 is the field's font. No byte of the 11-byte run is the size, and byte `+6` stays the 0 or 4 the run reader returns. The display list keeps each run's offset and height, and the window draws each span at that height in pixels. On `9e954d01.tbk` the face and the height of the `+0x22` entry match the export's `FontFace` and `FontSize` on all 496 fields the export and the walk share: the height is the point size in 96-dpi pixels times 15, so 10 points is 195, 12 is 240, 14 is 285, 16 is 315, and 6 is 120. On `P100`, `Objective1Title` has an Arial run at 0 with height 240 and an MS Sans Serif run at 18 with height 280, so the window draws them at 16 and 19 pixels. On `P900`, `Exit` has a run at 2 whose word is 1, and it takes the field's 240. Every field in `nida81.tbk` gets a height from the same read. When `enterPage` changes a field's text, the sizes move with the runs.
 
+## Stroke width
+
+The byte at `+0x22` of a class `0x8`, `0xC`, `0xD`, `0xE`, `0x10`, or `0x13` record is the line style. Against the export's `LineStyle` on `9e954d01.tbk` it is one value per style on every record of each class: 4 is `1` (516 lines, 221 rectangles, 43 ellipses, 62 angled lines, 649 polygons), 5 is `2` (2 lines, 2 ellipses), 6 is `3` (2 rectangles, 4 angled lines), 9 is `8` (20 rectangles), 2 is `dotted` (10 lines), and 1 is `none` (5 polygons). Every class `0xE` line in both books stores one of those bytes: 4 on 516, 2 on 10, and 5 on 2 in the lesson; 4 on 11, 1 on 6, 5 on 4, and 6 on 3 in `nida81.tbk`. The window strokes 4, 5, 6, and 9 at 1, 2, 3, and 8 pixels times the fit scale, at least 1. 1 is no stroke: a line is not drawn and a shape has no outline. 2 is drawn solid at 1 pixel; dotted is not drawn. A byte not in that list, such as 7 on four `nida81.tbk` rectangles, is 1 pixel. The color at `+0x17` is still the stroke color the reader returns. On `P1110` the red line and ellipse are 2 pixels. On `nida81.tbk` `P12000` a line is 3 pixels, and on `P22100` the 14 class `0xD` records have no outline.
+
 ## Class `0x0B`
 
 A class `0x0B` record is 49 bytes. The four signed words at `+0x0F` are a rectangle. It is the union of the rectangles at `+0x0F` of the objects whose word at `+0x04` names the record. The reader returns that rectangle. On `9e954d01.tbk` the two records in `FINDINGS.md` are (2557, 105, 6322, 1005) and (3202, 360, 6142, 765). The same read holds for every such record in `nida81.tbk`.
@@ -478,6 +482,14 @@ A handler outside the four `initialize*` handlers runs only when it reaches no D
 ## initializeRecs and GetVar
 
 `initializeRecs` in `nc81recs.sbk` runs the same way as `initializeBase`. `error = getStudentInfo()` is skipped by name, because `getStudentInfo` links `kernel32.dll` and reads `NIDAREC.INI`, so `__studentFirst` stays unset and `getFirst` still gives `Student`. `step i from 1 to 100` has known bounds, so its body runs. `__lessonVars[i] = "1"` stores `1` at elements 1 through 100 of the one stored name `__lessonVars`. An array is one name whose value is a table by index, the same shape `setupQuizEx` uses for `__quizPages`. `initializeRecs` returns 0. `GetVar vNumber` links no DLL. It runs with the same rules, decides `(vNumber > 0) and (vNumber <= 100)`, and returns `__lessonVars[vNumber]`, so `GetVar(42)` is `1`. `GetVar(0)` and `GetVar(101)` are empty. A parameter's type word, such as `int` in `to get GetVar int vNumber`, is not a parameter name. A `step` whose bounds are not known is skipped by its first line.
+
+## Window title
+
+The window title is the book file name, a dash, and the page id, such as `nida81.tbk - P0`. It changes on every navigation, including a book switch. The bare command on `9e954d01.tbk` opens with `nida81.tbk - P0`. `Next` from `P300` of the lesson shows `9e954d01.tbk - P400`, and `Selection1` from `P300` shows `nida81.tbk - P310`. A window opened without a book file shows the page id alone.
+
+## Viewer history
+
+The window keeps the stack of book and page it has shown, apart from the stored page list. A click that changes the page pushes the page that was on screen. The window's own `Viewer back` control, above the page, pops that stack and shows that page of that book. It is a viewer control, not a book button. A book button that says `send previous` still opens the previous page in the stored list. On `9e954d01.tbk`, `Next` from `P300` opens `P400`, and `Viewer back` returns to `P300`. `Selection1` from `P300` opens `P310` of `nida81.tbk`, whose stored previous page is `P0`, and `Viewer back` returns to `P300` of the lesson. With nothing shown before, `Viewer back` beeps and the page stays.
 
 ## Menu button
 
