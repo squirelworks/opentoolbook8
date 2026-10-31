@@ -40,8 +40,6 @@ from opentoolbook.field import (
     _trailer,
     _u16,
 )
-from opentoolbook.click import follow_click, quiz_background
-from opentoolbook.quiznav import quiz_click
 from opentoolbook.page import _child_nears, _object_name, _objects
 from opentoolbook.props import UserProperties
 from opentoolbook.pixels import picture_rgb
@@ -146,24 +144,30 @@ def open_page(
     data: bytes,
     page_id: str,
     book: str | None = None,
+    home: str | None = None,
     props: UserProperties | None = None,
 ) -> None:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
     The page id is the one the caller passed. This function does not
     follow startup handlers. A button whose handler quotes a page opens
-    that page. A quoted book is that filename in the directory of
-    ``book``, exact case, and nowhere else. A quiz page with no quiz
-    running still uses OK, Next, and Skip for the next page and Back
-    for the previous page. ``props`` is the ``__`` store every page in
+    that page. A quoted book is found with the same search as opening a
+    book: the directory of ``book``, its parent, ``home``,
+    ``home/courses``, and ``home/Nida98/Lessons``, regardless of case. A
+    book that search does not find is reported on stderr with the file
+    and the page, and the window stays. A quiz page with no quiz running
+    still uses OK, Next, and Skip for the next page and Back for the
+    previous page. ``props`` is the ``__`` store every page in
     this window reads. Resizing the window refits the page: the
     scale is computed again from the page size and the new view. The
     close button ends the Tk loop and this
     function returns. A click that raises prints the error and the window
     stays up.
     """
+    import sys
     import tkinter as tk
-    from pathlib import Path
+
+    from opentoolbook.navigate import Navigator
 
     root = tk.Tk()
     try:
@@ -180,25 +184,21 @@ def open_page(
             background="#ffffff",
         )
         canvas.pack(fill="both", expand=True)
+        nav = Navigator(data, page_id, book, home)
         state = {
-            "data": data,
-            "pages": page_ids(data),
-            "page": page_id,
-            "book": Path(book).name if book else "",
-            "folder": Path(book).parent if book else None,
             "props": props if props is not None else UserProperties(),
             "view": (view_w, view_h),
         }
 
         def redraw() -> None:
-            listed = show_page(state["data"], state["page"], *state["view"], state["props"])
+            listed = show_page(nav.data, nav.page_id, *state["view"], state["props"])
             paint(listed)
 
         def paint(listed: DisplayList) -> None:
             canvas.delete("all")
             draw_page(canvas, listed)
             canvas.listed = listed
-            root.title(state["page"])
+            root.title(nav.page_id)
 
         def on_configure(event) -> None:
             view = (max(1, event.width), max(1, event.height))
@@ -217,31 +217,16 @@ def open_page(
             name = button_at(listed, event.x, event.y)
             if not name:
                 return
-            acted = follow_click(state["data"], state["page"], name, state["pages"])
-            if acted is None:
-                if not quiz_background(state["data"], state["page"]):
-                    return
-                result = quiz_click(state["pages"], state["page"], name)
-                if result.beep:
-                    root.bell()
-                if result.page_id == state["page"]:
-                    return
-                state["page"] = result.page_id
+            try:
+                result = nav.click(name)
+            except ValueError as exc:
+                print(exc, file=sys.stderr)
+                root.bell()
+                return
+            if result.beep:
+                root.bell()
+            if result.moved:
                 redraw()
-                return
-            if acted.book:
-                folder = state["folder"]
-                path = None if folder is None else folder / acted.book
-                if path is None or not path.is_file():
-                    return
-                if path.name.lower() != state["book"].lower():
-                    state["data"] = path.read_bytes()
-                    state["pages"] = page_ids(state["data"])
-                    state["book"] = path.name
-            if acted.page_id not in state["pages"] or acted.page_id == state["page"]:
-                return
-            state["page"] = acted.page_id
-            redraw()
 
         canvas.bind("<Button-1>", on_click)
         canvas.bind("<Configure>", on_configure)
