@@ -29,14 +29,15 @@ class SearchTests(unittest.TestCase):
             book.write_bytes(FIXTURE.read_bytes())
             home = top / "home"
             (home / "courses").mkdir(parents=True)
-            (home / "Nida98" / "Lessons").mkdir(parents=True)
             (top / "Lessons" / "NIDA81.TBK").write_bytes(b"")
-            (home / "courses" / "Logo81.tbk").write_bytes(b"")
-            (home / "Nida98" / "Lessons" / "mrj81.TBK").write_bytes(b"")
+            (home / "Logo81.tbk").write_bytes(b"")
+            # A folder below home is not on the shelf.
+            (home / "courses" / "mrj81.TBK").write_bytes(b"")
             nav = Navigator(FIXTURE.read_bytes(), "", book, home)
             self.assertEqual(nav.find_book("nida81.tbk", "P310"), top / "Lessons" / "NIDA81.TBK")
-            self.assertEqual(nav.find_book("logo81.tbk", "P0"), home / "courses" / "Logo81.tbk")
-            self.assertEqual(nav.find_book("MRJ81.tbk", "P0"), home / "Nida98" / "Lessons" / "mrj81.TBK")
+            self.assertEqual(nav.find_book("logo81.tbk", "P0"), home / "Logo81.tbk")
+            with self.assertRaises(MissingBook):
+                nav.find_book("MRJ81.tbk", "P0")
             (lesson / "nida81.tbk").write_bytes(b"")
             self.assertEqual(nav.find_book("nida81.tbk", "P310"), lesson / "nida81.tbk")
 
@@ -275,9 +276,9 @@ class LessonTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             top = Path(tmp)
             home = top / "home"
-            (home / "courses").mkdir(parents=True)
+            home.mkdir(parents=True)
             for name in ("nida81.tbk", "nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk"):
-                (home / "courses" / name).symlink_to(companion(path, name).resolve())
+                (home / name).symlink_to(companion(path, name).resolve())
             lesson = top / "discs" / "LF" / "9e954d01.tbk"
             lesson.parent.mkdir(parents=True)
             lesson.symlink_to(path.resolve())
@@ -296,9 +297,9 @@ class LessonTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             top = Path(tmp)
             home = top / "home"
-            (home / "courses").mkdir(parents=True)
+            home.mkdir(parents=True)
             for name in ("nida81.tbk", "nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk"):
-                (home / "courses" / name).symlink_to(companion(path, name).resolve())
+                (home / name).symlink_to(companion(path, name).resolve())
             lesson = top / "discs" / "LF" / "9e954d01.tbk"
             lesson.parent.mkdir(parents=True)
             lesson.symlink_to(path.resolve())

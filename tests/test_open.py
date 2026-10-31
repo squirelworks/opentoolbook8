@@ -115,8 +115,9 @@ class OpenTests(unittest.TestCase):
             notes = {item.name: item.note for item in opened.files}
             self.assertEqual(found["nida81.tbk"], book_dir / "NIDA81.TBK")
             self.assertEqual(found["nc81recs.sbk"], home / "NC81RECS.SBK")
-            self.assertEqual(found["nc81test.sbk"], courses / "NC81TEST.SBK")
-            self.assertEqual(found["tb80anm.sbk"], lessons / "TB80ANM.SBK")
+            # Folders below home are not on the shelf.
+            self.assertIsNone(found["nc81test.sbk"])
+            self.assertIsNone(found["tb80anm.sbk"])
             self.assertIsNone(found["nc81base.sbk"])
             self.assertEqual(notes["nc81base.sbk"], "not found")
             for absent in ("minstb32.dll", "93954302.tbk", "93954d01.tbk"):
@@ -133,7 +134,8 @@ class OpenTests(unittest.TestCase):
             text = buf.getvalue()
         self.assertEqual(code, 0)
         self.assertIn("records ", text)
-        self.assertIn(str(lessons / "TB80ANM.SBK"), text)
+        self.assertIn(str(home / "NC81RECS.SBK"), text)
+        self.assertNotIn(str(lessons / "TB80ANM.SBK"), text)
         self.assertNotIn(str(student / "NC81BASE.SBK"), text)
 
     def test_open_keys_files_by_the_lesson_spelling(self):

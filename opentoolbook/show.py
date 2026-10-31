@@ -223,8 +223,7 @@ def open_page(
     The page id is the one the caller passed. This function does not
     follow startup handlers. A button whose handler quotes a page opens
     that page. A quoted book is found with the same search as opening a
-    book: the directory of ``book``, its parent, ``home``,
-    ``home/courses``, and ``home/Nida98/Lessons``, regardless of case. A
+    book: the directory of ``book``, its parent, and ``home``, regardless of case. A
     book that search does not find is reported on stderr with the file
     and the page, and the window stays. A quiz page with no quiz running
     still uses OK, Next, and Skip for the next page and Back for the

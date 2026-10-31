@@ -107,7 +107,7 @@ def parse_version(text: str) -> tuple[str, str]:
 
 
 def search_roots(book: Path | None, home: Path | None) -> tuple[Path, ...]:
-    """Book directory, its parent, then home, home/courses, and home/Nida98/Lessons.
+    """Book directory, its parent, then home. No course folder below home is named.
 
     The parent is the directory that holds the lesson directory. Nothing
     above that parent is searched, and nothing inside a subdirectory is searched.
@@ -121,8 +121,6 @@ def search_roots(book: Path | None, home: Path | None) -> tuple[Path, ...]:
             roots.append(parent)
     if home is not None:
         roots.append(home)
-        roots.append(home / "courses")
-        roots.append(home / "Nida98" / "Lessons")
     unique: list[Path] = []
     for root in roots:
         if root not in unique:

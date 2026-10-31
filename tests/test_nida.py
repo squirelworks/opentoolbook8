@@ -233,17 +233,17 @@ class CatalogOpenTests(unittest.TestCase):
             lesson.rename(Path(tmp) / "9e954d01.tbk")
             code, calls, _out, _err = _main(["--catalog", str(catalog), "--open", "9E954D01"])
             self.assertEqual((code, calls[0][2]), (0, str(Path(tmp) / "9e954d01.tbk")))
-            # --home/Nida98/Lessons is searched too.
+            # --home is searched too.
             home = Path(tmp) / "home"
-            (home / "Nida98" / "Lessons").mkdir(parents=True)
-            (Path(tmp) / "9e954d01.tbk").rename(home / "Nida98" / "Lessons" / "9e954d01.tbk")
+            home.mkdir(parents=True)
+            (Path(tmp) / "9e954d01.tbk").rename(home / "9e954d01.tbk")
             code, calls, _out, err = _main(["--catalog", str(catalog), "--open", "9E954D01"])
             self.assertEqual((code, calls), (2, []))
             self.assertEqual(err, "9e954d01.tbk was not found; lesson 9E954D01 does not open\n")
             code, calls, _out, _err = _main(
                 ["--catalog", str(catalog), "--open", "9E954D01", "--home", str(home)]
             )
-            self.assertEqual(calls[0][2], str(home / "Nida98" / "Lessons" / "9e954d01.tbk"))
+            self.assertEqual(calls[0][2], str(home / "9e954d01.tbk"))
             self.assertEqual(calls[0][3], str(home))
 
     def test_a_missing_lesson_names_its_cailt_disc(self):

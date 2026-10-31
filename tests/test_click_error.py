@@ -71,7 +71,7 @@ class Nida71Tests(unittest.TestCase):
             book.parent.mkdir()
             book.write_bytes(FIXTURE.read_bytes())
             home = top / "home"
-            for folder in (home, home / "courses", home / "Nida98" / "Lessons"):
+            for folder in (home, home / "courses"):
                 folder.mkdir(parents=True)
             nav = Navigator(FIXTURE.read_bytes(), "", book, home)
             with self.assertRaises(MissingBook) as caught:
@@ -81,7 +81,7 @@ class Nida71Tests(unittest.TestCase):
             "nida71.tbk was not found; P12060 of that book does not open",
         )
         self.assertEqual(caught.exception.name, "nida71.tbk")
-        self.assertEqual(len(caught.exception.roots), 5)
+        self.assertEqual(len(caught.exception.roots), 3)
 
     def test_retry_on_all_four_pages_of_nida81_prints_the_error_and_stays(self):
         path = _lesson()

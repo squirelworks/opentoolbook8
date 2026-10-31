@@ -130,8 +130,7 @@ def catalog_lesson(catalog: Catalog, folder: Path, lesson_id: str, home: Path | 
     """The ``.tbk`` for one catalog lesson id, found with the shelf rules.
 
     The file name is the lesson id in lower case plus ``.tbk``. It is looked
-    for in the catalog folder, its parent, ``home``, ``home/courses``, and
-    ``home/Nida98/Lessons``, regardless of case. An id the catalog does
+    for in the catalog folder, its parent, and ``home``, regardless of case. An id the catalog does
     not list is an error, and so is a file the search does not find. That
     error names the discs ``CAILT.DAT`` maps for the lesson when the same
     search finds the table.

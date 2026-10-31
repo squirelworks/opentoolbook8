@@ -16,7 +16,7 @@ A record is one object in the book's directory, with a file position and a lengt
 
 `python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id you typed. It draws that page and runs the OpenScript the window knows for that page. It does not follow the startup handlers to the book's opening page. `--home` is not consulted for `--show`. With a book and no `--report`, `--home` is a place to search for companion books.
 
-Companion books such as `nida81.tbk` and `nc81*.sbk` are looked up, for the report and for opening the book, in the book's directory, then in the parent of that directory, then in `--home`, `--home/courses`, and `--home/Nida98/Lessons`. The match ignores case. `SETTLED.md` has the full order. A quoted `of book` click looks only for that exact filename in the directory of the book passed to `--show`.
+Companion books such as `nida81.tbk` and `nc81*.sbk` are looked up, for the report and for opening the book, in the book's directory, then in the parent of that directory, then in `--home`. The match ignores case. `SETTLED.md` has the full order. A quoted `of book` click looks only for that exact filename in the directory of the book passed to `--show`.
 
 ## What the window does
 

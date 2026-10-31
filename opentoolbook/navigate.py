@@ -3,7 +3,7 @@
 This is the click path of the Tk window without the window. A button
 whose ``buttonClick`` quotes a page opens that page. A quoted ``of book``
 is found with the same search as opening a book: the book directory, its
-parent, ``--home``, ``--home/courses``, and ``--home/Nida98/Lessons``,
+parent, ``--home``,
 regardless of case. After the window changes books, the search still
 starts from the lesson the user opened, then the book on screen, then
 ``--home``. A file that search does not find is an error that names the
