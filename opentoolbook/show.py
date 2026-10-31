@@ -16,7 +16,8 @@ Of those, the window paints rectangles, ellipses, lines, class ``0x10``
 polygons, fields, and buttons, plus the class 4 background. It does not
 paint ``0xD``, arcs (``0x11``), class ``0x13`` point lists, ``0x15``, or
 ``0x19``. A group is not a paint; its children are. Class ``0x12`` pies
-and class ``0x17`` records are outside that walk, and they are not painted.
+are on the walk and are not painted. Class ``0x17`` records are outside
+that walk, and they are not painted.
 """
 
 from __future__ import annotations
