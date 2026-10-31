@@ -1,6 +1,5 @@
 """The bare command opens the book's opening page. ``--report`` prints the report."""
 
-import os
 import struct
 import tempfile
 import unittest
@@ -10,7 +9,7 @@ from unittest.mock import patch
 from opentoolbook.entry import choose_opening, opening_page
 from opentoolbook.record import FOLLOW_UP
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
 
@@ -188,10 +187,9 @@ class OpeningPageTests(unittest.TestCase):
         self.assertIn("no stored page", message)
 
     def test_the_lesson_opens_on_the_logo_page(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        lesson = Path(path)
         entry = opening_page(lesson)
         self.assertEqual(entry.page_id, "P0")
         self.assertIn(entry.book.name.lower(), {"nida81.tbk", "logo81.tbk", "mrj81.tbk"})

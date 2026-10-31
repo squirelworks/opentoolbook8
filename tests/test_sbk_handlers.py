@@ -3,13 +3,12 @@
 The names come from the type 10 source. The reader does not call them.
 """
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.script import book_handlers, resource_scripts
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 
 # kind, name. Measured from the type 10 source of each book.
@@ -245,8 +244,8 @@ HANDLERS = {
 
 class SystemBookHandlerTests(unittest.TestCase):
     def test_nc81base_nc81recs_nc81test_nc81trnr_handlers(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self.assertEqual(set(HANDLERS), {
             "nc81base.sbk",
@@ -272,8 +271,8 @@ class SystemBookHandlerTests(unittest.TestCase):
         self.assertIn("timernotify", seen)
 
     def test_nc81base_nc81recs_nc81test_nc81trnr_handler_split(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         samples = {
             ("nc81base.sbk", "initializeBase"): "cmdLine",

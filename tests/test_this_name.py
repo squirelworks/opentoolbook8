@@ -1,10 +1,10 @@
 """``name of this page`` is the page id. ``name of this book`` is the file name."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.entry import choose_opening
+from lesson import logic_families_path
 
 
 class ThisNameTests(unittest.TestCase):
@@ -25,8 +25,8 @@ class ThisNameTests(unittest.TestCase):
         )
 
     def test_page_number_on_p300_is_still_p300(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         from opentoolbook.enter import _book_enter
         from opentoolbook.navigate import Navigator

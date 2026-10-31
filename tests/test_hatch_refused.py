@@ -1,6 +1,5 @@
 """No class 0x8 pattern other than 254 and 253 occurs in both books, so no hatch is drawn."""
 
-import os
 import unittest
 from collections import Counter
 from pathlib import Path
@@ -9,16 +8,13 @@ from opentoolbook.field import _segments
 from opentoolbook.page import _objects
 from opentoolbook.show import show_page
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 RECTANGLE = 0x8
 
 
 def _lesson():
-    if not LESSON or not os.path.isfile(LESSON):
-        return None
-    return Path(LESSON)
+    return logic_families_path()
 
 
 def _patterns(data: bytes) -> Counter:
@@ -39,7 +35,7 @@ class HatchTests(unittest.TestCase):
         self.assertEqual(_patterns(self.data), Counter({254: 143, 33: 56, 253: 41, 4: 3}))
 
     def test_no_pattern_past_254_and_253_is_in_both_books(self):
-        nida = companion(LESSON, "nida81.tbk")
+        nida = companion(_lesson(), "nida81.tbk")
         if not nida.is_file():
             self.skipTest("nida81.tbk is not beside the lesson")
         theirs = _patterns(nida.read_bytes())

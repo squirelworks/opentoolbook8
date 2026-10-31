@@ -1,11 +1,12 @@
 """A window holds the photos of one page at a time."""
 
-import os
 import unittest
 from dataclasses import replace
 from pathlib import Path
 
 from opentoolbook.show import Paint, draw_page, release_photos, show_page
+
+from lesson import companion, logic_families_path
 
 FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
 
@@ -43,10 +44,7 @@ def _pictures(listed):
 
 
 def _lesson():
-    path = os.environ.get("OPENTOOLBOOK_TBK")
-    if not path or not os.path.isfile(path):
-        return None
-    return Path(path)
+    return logic_families_path()
 
 
 class PhotoCountTests(unittest.TestCase):
@@ -102,7 +100,10 @@ class PictureClassTests(unittest.TestCase):
         path = _lesson()
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = path.with_name("nida81.tbk").read_bytes()
+        nida = companion(path, "nida81.tbk")
+        if not nida.is_file():
+            self.skipTest("nida81.tbk is not beside the lesson")
+        data = nida.read_bytes()
         listed = _pictures(show_page(data, "P310", 624, 442))
         kinds = [item.kind for item in listed.items]
         self.assertIn("picture", kinds)

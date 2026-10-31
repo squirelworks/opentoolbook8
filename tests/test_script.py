@@ -1,13 +1,12 @@
 """buttonClick is source text. The handler is not called."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.keywords import KEYWORDS
 from opentoolbook.script import button_clicks, quoted_go_to
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 GO_P310 = 'go to page "P310" of book "nida81.tbk"'
 GO_NEXT = "go to page nextpage of book lastbook"
@@ -15,8 +14,8 @@ GO_NEXT = "go to page nextpage of book lastbook"
 
 class ButtonClickTests(unittest.TestCase):
     def test_button_click_is_source_text(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         logic = Path(path).read_bytes()
         nida_path = companion(path, "nida81.tbk")
@@ -52,8 +51,8 @@ class ButtonClickTests(unittest.TestCase):
 
 class QuotedGoToTests(unittest.TestCase):
     def test_quotes_only(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         logic = Path(path).read_bytes()
         nida = companion(path, "nida81.tbk").read_bytes()

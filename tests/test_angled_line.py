@@ -1,6 +1,5 @@
 """A class 0x13 angled line is on the display list as its stored points."""
 
-import os
 import struct
 import unittest
 from pathlib import Path
@@ -9,9 +8,7 @@ from opentoolbook.field import _Segment, page_ids
 from opentoolbook.polyline import POLYLINE_BYTES, stored_polylines
 from opentoolbook.show import _paint, show_page
 
-from lesson import companion
-
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import companion, logic_families_path
 
 
 def _record(points, stroke=(64, 64, 255), fill=(191, 0, 0)):
@@ -72,18 +69,20 @@ class LessonAngledLineTests(unittest.TestCase):
         return found
 
     def test_every_class_0x13_record_is_painted(self):
-        if not LESSON or not os.path.isfile(LESSON):
+        if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        for name, count in ((Path(LESSON), 66), (companion(LESSON, "nida81.tbk"), 14)):
+        path = logic_families_path()
+        for name, count in ((path, 66), (companion(path, "nida81.tbk"), 14)):
             data = name.read_bytes()
             stored = stored_polylines(data)
             self.assertEqual(len(stored), count)
             self.assertEqual(self._every_page(data), {line.points for line in stored})
 
     def test_p1140_strokes_them_in_the_first_color(self):
-        if not LESSON or not os.path.isfile(LESSON):
+        if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(LESSON).read_bytes()
+        path = logic_families_path()
+        data = path.read_bytes()
         lines = [item for item in show_page(data, "P1140", 400, 300).items if item.kind == "angled line"]
         self.assertTrue(lines)
         for item in lines:

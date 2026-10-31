@@ -1,20 +1,16 @@
 """Item 48: a quiz click runs shared script 103's ``buttonClick``, then ``handleQuizClick``."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.navigate import Navigator
 from opentoolbook.props import UserProperties
 from opentoolbook.script import shared_scripts
-
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import logic_families_path
 
 
 def _lesson():
-    if not LESSON or not os.path.isfile(LESSON):
-        return None
-    return Path(LESSON)
+    return logic_families_path()
 
 
 @unittest.skipIf(_lesson() is None, "set OPENTOOLBOOK_TBK to the lesson book")

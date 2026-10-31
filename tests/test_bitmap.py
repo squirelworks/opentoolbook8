@@ -1,6 +1,5 @@
 """A button bitmap is an 8-byte prefix and then a BM file in the huge table."""
 
-import os
 import struct
 import unittest
 from pathlib import Path
@@ -26,15 +25,15 @@ from opentoolbook.bitmap import (
 )
 from opentoolbook.record import Book
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 
 class BitmapTests(unittest.TestCase):
     def test_resource_155(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         bitmap = button_bitmap(data, 155)
         self.assertEqual(bitmap.stored_id, 156)
         self.assertEqual(bitmap.offset, 0x50117)
@@ -43,10 +42,10 @@ class BitmapTests(unittest.TestCase):
         self.assertEqual(bitmap.bpp, 8)
 
     def test_huge_table_lists_the_bitmaps_it_holds(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         found = huge_bitmaps(data)
         self.assertEqual(
             [(item.resource_id, item.offset, item.width, item.height, item.bpp) for item in found],
@@ -63,10 +62,10 @@ class BitmapTests(unittest.TestCase):
         self.assertEqual(len(found), 4)
 
     def test_button_picture_id_is_a_stored_resource_id(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         pictures = button_picture_ids(data)
         resources = _type1_resource_ids(data)
         self.assertGreater(len(set(pictures)), 1)
@@ -79,10 +78,10 @@ class BitmapTests(unittest.TestCase):
 
 class ButtonBoundsTests(unittest.TestCase):
     def test_bounds_are_the_rectangle_at_0x0f(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         next_bounds = button_bounds(data, "P300", "Next")
         choice_bounds = button_bounds(data, "P10210", "A")
         self.assertEqual(next_bounds, (8907, 6210, 9342, 6630))
@@ -104,10 +103,10 @@ class ButtonBoundsTests(unittest.TestCase):
 
 class ButtonBorderTests(unittest.TestCase):
     def test_border_is_the_byte_at_0x27(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         self.assertEqual(button_border(data, "P300", "Next"), 1)
         self.assertEqual(button_border(data, "P10210", "A"), 9)
         self.assertNotEqual(button_border(data, "P300", "Next"), button_border(data, "P10210", "A"))
@@ -125,10 +124,10 @@ class ButtonBorderTests(unittest.TestCase):
 
 class ButtonCheckedPictureTests(unittest.TestCase):
     def test_checked_picture_is_the_word_at_block_0x4b(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         self.assertEqual(button_checked_picture(data, "P10210", "A"), 118)
         self.assertEqual(button_checked_picture(data, "P300", "MenuFrame"), 0)
         self._stored_ids(data)
@@ -146,10 +145,10 @@ class ButtonCheckedPictureTests(unittest.TestCase):
 
 class ButtonInvertPictureTests(unittest.TestCase):
     def test_invert_picture_is_the_word_at_block_0x27(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         self.assertEqual(button_invert_picture(data, "P10210", "A"), 117)
         self.assertEqual(button_invert_picture(data, "P300", "MenuFrame"), 0)
         self._stored_ids(data)
@@ -167,10 +166,10 @@ class ButtonInvertPictureTests(unittest.TestCase):
 
 class ButtonDisabledPictureTests(unittest.TestCase):
     def test_disabled_picture_is_the_word_at_block_0x39(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         self.assertEqual(button_disabled_picture(data, "P10301", "A"), 128)
         self.assertEqual(button_disabled_picture(data, "P300", "MenuFrame"), 0)
         found = button_disabled_ids(data)
@@ -187,10 +186,10 @@ class ButtonDisabledPictureTests(unittest.TestCase):
 
 class ButtonEnabledTests(unittest.TestCase):
     def test_enabled_is_bit_0_at_0x26(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         self.assertEqual(button_enabled(data, "P300", "Next"), 1)
         self.assertEqual(button_enabled(data, "P10302", "A"), 0)
         lesson = stored_button_enabled(data)
@@ -205,10 +204,10 @@ class ButtonEnabledTests(unittest.TestCase):
 
 class ButtonCheckedTests(unittest.TestCase):
     def test_checked_is_bit_4_at_0x26(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         self.assertEqual(button_checked(data, "P10211", "B"), 1)
         self.assertEqual(button_checked(data, "P10210", "A"), 0)
         lesson = stored_button_checked(data)

@@ -1,18 +1,17 @@
 """A type 10 resource stores a handler. The reader returns the text and does not call it."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.script import resource_scripts, shared_scripts
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 
 class ResourceScriptTests(unittest.TestCase):
     def test_type_10_bytes_are_a_handler(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self._handlers(
             Path(path).read_bytes(),
@@ -43,8 +42,8 @@ class ResourceScriptTests(unittest.TestCase):
             self.assertNotEqual(lines[0].lower(), "end")
 
     def test_system_book_script_is_the_whole_count(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         books = {
             "nc81base.sbk": (129, "-- NC81BASE.SBK"),
@@ -81,8 +80,8 @@ class ResourceScriptTests(unittest.TestCase):
 
 class SharedScriptTests(unittest.TestCase):
     def test_type_19_bytes_are_the_shared_script(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         found = shared_scripts(Path(path).read_bytes())
         self.assertEqual([item.resource_id for item in found], [100, 101, 102, 103])

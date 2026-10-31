@@ -1,19 +1,15 @@
 """A style run's size is the height word of the font-table entry it names."""
 
-import os
 import struct
 import unittest
 from pathlib import Path
 
 from opentoolbook.show import _size_at, _spans_at, font_height, show_page
-
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import logic_families_path
 
 
 def _lesson():
-    if not LESSON or not os.path.isfile(LESSON):
-        return None
-    return Path(LESSON)
+    return logic_families_path()
 
 
 def _entry(face: bytes, height: int) -> bytes:

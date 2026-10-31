@@ -1,20 +1,18 @@
 """Right and Left press the page's Next and Back buttons."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.navigate import Navigator
 from opentoolbook.show import Paint, key_button, press_key, show_page
 
+from lesson import companion, logic_families_path
+
 FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
 
 
 def _lesson():
-    path = os.environ.get("OPENTOOLBOOK_TBK")
-    if not path or not os.path.isfile(path):
-        return None
-    return Path(path)
+    return logic_families_path()
 
 
 class KeyButtonTests(unittest.TestCase):
@@ -162,6 +160,9 @@ class BookKeyTests(unittest.TestCase):
         path = _lesson()
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = path.with_name("nida81.tbk").read_bytes()
+        nida = companion(path, "nida81.tbk")
+        if not nida.is_file():
+            self.skipTest("nida81.tbk is not beside the lesson")
+        data = nida.read_bytes()
         handler = key_handler(data, "P310", "Return")
         self.assertEqual((handler.owner, handler.resource_id, handler.button), ("book", 165, "next"))

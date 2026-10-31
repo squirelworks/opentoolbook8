@@ -1,12 +1,11 @@
 """The PE header in front of the ToolBook object store."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.header import VersionFields, export_module_name, version_fields
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
 
@@ -21,8 +20,8 @@ class ExportModuleTests(unittest.TestCase):
         self.assertEqual(export_module_name(bytes(decoy)), "MINSTB32.dll")
 
     def test_nida_book_names_the_export_module(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self.assertEqual(export_module_name(Path(path).read_bytes()), "MINSTB32.dll")
         nida = companion(path, "nida81.tbk")
@@ -55,8 +54,8 @@ class VersionFieldTests(unittest.TestCase):
         self.assertEqual(changed.product_version, _SHARED.product_version)
 
     def test_nida_book_repeats_the_version_strings(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self.assertEqual(version_fields(Path(path).read_bytes()), _SHARED)
         nida = companion(path, "nida81.tbk")

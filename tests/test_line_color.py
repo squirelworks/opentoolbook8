@@ -1,18 +1,17 @@
 """Class 0x0E stores two colors beside the endpoints. The byte at +0x25 is not one of them."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.line import stored_line_colors
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 
 class LineColorTests(unittest.TestCase):
     def test_colors_are_not_the_endpoints(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self._logic(Path(path).read_bytes())
         nida = companion(path, "nida81.tbk")

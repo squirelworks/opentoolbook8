@@ -1,6 +1,5 @@
 """Class 0x12 pies are on the page walk with their stored words. They are not painted."""
 
-import os
 import unittest
 from pathlib import Path
 
@@ -8,6 +7,7 @@ from opentoolbook.field import _segments
 from opentoolbook.page import page_records
 from opentoolbook.pie import PIE, pie_bounds, pie_pairs
 from opentoolbook.show import show_page
+from lesson import logic_families_path
 
 PIE_BOOK = Path(__file__).parent / "fixtures" / "otb-pie.tbk"
 
@@ -38,8 +38,8 @@ class PieWalkTests(unittest.TestCase):
 
 class LastObjectTests(unittest.TestCase):
     def test_the_last_field_of_p10410_is_on_the_walk(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         shown = show_page(Path(path).read_bytes(), "P10410", 400, 300)
         review = next(item for item in shown.items if item.name == "Review 2")

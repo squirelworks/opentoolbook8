@@ -1,13 +1,11 @@
 """The ``__`` names live in memory for the process."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.entry import choose_opening
 from opentoolbook.props import UserProperties
-
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import logic_families_path
 
 ENTER_APPLICATION = """
 to handle enterApplication
@@ -70,12 +68,12 @@ class StoreTests(unittest.TestCase):
 
 class GreetingTests(unittest.TestCase):
     def test_p10_greets_the_student_the_store_names(self):
-        if not LESSON or not os.path.isfile(LESSON):
+        if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         from opentoolbook.entry import opening_page
         from opentoolbook.navigate import Navigator
 
-        path = Path(LESSON)
+        path = logic_families_path()
         opened = opening_page(path)
 
         def first(name):

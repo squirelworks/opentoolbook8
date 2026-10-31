@@ -1,6 +1,5 @@
 """The line-style byte at +0x22 is the stroke width of a line, shape, or polygon."""
 
-import os
 import unittest
 from collections import Counter
 from pathlib import Path
@@ -9,16 +8,13 @@ from opentoolbook.field import _segments
 from opentoolbook.page import _objects
 from opentoolbook.show import _device_width, line_width, show_page
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 LINE = 0x0E
 
 
 def _lesson():
-    if not LESSON or not os.path.isfile(LESSON):
-        return None
-    return Path(LESSON)
+    return logic_families_path()
 
 
 def _record(style: int) -> bytes:
@@ -73,7 +69,7 @@ class LessonWidthTests(unittest.TestCase):
         self.assertEqual(widths[("ellipse", 2)], 1)
 
     def test_nida_lines(self):
-        nida = companion(LESSON, "nida81.tbk")
+        nida = companion(_lesson(), "nida81.tbk")
         if not nida.is_file():
             self.skipTest("nida81.tbk is not beside the lesson")
         data = nida.read_bytes()

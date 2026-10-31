@@ -1,6 +1,5 @@
 """The page window is the display list. It does not need a screen."""
 
-import os
 import unittest
 from pathlib import Path
 
@@ -9,17 +8,13 @@ from opentoolbook.polygon import polygon_points
 from opentoolbook.show import fit_scale, show_page, unit_to_px
 from opentoolbook.size import page_size
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
 PIE = Path(__file__).parent / "fixtures" / "otb-pie.tbk"
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
-
 
 def _lesson():
-    if not LESSON or not os.path.isfile(LESSON):
-        return None
-    return Path(LESSON)
+    return logic_families_path()
 
 
 class PageSizeTests(unittest.TestCase):

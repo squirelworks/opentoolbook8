@@ -1,6 +1,5 @@
 """enterPage writes the greeting. The display list does not need a screen."""
 
-import os
 import unittest
 from pathlib import Path
 
@@ -9,17 +8,14 @@ from opentoolbook.field import field_text
 from opentoolbook.script import book_handlers, resource_scripts
 from opentoolbook.show import show_page
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 GREETING = "Hello Student, this lesson is about:"
 STORED = "Hello, this lesson is about:"
 
 
 def _lesson():
-    if not LESSON or not os.path.isfile(LESSON):
-        return None
-    return Path(LESSON)
+    return logic_families_path()
 
 
 class StyleTests(unittest.TestCase):

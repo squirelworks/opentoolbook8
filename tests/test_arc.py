@@ -1,6 +1,5 @@
 """Class 0x11 stores three pairs that are not page positions. The window does not paint it."""
 
-import os
 import struct
 import unittest
 from pathlib import Path
@@ -8,15 +7,11 @@ from pathlib import Path
 from opentoolbook.arc import ARC_BYTES, Arc, _arc_record, arc_points, stored_arcs
 from opentoolbook.show import show_page
 
-from lesson import companion
-
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import companion, logic_families_path
 
 
 def _lesson():
-    if not LESSON or not os.path.isfile(LESSON):
-        return None
-    return Path(LESSON)
+    return logic_families_path()
 
 
 class SyntheticArcTests(unittest.TestCase):

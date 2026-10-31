@@ -1,7 +1,6 @@
 """Class 0x15 is a paint object: bounds and a stored bitmap, packed or as is."""
 
 import hashlib
-import os
 import unittest
 from pathlib import Path
 
@@ -10,15 +9,11 @@ from opentoolbook.page import _objects
 from opentoolbook.paintobject import PAINT_OBJECT, paint_object_bmp
 from opentoolbook.show import show_page
 
-from lesson import companion
-
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import companion, logic_families_path
 
 
 def _lesson():
-    if not LESSON or not os.path.isfile(LESSON):
-        return None
-    return Path(LESSON)
+    return logic_families_path()
 
 
 def _records(data):

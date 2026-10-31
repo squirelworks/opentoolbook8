@@ -1,13 +1,12 @@
 """A page is the background it names and the objects whose parent word names it."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.background import background
 from opentoolbook.page import page_records
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 # P1140 stores this child-list three times. Object 80 is the arc in one of them.
 _GATE = (0x11, 0x13, 0x0C, 0x0E, 0x0B)
@@ -15,8 +14,8 @@ _GATE = (0x11, 0x13, 0x0C, 0x0E, 0x0B)
 
 class PageRecordTests(unittest.TestCase):
     def test_a_page_is_the_records_it_stores(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         logic = Path(path).read_bytes()
         nida_path = companion(path, "nida81.tbk")

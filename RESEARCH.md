@@ -1532,3 +1532,7 @@ Of the files that were actually in a directory, the only basename in both the au
 ## `name of this book` in the system books
 
 Source: the type 10 scripts of `tb80.sbk`, `tb80a.sbk`, and `tb80r.sbk` as `resource_scripts` expands them. They call `pathOfFile(name of this book)`, `shortFileName(name of this book)`, and `ASYM_ShortFileName(name of this book)`. A script that needs the short name asks for it, so the engine's `name of this book` is likely a full path. The reader returns the file name, which is what those calls would return. `nc81test.sbk` compares `__translationSourceBook = name of this book`, and `nc81bank.sbk` stores `filename = name of this book`.
+
+## Test paths for private books
+
+Source: the Cursor handoff that lists M1 test hygiene (2026-10-31). Lesson-specific tests take `OPENTOOLBOOK_TBK` only when that file is named `9e954d01.tbk`, so pointing the variable at another book skips instead of asserting Logic Families pages. Companions open through the same case-insensitive shelf as `open_book`. `OPENTOOLBOOK_BOOKS` names a flat folder of `.tbk` files for a startup-and-paint smoke; it is optional and skips when unset.

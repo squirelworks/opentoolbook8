@@ -1,18 +1,18 @@
 """Class 0x10 stores its points in the record. They sit in the source rectangle."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.polygon import stored_polygons
+from lesson import logic_families_path
 
 
 class PolygonTests(unittest.TestCase):
     def test_stored_points_lie_in_the_source_rectangle(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         found = stored_polygons(data)
         self.assertGreaterEqual(len(found), 2)
         counts = {len(item.points) for item in found}

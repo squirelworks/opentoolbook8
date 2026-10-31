@@ -4,7 +4,7 @@ import unittest
 from functools import lru_cache
 from unittest.mock import patch
 
-from lesson import SKIP, lesson_path
+from lesson import SKIP, logic_families_path
 from opentoolbook.navigate import Navigator
 from opentoolbook.openscript import interp
 
@@ -13,10 +13,10 @@ from opentoolbook.openscript import interp
 def _opened():
     from opentoolbook.entry import opening_page
 
-    return opening_page(lesson_path())
+    return opening_page(logic_families_path())
 
 
-@unittest.skipIf(lesson_path() is None, SKIP)
+@unittest.skipIf(logic_families_path() is None, SKIP)
 class LessonTests(unittest.TestCase):
     def setUp(self):
         fixed = patch.object(interp._random, "randint", lambda low, high: low)
@@ -26,7 +26,7 @@ class LessonTests(unittest.TestCase):
     def _nav(self, page):
         opened = _opened()
         props = type(opened.props)(dict(opened.props.items()))
-        path = lesson_path()
+        path = logic_families_path()
         return Navigator(path.read_bytes(), page, path, props=props, sysbooks=opened.sysbooks)
 
     def test_each_selection1_group_stores_its_type_pages_and_pass(self):

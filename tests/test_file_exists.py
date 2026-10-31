@@ -1,6 +1,5 @@
 """``fileExists32`` is the shelf: 1 when the report's search finds the name."""
 
-import os
 import shutil
 import tempfile
 import unittest
@@ -11,6 +10,7 @@ from opentoolbook.send import Chain, send_message
 from opentoolbook.shelf import file_exists32, search_roots
 
 from test_entry import LOGO
+from lesson import logic_families_path
 
 
 class FileExistsTests(unittest.TestCase):
@@ -56,10 +56,9 @@ class FileExistsTests(unittest.TestCase):
 
 class LessonLogoTests(unittest.TestCase):
     def _lesson(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        lesson = Path(path)
         needed = {}
         for name in ("nida81.tbk", "nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk"):
             found = None

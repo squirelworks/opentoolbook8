@@ -1,6 +1,5 @@
 """A page's objects paint in the order of its stored layer list."""
 
-import os
 import unittest
 from pathlib import Path
 
@@ -8,15 +7,11 @@ from opentoolbook.field import _Trailer, _trailer, _u16
 from opentoolbook.page import _handle_words, _objects, layer_nears
 from opentoolbook.show import button_at, show_page, unit_to_px
 
-from lesson import companion
-
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import companion, logic_families_path
 
 
 def _lesson():
-    if not LESSON or not os.path.isfile(LESSON):
-        return None
-    return Path(LESSON)
+    return logic_families_path()
 
 
 def _page_segments(data):
@@ -62,7 +57,7 @@ class LessonLayerTests(unittest.TestCase):
         pages = []
         self._check_book(self.data, pages)
         self.assertEqual(len(pages), 131)
-        nida = companion(LESSON, "nida81.tbk")
+        nida = companion(_lesson(), "nida81.tbk")
         if nida.is_file():
             more = []
             self._check_book(nida.read_bytes(), more)

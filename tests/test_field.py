@@ -3,7 +3,6 @@
 Word 0 of that block is a run list when it is a trailer handle.
 """
 
-import os
 import struct
 import unittest
 from pathlib import Path
@@ -19,7 +18,7 @@ from opentoolbook.field import (
     style_run_names,
 )
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 # The copyright field on page P0 of 9e954d01.tbk.
 COPYRIGHT = 'Copyright ©  Nida Corporation 1997 - 2002  \r\nThis software and its supporting programs are protected by federal copyright law and all            rights are reserved by Nida Corporation.  No part or section of this software or its supporting    programs may be copied, distributed, transmitted in any form or medium electronic or           otherwise, disclosed to third parties, or used in any manner not specified in the  License            Agreement furnished by Nida Corporation.  This courseware was created with Asymetrix ToolBook I I .'
@@ -33,17 +32,17 @@ P440_BODY = (
 
 class FieldTextTests(unittest.TestCase):
     def test_p0_copyright_field(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         self.assertEqual(field_text(data, "P0", "Copyright"), COPYRIGHT)
 
     def test_page_ids_include_p0_and_p430(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         found = page_ids(data)
         self.assertIn("P0", found)
         self.assertIn("P430", found)
@@ -51,10 +50,10 @@ class FieldTextTests(unittest.TestCase):
 
 class FieldStyleRunTests(unittest.TestCase):
     def test_runs_follow_the_field_text(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         found = field_style_runs(data)
         self.assertGreaterEqual(len(found), 2)
         for item in found:
@@ -73,10 +72,10 @@ class FieldStyleRunTests(unittest.TestCase):
 
 class StyleRunNameTests(unittest.TestCase):
     def test_run_word_names_a_c_string_or_is_one(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         runs = field_style_runs(data)
         named = style_run_names(data)
         self.assertEqual(len(named.names), len(runs))
@@ -111,8 +110,8 @@ class StyleRunNameTests(unittest.TestCase):
 
 class FieldWordTests(unittest.TestCase):
     def test_the_five_numbers_repeat(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         logic = Path(path).read_bytes()
         nida = companion(path, "nida81.tbk")
@@ -132,8 +131,8 @@ class FieldWordTests(unittest.TestCase):
 
 class FieldTextPlaceTests(unittest.TestCase):
     def test_the_gap_record_is_the_field(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         logic = Path(path).read_bytes()
         nida = companion(path, "nida81.tbk")
@@ -165,10 +164,10 @@ class FieldTextPlaceTests(unittest.TestCase):
 
 class FieldBoundsTests(unittest.TestCase):
     def test_bounds_are_the_rectangle_at_0x0f(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         copyright_bounds = field_bounds(data, "P0", "Copyright")
         stem_bounds = field_bounds(data, "P10210", "Stem")
         self.assertEqual(copyright_bounds, (248, 4500, 9638, 6300))

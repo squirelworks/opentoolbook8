@@ -1,18 +1,17 @@
 """A class 0x0B rectangle is the union of the objects that name it."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.container import stored_containers
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 
 class ContainerTests(unittest.TestCase):
     def test_bounds_are_the_union_of_the_named_objects(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self._union(Path(path).read_bytes())
         nida = companion(path, "nida81.tbk")

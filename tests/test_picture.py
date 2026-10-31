@@ -1,6 +1,5 @@
 """Class 0x19 is a packed metafile picture. The window draws it into its bounds."""
 
-import os
 import struct
 import unittest
 from pathlib import Path
@@ -10,9 +9,7 @@ from opentoolbook.page import _objects
 from opentoolbook.picture import PICTURE, SRCAND, SRCCOPY, SRCPAINT, metafile_picture, picture_pixels
 from opentoolbook.show import _png, _stretch, show_page
 
-from lesson import companion
-
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import companion, logic_families_path
 
 
 def _record(function: int, params: bytes) -> bytes:
@@ -85,9 +82,13 @@ class SyntheticPictureTests(unittest.TestCase):
 
 class NidaPictureTests(unittest.TestCase):
     def test_all_39_pictures_draw_and_the_pages_list_them(self):
-        if not LESSON or not os.path.isfile(LESSON):
+        if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = companion(LESSON, "nida81.tbk").read_bytes()
+        path = logic_families_path()
+        nida = companion(path, "nida81.tbk")
+        if not nida.is_file():
+            self.skipTest("nida81.tbk is not beside the lesson")
+        data = nida.read_bytes()
         found = [
             at
             for segment in _segments(data)

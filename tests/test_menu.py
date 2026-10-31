@@ -1,19 +1,17 @@
 """A lesson Menu button calls gotoMenuPage, and that names a quoted page."""
 
-import os
 import unittest
 from pathlib import Path
-
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import logic_families_path
 
 
 class LessonTests(unittest.TestCase):
     def test_the_window_navigator_follows_menu_on_p450(self):
-        if not LESSON or not os.path.isfile(LESSON):
+        if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         from opentoolbook.navigate import Navigator
 
-        path = Path(LESSON)
+        path = logic_families_path()
         from opentoolbook.entry import opening_page
 
         opened = opening_page(path)

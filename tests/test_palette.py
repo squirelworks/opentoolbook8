@@ -1,15 +1,13 @@
 """An 8-bit picture is palette indexes. The window draws the palette colors, not the index bytes."""
 
 import hashlib
-import os
 import struct
 import unittest
 from pathlib import Path
 
 from opentoolbook.pixels import _bm_file, _decode_bmp, picture_rgb
 from opentoolbook.show import show_page
-
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import logic_families_path
 
 
 def _bm8(width, height, palette, rows, used=None):
@@ -47,9 +45,10 @@ class LessonPaletteTests(unittest.TestCase):
     }
 
     def test_the_four_huge_table_bitmaps_use_their_color_tables(self):
-        if not LESSON or not os.path.isfile(LESSON):
+        if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(LESSON).read_bytes()
+        path = logic_families_path()
+        data = path.read_bytes()
         for resource_id, (width, height, first_row) in self.EXPECTED.items():
             blob = _bm_file(data, resource_id)
             self.assertEqual(struct.unpack_from("<H", blob, 28)[0], 8)
@@ -65,9 +64,10 @@ class LessonPaletteTests(unittest.TestCase):
         self.assertEqual(rgb[:3], bytes((192, 192, 192)))
 
     def test_the_p450_textbox_draws_resource_155(self):
-        if not LESSON or not os.path.isfile(LESSON):
+        if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        shown = show_page(Path(LESSON).read_bytes(), "P450", 400, 300)
+        path = logic_families_path()
+        shown = show_page(path.read_bytes(), "P450", 400, 300)
         box = next(item for item in shown.items if item.kind == "button" and item.picture_id == 156)
         self.assertEqual(box.picture[:2], (580, 158))
         self.assertEqual(hashlib.sha256(box.picture[2][:580 * 3]).hexdigest()[:16], "66d6f86f2b5e3293")

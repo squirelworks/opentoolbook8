@@ -1,15 +1,14 @@
 """A book stores its user properties as a table of name and value blocks."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.navigate import Navigator
 from opentoolbook.userprops import book_properties
 
-FIXTURES = Path(__file__).parent / "fixtures"
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import companion, logic_families_path
 
+FIXTURES = Path(__file__).parent / "fixtures"
 
 class StoredPropertyTests(unittest.TestCase):
     def test_the_instructor_fixtures_store_the_same_three_properties(self):
@@ -27,16 +26,20 @@ class StoredPropertyTests(unittest.TestCase):
 
 class LessonTests(unittest.TestCase):
     def test_pinfo_and_pqinfo_show_the_version_the_book_stores(self):
-        if not LESSON or not os.path.isfile(LESSON):
+        if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(LESSON).read_bytes()
+        path = logic_families_path()
+        data = path.read_bytes()
         stored = book_properties(data)
         self.assertEqual(stored["__nidaversion"], "2.003.0001")
         self.assertEqual(stored["__beentop1"], "true")
         self.assertEqual(stored["_asym_ea_version"], "8.0")
-        self.assertNotIn("__nidaversion", book_properties(Path(LESSON).with_name("nida81.tbk").read_bytes()))
+        nida = companion(path, "nida81.tbk")
+        if not nida.is_file():
+            self.skipTest("nida81.tbk is not beside the lesson")
+        self.assertNotIn("__nidaversion", book_properties(nida.read_bytes()))
         for page in ("PINFO", "PQINFO"):
-            nav = Navigator(data, page, Path(LESSON))
+            nav = Navigator(data, page, path)
             nav.enter()
             listed = nav.display(400, 300)
             version = [item.text for item in listed.items if item.kind == "field" and item.name.lower() == "version"]

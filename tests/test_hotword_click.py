@@ -1,13 +1,12 @@
 """A click on a hotword's characters runs that hotword's buttonClick."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.navigate import Navigator
 from opentoolbook.show import Paint, hotword_at, show_page
+from lesson import logic_families_path
 
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 HOTWORDS = {
     "P1080": ((87, 96, "tolerance"), "P1085"),
     "P1082": ((87, 96, "tolerance"), "P1085"),
@@ -18,9 +17,7 @@ HOTWORDS = {
 
 
 def _lesson():
-    if not LESSON or not os.path.isfile(LESSON):
-        return None
-    return Path(LESSON)
+    return logic_families_path()
 
 
 def _tk():

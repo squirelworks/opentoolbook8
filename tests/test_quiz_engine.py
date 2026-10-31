@@ -9,7 +9,7 @@ import unittest
 from functools import lru_cache
 from unittest.mock import patch
 
-from lesson import SKIP, lesson_path
+from lesson import SKIP, logic_families_path
 from opentoolbook.navigate import Navigator
 from opentoolbook.openscript import interp
 from opentoolbook.show import show_page
@@ -19,7 +19,7 @@ from opentoolbook.show import show_page
 def _opened():
     from opentoolbook.entry import opening_page
 
-    return opening_page(lesson_path())
+    return opening_page(logic_families_path())
 
 
 def _cells(props, name):
@@ -32,7 +32,7 @@ def _letters(nav):
     return {item.name: item.picture_role for item in listed.items if item.kind == "button" and item.name in "ABCD"}
 
 
-@unittest.skipIf(lesson_path() is None, SKIP)
+@unittest.skipIf(logic_families_path() is None, SKIP)
 class QuizOnTheEngineTests(unittest.TestCase):
     def setUp(self):
         fixed = patch.object(interp._random, "randint", lambda low, high: low)
@@ -40,7 +40,7 @@ class QuizOnTheEngineTests(unittest.TestCase):
         self.addCleanup(fixed.stop)
         opened = _opened()
         props = type(opened.props)(dict(opened.props.items()))
-        path = lesson_path()
+        path = logic_families_path()
         self.nav = Navigator(path.read_bytes(), "P10002", path, props=props, sysbooks=opened.sysbooks)
 
     def test_selection1_sets_up_the_pool_and_opens_the_first_question(self):

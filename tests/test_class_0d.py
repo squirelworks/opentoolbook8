@@ -1,6 +1,5 @@
 """Class 0xD stores bounds and two colors where class 0x8 does. The window paints the bounds."""
 
-import os
 import struct
 import unittest
 from pathlib import Path
@@ -9,9 +8,7 @@ from opentoolbook.field import _Segment, _segments, page_ids
 from opentoolbook.page import _objects
 from opentoolbook.show import _paint, show_page
 
-from lesson import companion
-
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import companion, logic_families_path
 
 
 def _records(data: bytes, kind: int):
@@ -42,11 +39,12 @@ class SyntheticClassDTests(unittest.TestCase):
 
 class NidaClassDTests(unittest.TestCase):
     def test_the_fourteen_records_repeat_the_class_0x8_layout(self):
-        if not LESSON or not os.path.isfile(LESSON):
+        if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        lesson = Path(LESSON).read_bytes()
+        path = logic_families_path()
+        lesson = path.read_bytes()
         self.assertEqual(list(_records(lesson, 0xD)), [])
-        data = companion(LESSON, "nida81.tbk").read_bytes()
+        data = companion(path, "nida81.tbk").read_bytes()
         found = list(_records(data, 0xD))
         self.assertEqual(len(found), 14)
         for at in found:

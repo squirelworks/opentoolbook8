@@ -1,10 +1,10 @@
 """``text of field "name"`` in a click: a write, then a read in a later condition."""
 
-import os
 import unittest
 from pathlib import Path
 
 from engine_run import run
+from lesson import logic_families_path
 
 HANDLER = """to handle buttonClick
     text of field "Stem" = "Pick" && "one" & ":"
@@ -35,8 +35,8 @@ class FieldScriptTests(unittest.TestCase):
 
 class FieldDisplayTests(unittest.TestCase):
     def test_the_display_list_shows_the_written_text(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         from opentoolbook.field import page_ids
         from opentoolbook.show import field_texts, show_page

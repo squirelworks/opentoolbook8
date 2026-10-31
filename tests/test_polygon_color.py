@@ -1,6 +1,5 @@
 """Class 0x10 stores two colors and a pattern byte beside its points."""
 
-import os
 import struct
 import unittest
 from collections import defaultdict
@@ -8,13 +7,13 @@ from pathlib import Path
 
 from opentoolbook.polygon import stored_polygon_colors
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 
 class PolygonColorTests(unittest.TestCase):
     def test_colors_follow_the_pattern_byte(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self._colors(Path(path).read_bytes(), uniform=True)
         nida = companion(path, "nida81.tbk")

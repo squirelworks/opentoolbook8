@@ -1,18 +1,17 @@
 """Class 0x13 stores a point list. Its bounds are the extrema of those points."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.polyline import stored_polylines
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 
 class PolylineTests(unittest.TestCase):
     def test_stored_points_are_their_bounds(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self._bounds_are_the_points(Path(path).read_bytes())
         nida = companion(path, "nida81.tbk")

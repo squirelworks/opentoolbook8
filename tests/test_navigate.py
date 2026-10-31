@@ -1,22 +1,17 @@
 """A quoted ``of book`` click uses the same search as opening a book."""
 
-import os
 import tempfile
 import unittest
 from pathlib import Path
 
 from opentoolbook.navigate import MissingBook, Navigator
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
-
 
 def _lesson():
-    if not LESSON or not os.path.isfile(LESSON):
-        return None
-    return Path(LESSON)
+    return logic_families_path()
 
 
 class SearchTests(unittest.TestCase):
@@ -82,7 +77,9 @@ class NidaRoundTripTests(unittest.TestCase):
         path = _lesson()
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        logo = path.with_name("nida81.tbk")
+        logo = companion(path, "nida81.tbk")
+        if not logo.is_file():
+            self.skipTest("nida81.tbk is not beside the lesson")
         nav = Navigator(path.read_bytes(), "P300", path)
         nav.click("Selection1")
         self.assertEqual((nav.book.name, nav.page_id), ("nida81.tbk", "P310"))

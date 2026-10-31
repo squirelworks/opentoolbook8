@@ -1,18 +1,17 @@
 """A class 0x17 word at +0x04 names a class 0xA field called Text."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.class17 import class_17_fields
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 
 class Class17Tests(unittest.TestCase):
     def test_the_pointer_names_a_text_field(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         logic = Path(path).read_bytes()
         nida = companion(path, "nida81.tbk")

@@ -1,20 +1,20 @@
 """Quiz pages store a stem, four choices, and an answer property."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.field import field_text
 from opentoolbook.quiz import questions
 from opentoolbook.script import button_clicks
+from lesson import logic_families_path
 
 
 class QuizTests(unittest.TestCase):
     def test_question_numbers_match_the_info_field(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         found = questions(data)
         self.assertGreaterEqual(len(found), 2)
         self.assertGreaterEqual(len({item.answer for item in found}), 2)
@@ -42,8 +42,8 @@ class QuizTests(unittest.TestCase):
         self.assertGreaterEqual(matched, 2)
 
     def test_quiz_start_ends_at_end_buttonclick(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         found = {
             item.owner: item.source

@@ -1,6 +1,5 @@
 """``send name`` goes to the open book, then each book in ``sysBooks``."""
 
-import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,6 +8,7 @@ from opentoolbook.entry import choose_opening
 from opentoolbook.send import Chain, calls_dll, handler_chain, send_message
 
 from test_entry import LOGO
+from lesson import logic_families_path
 
 LINKED = """to get openSession
     linkDLL "nc81rec.dll"
@@ -58,8 +58,8 @@ class SendTests(unittest.TestCase):
         self.assertEqual(choose_opening(("P0", "P1", "P2"), handlers), ("P1", None))
 
     def test_the_real_system_book(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         from opentoolbook.entry import opening_page
         from opentoolbook.shelf import search_roots

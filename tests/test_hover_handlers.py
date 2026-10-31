@@ -1,20 +1,27 @@
 """``enterButton`` and ``leaveButton`` are not in the lesson or the system books."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.script import button_clicks, handler_sites, object_scripts
+
+from lesson import companion, logic_families_path
 
 FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
 BOOKS = ("9e954d01.tbk", "nida81.tbk", "nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk")
 
 
 def _lesson():
-    path = os.environ.get("OPENTOOLBOOK_TBK")
-    if not path or not os.path.isfile(path):
-        return None
-    return Path(path)
+    return logic_families_path()
+
+
+def _book_bytes(lesson: Path, name: str) -> bytes:
+    if lesson.name.lower() == name.lower():
+        return lesson.read_bytes()
+    found = companion(lesson, name)
+    if not found.is_file():
+        raise unittest.SkipTest(f"{name} is not beside the lesson")
+    return found.read_bytes()
 
 
 class HandlerSiteTests(unittest.TestCase):
@@ -29,7 +36,7 @@ class HandlerSiteTests(unittest.TestCase):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         counts = {}
         for name in BOOKS:
-            data = path.with_name(name).read_bytes()
+            data = _book_bytes(path, name)
             self.assertEqual(handler_sites(data, "enterButton"), (), name)
             self.assertEqual(handler_sites(data, "leaveButton"), (), name)
             counts[name] = (len(handler_sites(data, "mouseEnter")), len(handler_sites(data, "mouseLeave")))
@@ -48,7 +55,7 @@ class HandlerSiteTests(unittest.TestCase):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         # 249 inline scripts, and 3 more in the type 10 page scripts of P10301 to P10303.
         self.assertEqual(len(button_clicks(path.read_bytes())), 252)
-        self.assertEqual(len(button_clicks(path.with_name("nida81.tbk").read_bytes())), 119)
+        self.assertEqual(len(button_clicks(_book_bytes(path, "nida81.tbk"))), 119)
 
 
 if __name__ == "__main__":

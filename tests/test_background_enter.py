@@ -1,14 +1,12 @@
 """The background's enterPage writes the fields it names."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.click import background_script
 from opentoolbook.enter import _handler
 from opentoolbook.show import show_page
-
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import logic_families_path
 
 SCRIPT = """to handle enterBackground
     set text of field "A" to "one"
@@ -31,9 +29,10 @@ class HandlerTests(unittest.TestCase):
 
 class LessonTests(unittest.TestCase):
     def test_the_test_background_stores_testing_in_pagetext(self):
-        if not LESSON or not os.path.isfile(LESSON):
+        if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(LESSON).read_bytes()
+        path = logic_families_path()
+        data = path.read_bytes()
         script = background_script(data, "P10210")
         self.assertIn('set text of field "PageText" to name of this page', script)
         self.assertNotIn("enterbackground", script.lower())

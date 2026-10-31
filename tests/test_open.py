@@ -9,7 +9,7 @@ from pathlib import Path
 from opentoolbook.record import FOLLOW_UP
 from opentoolbook.shelf import open_book
 
-from lesson import companion
+from lesson import companion, logic_families_path
 
 
 def _book_naming(extra: bytes) -> bytes:
@@ -300,10 +300,9 @@ class UnshippedDllTests(unittest.TestCase):
         from opentoolbook.shelf import find_file, search_roots, unshipped_dll
         from opentoolbook.show import show_page
 
-        lesson = os.environ.get("OPENTOOLBOOK_TBK")
-        if not lesson or not os.path.isfile(lesson):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        path = Path(lesson)
         self.assertIsNone(find_file(search_roots(path, None), "MINSTB32.dll"))
         entry = opening_page(path)
         self.assertEqual((entry.book.name.lower(), entry.page_id), ("nida81.tbk", "P0"))

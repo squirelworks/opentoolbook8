@@ -2,7 +2,6 @@
 
 import contextlib
 import io
-import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,14 +11,13 @@ from opentoolbook.navigate import Navigator
 from opentoolbook.shelf import MissingBook, missing_sentence
 from opentoolbook.show import click_reported
 
+from lesson import companion, logic_families_path
+
 FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
 
 
 def _lesson():
-    path = os.environ.get("OPENTOOLBOOK_TBK")
-    if not path or not os.path.isfile(path):
-        return None
-    return Path(path)
+    return logic_families_path()
 
 
 def _main(argv, window=None):
@@ -87,7 +85,9 @@ class Nida71Tests(unittest.TestCase):
         path = _lesson()
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        nida = path.with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
+        if not nida.is_file():
+            self.skipTest("nida81.tbk is not beside the lesson")
         from opentoolbook.shelf import find_file, search_roots
 
         self.assertIsNone(find_file(search_roots(nida, None), "nida71.tbk"))
@@ -165,7 +165,10 @@ class LessonClickTests(unittest.TestCase):
             lesson.parent.mkdir()
             lesson.symlink_to(path.resolve())
             for name in ("nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk"):
-                (lesson.parent / name).symlink_to(path.with_name(name).resolve())
+                source = companion(path, name)
+                if not source.is_file():
+                    self.skipTest(f"{name} is not beside the lesson")
+                (lesson.parent / name).symlink_to(source.resolve())
             with self.assertRaises(MissingBook) as opened:
                 opening_page(lesson)
             sentence = "nida81.tbk was not found; P0 of that book does not open"

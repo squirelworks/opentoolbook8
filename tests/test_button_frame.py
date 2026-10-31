@@ -1,20 +1,15 @@
 """The button border byte draws a frame, a smaller frame, or none."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.show import _frame, show_page
 
-from lesson import companion
-
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import companion, logic_families_path
 
 
 def _lesson():
-    if not LESSON or not os.path.isfile(LESSON):
-        return None
-    return Path(LESSON)
+    return logic_families_path()
 
 
 def _button(listed, name):
@@ -58,7 +53,7 @@ class LessonFrameTests(unittest.TestCase):
         self.assertEqual([item.bounds for item in framed], [(4111, 3945, 5323, 4245)])
 
     def test_a_nida_push_button_has_a_frame(self):
-        nida = companion(LESSON, "nida81.tbk")
+        nida = companion(_lesson(), "nida81.tbk")
         if not nida.is_file():
             self.skipTest("nida81.tbk is not beside the lesson")
         retry = _button(show_page(nida.read_bytes(), "P12000", 800, 600), "Retry")

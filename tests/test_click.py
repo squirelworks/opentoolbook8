@@ -1,6 +1,5 @@
 """buttonClick opens a quoted page. It does not invent the next question."""
 
-import os
 import unittest
 from pathlib import Path
 
@@ -9,10 +8,9 @@ from opentoolbook.field import page_ids
 from opentoolbook.show import show_page
 
 from engine_run import run
-from lesson import companion
+from lesson import companion, logic_families_path
 from opentoolbook.navigate import Navigator
 
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 PAGES = ("P100", "P300", "P400", "P410")
 
 SELECTION = """
@@ -31,9 +29,7 @@ END
 
 
 def _lesson():
-    if not LESSON or not os.path.isfile(LESSON):
-        return None
-    return Path(LESSON)
+    return logic_families_path()
 
 
 class HandlerTests(unittest.TestCase):

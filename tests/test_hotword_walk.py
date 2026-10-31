@@ -1,6 +1,5 @@
 """Class 0x17 hotwords are on the walk under the field they name, and are not painted."""
 
-import os
 import unittest
 from pathlib import Path
 
@@ -8,7 +7,8 @@ from opentoolbook.field import page_ids
 from opentoolbook.page import HOTWORD, page_records
 from opentoolbook.show import show_page
 
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import companion, logic_families_path
+
 FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
 
 
@@ -21,9 +21,10 @@ def _walk(objects, owner=None):
 
 class HotwordWalkTests(unittest.TestCase):
     def test_the_five_hotwords_are_under_their_text_fields(self):
-        if not LESSON or not os.path.isfile(LESSON):
+        if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(LESSON).read_bytes()
+        path = logic_families_path()
+        data = path.read_bytes()
         found = []
         for page_id in page_ids(data):
             for obj, owner in _walk(page_records(data, page_id).objects):
@@ -39,14 +40,18 @@ class HotwordWalkTests(unittest.TestCase):
                 ("P2070", 6, "impedance", 0x0A, "Text", 0x9C),
             ],
         )
-        nida = Path(LESSON).with_name("nida81.tbk").read_bytes()
+        nida_path = companion(path, "nida81.tbk")
+        if not nida_path.is_file():
+            self.skipTest("nida81.tbk is not beside the lesson")
+        nida = nida_path.read_bytes()
         for page_id in page_ids(nida):
             self.assertFalse([obj for obj, _owner in _walk(page_records(nida, page_id).objects) if obj.kind == HOTWORD])
 
     def test_the_text_is_painted_once(self):
-        if not LESSON or not os.path.isfile(LESSON):
+        if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        shown = show_page(Path(LESSON).read_bytes(), "P1080", 400, 300)
+        path = logic_families_path()
+        shown = show_page(path.read_bytes(), "P1080", 400, 300)
         texts = [item.text for item in shown.items if item.kind == "field" and item.text and "tolerance" in item.text]
         self.assertEqual(len(texts), 1)
         self.assertNotIn("hotword", [item.kind for item in shown.items])

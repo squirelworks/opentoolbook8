@@ -1,12 +1,12 @@
 """Bound system books in the class table, and sysBooks on open."""
 
-import os
 import tempfile
 import unittest
 from pathlib import Path
 
 from opentoolbook.classtbl import bound_sysbooks
 from opentoolbook.entry import add_bound_sysbooks
+from lesson import logic_families_path
 
 FIXTURE = Path(__file__).with_name("fixtures") / "otb-line-rect.tbk"
 
@@ -27,8 +27,8 @@ class BoundTests(unittest.TestCase):
         self.assertEqual(listed, ["tb80r.sbk", "tb80hyp.sbk"])
 
     def test_the_lesson_is_bound_to_tb80anm_and_tb80r(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         from opentoolbook.entry import opening_page
 

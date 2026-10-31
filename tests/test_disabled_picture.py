@@ -1,6 +1,5 @@
 """A disabled button draws its disabled picture when the block names one."""
 
-import os
 import struct
 import unittest
 from pathlib import Path
@@ -8,7 +7,7 @@ from pathlib import Path
 from opentoolbook.field import _Segment, page_ids
 from opentoolbook.show import _button, show_page
 
-LESSON = os.environ.get("OPENTOOLBOOK_TBK")
+from lesson import companion, logic_families_path
 
 
 def _synthetic(flags: int, up: int, disabled: int):
@@ -43,9 +42,10 @@ class SyntheticDisabledTests(unittest.TestCase):
 
 class LessonDisabledTests(unittest.TestCase):
     def test_p10302_a_draws_bitmap_127(self):
-        if not LESSON or not os.path.isfile(LESSON):
+        if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(LESSON).read_bytes()
+        path = logic_families_path()
+        data = path.read_bytes()
         letter = next(
             item for item in show_page(data, "P10302", 400, 300).items
             if item.kind == "button" and item.name == "A"
@@ -60,9 +60,13 @@ class LessonDisabledTests(unittest.TestCase):
         self.assertEqual((enabled.picture_id, enabled.picture_role), (116, "up"))
 
     def test_nida_buttons_have_no_disabled_picture(self):
-        if not LESSON or not os.path.isfile(LESSON):
+        if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(LESSON).with_name("nida81.tbk").read_bytes()
+        path = logic_families_path()
+        nida = companion(path, "nida81.tbk")
+        if not nida.is_file():
+            self.skipTest("nida81.tbk is not beside the lesson")
+        data = nida.read_bytes()
         for page_id in page_ids(data):
             for item in show_page(data, page_id, 400, 300).items:
                 self.assertNotEqual(item.picture_role, "disabled")

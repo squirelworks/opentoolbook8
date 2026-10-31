@@ -1,10 +1,10 @@
 """File names and call names a book mentions, and the install list."""
 
-import os
 import unittest
 from pathlib import Path
 
 from opentoolbook.shelf import named_calls, named_files, on_disk, parse_install_list
+from lesson import logic_families_path
 
 LIST = """NC81BASE.SBK
 *NIDA81S.TBK
@@ -39,10 +39,10 @@ class ShelfTests(unittest.TestCase):
 
 class SpecimenTests(unittest.TestCase):
     def test_lesson_names_the_shell(self):
-        path = os.environ.get("OPENTOOLBOOK_TBK")
-        if not path or not os.path.isfile(path):
+        path = logic_families_path()
+        if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to the lesson book")
-        data = Path(path).read_bytes()
+        data = path.read_bytes()
         self.assertIn("nida81.tbk", named_files(data))
         self.assertIn("nc81base.sbk", named_files(data))
         self.assertIn("93954302.tbk", named_files(data))
