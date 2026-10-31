@@ -9,6 +9,8 @@ from opentoolbook.polygon import polygon_points
 from opentoolbook.show import fit_scale, show_page, unit_to_px
 from opentoolbook.size import page_size
 
+from lesson import companion
+
 FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
 PIE = Path(__file__).parent / "fixtures" / "otb-pie.tbk"
 LESSON = os.environ.get("OPENTOOLBOOK_TBK")
@@ -30,9 +32,9 @@ class PageSizeTests(unittest.TestCase):
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self.assertEqual(page_size(path.read_bytes()), (9360, 6624))
-        self.assertEqual(page_size(path.with_name("nida81.tbk").read_bytes()), (9360, 6624))
+        self.assertEqual(page_size(companion(path, "nida81.tbk").read_bytes()), (9360, 6624))
         for name in ("nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk"):
-            self.assertEqual(page_size(path.with_name(name).read_bytes()), (9345, 6630))
+            self.assertEqual(page_size(companion(path, name).read_bytes()), (9345, 6630))
 
 
 class SceneTests(unittest.TestCase):

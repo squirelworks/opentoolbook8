@@ -19,6 +19,8 @@ from opentoolbook.field import (
     style_run_names,
 )
 
+from lesson import companion
+
 # The copyright field on page P0 of 9e954d01.tbk.
 COPYRIGHT = 'Copyright ©  Nida Corporation 1997 - 2002  \r\nThis software and its supporting programs are protected by federal copyright law and all            rights are reserved by Nida Corporation.  No part or section of this software or its supporting    programs may be copied, distributed, transmitted in any form or medium electronic or           otherwise, disclosed to third parties, or used in any manner not specified in the  License            Agreement furnished by Nida Corporation.  This courseware was created with Asymetrix ToolBook I I .'
 
@@ -113,7 +115,7 @@ class FieldWordTests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         logic = Path(path).read_bytes()
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         self._words(logic, 518, (360, 360, 310, 50, 5), 85, (0, 0, 0, 50, 1), 258)
         self._words(nida.read_bytes(), 246, (360, 360, 310, 50, 5), 19, (0, 0, 0, 50, 1), 100)
@@ -134,7 +136,7 @@ class FieldTextPlaceTests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         logic = Path(path).read_bytes()
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         self._same_bytes(logic, expect_p440=True)
         self._same_bytes(nida.read_bytes(), expect_p440=False)
@@ -173,7 +175,7 @@ class FieldBoundsTests(unittest.TestCase):
         self.assertEqual(stem_bounds, (2430, 690, 7050, 1545))
         self.assertNotEqual(copyright_bounds, stem_bounds)
         self._ordered(data)
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         self._ordered(nida.read_bytes())
 

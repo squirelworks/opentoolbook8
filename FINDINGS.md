@@ -308,6 +308,15 @@ These class words occur on one object only, so none of their fields is recorded 
 
 `nida81.tbk` has two class `0x26` records of 83 bytes, and those records use the same constant words. One of the two carries the C string `Key Map`. That is a second record with the string.
 
+## Class `0xD` words at +0x28 and +0x2A
+
+All 14 class `0xD` records in `nida81.tbk` are on page `P22100`. The word at `+0x28` equals the word at `+0x2A` on all 14: 27 on two, 56 on eight, and 11 on four. A rounded corner size would fit, but nothing in the repo names it, so the window draws square corners. The bytes `01 00 00 01 00 00` at `+0x1F` through `+0x24` are the same on 10 records; the byte at `+0x1F` is 3 on the four whose pair is 11. Two records:
+
+```
+170100009e08ffffffff0000004900721c5010471da31060606000ff000000010000010000fe00001b001b004b
+da0000000019ffffffff0000001400161a500d391a9713ffffff0060606000030000010000fe00000b000b008b
+```
+
 ## Class `0x19`
 
 `nida81.tbk` has 39 class `0x19` records of 89 bytes. `9e954d01.tbk` has none. Word `+0x02` is 0. Words `+0x06` and `+0x08` are 65535. Word `+0x1E` is 256, word `+0x36` is 768, and word `+0x38` is 512. The byte at `+0x26` is 254. The four signed words at `+0x0F` are an ordered rectangle in all 39. The word at `+0x04` is a near pointer to an object. On 31 records it is 20 and names the page. On the other 8 it names a class `0xB` record of 49 bytes. Page `P370` object 38 is one of those eight: the word is `0x9C`. Two records whose pointer is the page:
@@ -427,7 +436,7 @@ The seven Wingdings runs in `9e954d01.tbk` store 0 at bytes 4, 5, 7, 8, and 9. `
 
 Twenty-four words are the same on all five records, as the class note says. The other twenty words vary. Their offsets are `+0x00`, `+0x0A`, `+0x0C`, `+0x0E`, `+0x10`, `+0x12`, `+0x14`, `+0x16`, `+0x22`, `+0x28`, `+0x2A`, `+0x2C`, `+0x2E`, `+0x30`, `+0x32`, `+0x34`, `+0x4C`, `+0x4E`, `+0x50`, and `+0x52`. The last byte varies too. None of those twenty words is a type-1 resource id, and none is a stored id in 101 through 166.
 
-The word at `+0x00` is 2, 16, 20, 16, 20. The two records whose id is 16 share the word `0xA700` at `+0x4E`. The two whose id is 20 share `0x1D00` there. Reading an unaligned word at `+0x4F` on the first pair yields 167, because byte `+0x4F` is `0xA7` and byte `+0x50` is 0. Resource 166 starts `02 02 07 00`. The bytes `01 02 01 00` and `BM` occur later in that resource, at `+18` and `+26`. That unaligned 167 is not a picture field.
+The word at `+0x00` is 2, 16, 20, 16, 20. The two records whose id is 16 share the word `0xA700` at `+0x4E`. The two whose id is 20 share `0x1D00` there. Reading an unaligned word at `+0x4F` on the first pair yields 167, because byte `+0x4F` is `0xA7` and byte `+0x50` is 0. Resource 166 starts `02 02 07 00`. The bytes `01 02 01 00` and `BM` occur later in that resource, at `+18` and `+26`. That unaligned 167 is not a picture field. It is the palette color count of the class `0x15` paint object, which `SETTLED.md` now reads with the record's huge-table row and info-header pointer.
 
 ## Class `0x19` tail
 
@@ -437,7 +446,7 @@ The words that vary are `+0x00`, `+0x04`, `+0x0A`, `+0x0C`, `+0x0E`, `+0x10`, `+
 
 The word at `+0x04` is the near pointer already recorded: a class 5 page on 31 records and a class `0xB` record of 49 bytes on 8. No other word names one class on more than one record.
 
-The word at `+0x2A` is 144 on 3 records. The word at `+0x2E` is 147 on 6 records and 0 on 6. 144 and 147 are type-1 resource ids in this book. The dword at header `+(144 + 5) * 4` is `0x0F960000`. The dword at header `+(147 + 5) * 4` is `0x01400006`. Both are past the end of the file. The same slots hold other values on the other records, so neither word is a picture id.
+`SETTLED.md` now reads the record as a picture: `+0x29`, `+0x2D`, `+0x4D`, and the metafile in the huge table. The words at `+0x41` and `+0x43` are within two of the DIB width and height: the DIB is wider by 0 on 29 records and by 1 on 10, and taller by 1 on 29, by 0 on 7, and by 2 on 3. The window does not use them; it uses the metafile window extent. The word at `+0x45` is 8, the DIB depth, on all 39. The word at `+0x51` points at a 40-byte block of zeros followed by a 256-color palette; the reader uses the palette inside the metafile instead. The word at `+0x2A` is 144 on 3 records. The word at `+0x2E` is 147 on 6 records and 0 on 6. 144 and 147 are type-1 resource ids in this book. The dword at header `+(144 + 5) * 4` is `0x0F960000`. The dword at header `+(147 + 5) * 4` is `0x01400006`. Both are past the end of the file. The same slots hold other values on the other records, so neither word is a picture id.
 
 ## Page scripts that are not inline
 
