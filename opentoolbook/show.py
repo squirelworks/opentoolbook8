@@ -6,7 +6,9 @@ solid fill and pattern 253 is no fill. Another pattern byte is not drawn
 as a hatch. A draw object's fill is the color at ``+0x1B`` and its stroke
 is the color at ``+0x17``. A button draws the picture at byte ``0x15`` of
 its graphics block, or the picture at byte ``0x4B`` when the button is
-checked. The invert and disabled pictures are not drawn. A field that
+checked. While a button is held down it draws the picture at byte
+``0x27`` when that word is not 0, and letting go draws the up picture
+again. The disabled picture is not drawn. A field that
 contains a shape is painted under that shape. A label that contains no
 shape is painted in front of a shape that contains the label.
 
@@ -86,6 +88,7 @@ class Paint:
     picture_id: int | None = None
     picture_role: str | None = None
     picture: tuple[int, int, bytes] | None = None
+    invert_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -166,12 +169,28 @@ def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
             canvas.listed = listed
             root.title(state["page"])
 
-        def on_click(event) -> None:
+        def on_press(event) -> None:
             listed = getattr(canvas, "listed", None)
             if listed is None:
                 return
             name = button_at(listed, event.x, event.y)
+            state["pressed"] = name
             if not name:
+                return
+            held = pressed(state["data"], listed, name)
+            if held != listed:
+                canvas.delete("all")
+                draw_page(canvas, held)
+
+        def on_click(event) -> None:
+            listed = getattr(canvas, "listed", None)
+            if listed is None:
+                return
+            name = state.pop("pressed", None)
+            if name:
+                canvas.delete("all")
+                draw_page(canvas, listed)
+            if not name or button_at(listed, event.x, event.y) != name:
                 return
             acted = follow_click(state["data"], state["page"], name, state["pages"])
             if acted is None:
@@ -199,7 +218,8 @@ def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
             state["page"] = acted.page_id
             redraw()
 
-        canvas.bind("<Button-1>", on_click)
+        canvas.bind("<ButtonPress-1>", on_press)
+        canvas.bind("<ButtonRelease-1>", on_click)
         redraw()
         root.mainloop()
     finally:
@@ -216,6 +236,26 @@ def button_at(listed: DisplayList, x: float, y: float) -> str | None:
         if left <= x < right and top <= y < bottom:
             return item.name
     return None
+
+
+def pressed(data: bytes, listed: DisplayList, name: str) -> DisplayList:
+    """The display list while the named button is held down.
+
+    A button with an invert picture draws it. A button without one, and
+    every other item, is unchanged. Letting go is the list without this
+    call, so the up picture comes back.
+    """
+    items = []
+    for item in listed.items:
+        if item.kind == "button" and item.name == name and item.invert_id:
+            try:
+                picture = picture_rgb(data, item.invert_id)
+            except ValueError:
+                picture = None
+            if picture is not None:
+                item = replace(item, picture_id=item.invert_id, picture_role="invert", picture=picture)
+        items.append(item)
+    return replace(listed, items=tuple(items))
 
 
 def draw_page(canvas, listed: DisplayList) -> None:
@@ -374,6 +414,7 @@ def _button(data, segment, at: int, object_id: int, name: str, bounds) -> Paint:
         picture_id=picture_id,
         picture_role=role,
         picture=picture,
+        invert_id=_graphic_word(data, segment, at, 0x27) or None,
     )
 
 

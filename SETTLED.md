@@ -71,6 +71,10 @@ A class `0x09` button's word at `+0x28` names a graphics block that starts with 
 
 A class `0x09` button's graphics block starts with `0x0202`. The unaligned word at byte `0x27` of that block is the invert picture. It is a type-1 resource id plus one, or 0 when there is no invert picture. The reader returns it. On `9e954d01.tbk` the A button on `P10210` is 117, the stored id of bitmap 116. The MenuFrame button on `P300` is 0. The same word is a stored id or 0 on every such block in `nida81.tbk`. The border byte at the button record's `+0x27` is a different field.
 
+## Invert picture on press
+
+While the mouse button is down on a button, the window draws the picture at byte `0x27` of that button's graphics block, when that word is not 0. Letting go draws the up picture again, and the click runs on release over the same button. Releasing somewhere else does not run the click. A button whose invert word is 0, such as `MenuFrame` on `P300`, does not change while held. On `9e954d01.tbk` the A button on `P10210` draws stored id 117, bitmap 116, while held, and stored id 116, bitmap 115, after release. The headless call `pressed` returns that held display list.
+
 ## Button disabled picture
 
 A class `0x09` button's graphics block starts with `0x0202`. The unaligned word at byte `0x39` of that block is the disabled picture. It is a type-1 resource id plus one, or 0 when there is no disabled picture. The reader returns it. On `9e954d01.tbk` the A button on `P10301` is 128, the stored id of bitmap 127. The MenuFrame button on `P300` is 0. Every such block in `nida81.tbk` is 0.
