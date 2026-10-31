@@ -744,8 +744,12 @@ class Engine:
             return left
         right = self.eval(node.right)
         if op == "=":
+            if isinstance(left, Ref) and isinstance(right, Ref):
+                return _same_ref(left, right)
             return same(left, right)
         if op == "<>":
+            if isinstance(left, Ref) and isinstance(right, Ref):
+                return not _same_ref(left, right)
             return not same(left, right)
         if op in {"<", ">", "<=", ">="}:
             order = compare(left, right)
@@ -973,6 +977,34 @@ _FUNCTIONS: dict[str, Callable[[Engine, tuple], object]] = {
     "isobject": lambda engine, args: _is_object(engine, args),
     "flushmessagequeue": _flush_message_queue,
 }
+
+
+def _same_ref(left: Ref, right: Ref) -> bool:
+    """True when two object references name the same kind and id/name.
+
+    ``target is button "OK" of parent of this page`` compares the click
+    target (often an unqualified ``button "OK"``) to a qualified reference.
+    ToolBook treats those as the same object when kind and name match; a
+    missing ``of`` on either side does not make them differ. When both
+    sides carry a container, the containers must match the same way.
+    """
+    if left.kind != right.kind or left.by != right.by:
+        return False
+    if left.by in {"this", "next", "previous", "first", "last"}:
+        if left.of is None or right.of is None:
+            return True
+        return (
+            _same_ref(left.of, right.of)
+            if isinstance(left.of, Ref) and isinstance(right.of, Ref)
+            else left.of == right.of
+        )
+    if text(left.value).lower() != text(right.value).lower():
+        return False
+    if left.of is None or right.of is None:
+        return True
+    if isinstance(left.of, Ref) and isinstance(right.of, Ref):
+        return _same_ref(left.of, right.of)
+    return left.of == right.of
 
 
 def _is_object(engine, args: tuple) -> bool:

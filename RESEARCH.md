@@ -1625,3 +1625,7 @@ Source: handoff M6 Exit (`send keyUp keyF2 to this page` on the `Exit` button; b
 
 Source: handoff M6 (open → logo → click → `P10` → Next/Back through the intro); in-process driver on `9e954d01.tbk` with companions under `/tmp/otb-books`. After the logo click, `Next` walks `P10`→`P100`→`P300`→`P400`→`P410`→`P420`→`P430`→`P440`→`P450`; `Back` from `P450` returns to `P440`. The facts the driver pins are in `SETTLED.md`.
 
+## Object `is` and P10301 OK
+
+Source: handoff M6 (`P10301` skipped count and OK). `same()` compared object refs as their `str` forms, so `button "OK"` never equalled `button "OK" of …`. The interpreter now compares refs by kind and name; that lets `Test2`'s `send okClicked` run. `getSkippedCount` already returned the real count on enterPage.
+
