@@ -104,6 +104,8 @@ def main(argv: list[str]) -> int:
             variables=entry.variables,
             sysbooks=entry.sysbooks,
             objects=entry.objects,
+            window_width=entry.startup_width,
+            window_height=entry.startup_height,
         )
         return 1 if errors else 0
     if not any((args.book, args.home)):

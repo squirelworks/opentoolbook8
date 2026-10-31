@@ -250,6 +250,8 @@ def open_page(
     sysbooks: tuple[str, ...] = (),
     objects: dict | None = None,
     enter: bool = False,
+    window_width: int | None = None,
+    window_height: int | None = None,
 ) -> tuple[str, ...]:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
@@ -275,6 +277,9 @@ def open_page(
     ``variables`` are the system variables startup assigned.
     ``sysBooks`` is the list startup left. A click looks up a handler in
     the book on screen, then in those books.
+    ``window_width`` and ``window_height`` are pixel sizes from
+    ``TB80.INI`` ``startupWidth`` / ``startupHeight`` when set; otherwise
+    the view is the page size fitted to the screen.
     The window's own "Viewer back" control returns to the page it showed
     before, which is not the book's stored previous page. The title is the
     book file and the page id, and it changes on every navigation,
@@ -289,8 +294,14 @@ def open_page(
     try:
         root.update_idletasks()
         width, height = page_size(data)
-        view_w = max(1, min(_pixels(width), root.winfo_screenwidth() - 48))
-        view_h = max(1, min(_pixels(height), root.winfo_screenheight() - 96))
+        view_w, view_h = startup_view(
+            width,
+            height,
+            root.winfo_screenwidth(),
+            root.winfo_screenheight(),
+            window_width,
+            window_height,
+        )
         root.title("")
         canvas = tk.Canvas(
             root,
@@ -746,6 +757,31 @@ def release_photos(canvas) -> int:
 
 def _pixels(units: int) -> int:
     return max(1, round(unit_to_px(units, 1)))
+
+
+def startup_view(
+    page_w: int,
+    page_h: int,
+    screen_w: int,
+    screen_h: int,
+    window_width: int | None = None,
+    window_height: int | None = None,
+) -> tuple[int, int]:
+    """Pixel view size for the opening window.
+
+    ``window_width`` / ``window_height`` come from ``TB80.INI`` when set.
+    Otherwise the page size in pixels is fitted under the screen margins.
+    """
+    if window_width is not None:
+        view_w = max(1, min(window_width, max(1, screen_w - 48)))
+    else:
+        view_w = max(1, min(_pixels(page_w), max(1, screen_w - 48)))
+    if window_height is not None:
+        view_h = max(1, min(window_height, max(1, screen_h - 96)))
+    else:
+        view_h = max(1, min(_pixels(page_h), max(1, screen_h - 96)))
+    return view_w, view_h
+
 
 
 def field_texts(listed: DisplayList) -> dict[str, str]:
