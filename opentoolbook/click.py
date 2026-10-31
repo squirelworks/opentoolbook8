@@ -5,7 +5,9 @@ file when the line quotes one. ``send next`` and ``send previous`` are
 the next and previous pages in the stored page list. ``if``, ``break``,
 and ``return`` are the shared walker in ``walk.py``. ``text of field
 "x" = ...`` and ``set text of field "x" to ...`` write a field's text,
-and a later condition reads that text. A line that is not
+and a later condition reads that text. ``hide`` and ``show`` of a
+field, button, rectangle, ellipse, line, or polygon, by name or by
+``id``, and ``set visible of ... to``, change whether it is painted. A line that is not
 one of those is not a page change.
 """
 
@@ -28,11 +30,14 @@ class Follow:
     """The page a handler opens. ``book`` is None when it stays in this book.
 
     ``fields`` is each ``(field name, text)`` the handler wrote, in order.
+    ``visible`` is each ``((kind, name or id), shown)`` from ``hide`` and
+    ``show``, in order.
     """
 
     page_id: str
     book: str | None
     fields: tuple[tuple[str, str], ...] = ()
+    visible: tuple[tuple[tuple[str, str | int], bool], ...] = ()
 
 
 def follow_click(
@@ -66,8 +71,13 @@ def run_handler(
     landed = {"page": page_id, "book": None}
     texts = {name.lower(): text for name, text in (fields or {}).items()}
     written: list[tuple[str, str]] = []
+    shown: list[tuple[tuple[str, str | int], bool]] = []
 
     def statement(raw: str, low: str) -> None:
+        changed = visibility(raw)
+        if changed is not None:
+            shown.append(changed)
+            return
         found = quoted_go_to(raw)
         if found is not None:
             landed["page"], landed["book"] = found
@@ -91,13 +101,36 @@ def run_handler(
         return text_condition(text, texts)
 
     walk(source.splitlines(), Flow(), condition=condition, statement=statement)
-    return Follow(landed["page"], landed["book"], tuple(written))
+    return Follow(landed["page"], landed["book"], tuple(written), tuple(shown))
 
 
 _FIELD = re.compile(r'^text\s+of\s+field\s+"([^"]*)"\s*', re.IGNORECASE)
 _SET_FIELD = re.compile(r'^set\s+text\s+of\s+field\s+"([^"]*)"\s+to\s+(.+)$', re.IGNORECASE)
 _PUT_FIELD = re.compile(r'^text\s+of\s+field\s+"([^"]*)"\s*=\s*(.+)$', re.IGNORECASE)
 _COMPARE = re.compile(r"^(.+?)\s*(<>|=|\bis not\b|\bis\b)\s*(.+)$", re.IGNORECASE)
+
+
+_KINDS = ("field", "button", "rectangle", "ellipse", "line", "polygon")
+_TARGET = rf'({"|".join(_KINDS)})\s+(?:"([^"]*)"|id\s+(\d+))'
+_HIDE = re.compile(rf"^(hide|show)\s+{_TARGET}$", re.IGNORECASE)
+_SET_VISIBLE = re.compile(rf"^set\s+visible\s+of\s+{_TARGET}\s+to\s+(true|false)$", re.IGNORECASE)
+
+
+def visibility(line: str) -> tuple[tuple[str, str | int], bool] | None:
+    """``((kind, name or id), shown)`` for ``hide``, ``show``, or ``set visible of``."""
+    text = line.strip()
+    found = _HIDE.match(text)
+    if found is not None:
+        shown = found.group(1).lower() == "show"
+        kind, name, number = found.group(2), found.group(3), found.group(4)
+    else:
+        found = _SET_VISIBLE.match(text)
+        if found is None:
+            return None
+        kind, name, number = found.group(1), found.group(2), found.group(3)
+        shown = found.group(4).lower() == "true"
+    key: str | int = int(number) if number is not None else name.lower()
+    return (kind.lower(), key), shown
 
 
 def field_write(line: str) -> tuple[str, str] | None:
