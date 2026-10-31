@@ -70,6 +70,8 @@ class ClickHost(BookHost):
         self.beeps = 0
         # ``ask(prompt, buttons)`` answers ``request`` while the handler runs.
         self.ask = None
+        # ``send exit`` with no handler: the window should close.
+        self.exited = False
         self._page_props: dict | None = None
         self._listed: dict = {}
         self._maps: dict = {}
@@ -365,6 +367,10 @@ class ClickHost(BookHost):
         if name in {"next", "previous"}:
             self.go(Ref("page", name, None, None))
             return True, None
+        if name == "exit":
+            # No ``to handle exit`` in the chain: close the reader window.
+            self.exited = True
+            return True, None
         return False, None
 
     def function(self, engine: Engine, name: str, args: tuple):
@@ -464,4 +470,5 @@ def send_click(
         host.beeps,
         inverts=tuple(host.inverts),
         writes=tuple(host.writes),
+        exited=host.exited,
     )
