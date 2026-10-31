@@ -6,7 +6,8 @@ is found with the same search as opening a book: the book directory, its
 parent, ``--home``, ``--home/courses``, and ``--home/Nida98/Lessons``,
 regardless of case. A file that search does not find is an error that
 names the file and the page. A quiz button on a page whose background
-calls ``handleQuizClick`` uses the stored page list.
+calls ``handleQuizClick`` uses the stored page list. A ``request`` the
+click runs is returned with the result, and the window shows it.
 """
 
 from __future__ import annotations
@@ -36,6 +37,7 @@ class Clicked:
 
     moved: bool
     beep: bool = False
+    requests: tuple[str, ...] = ()
 
 
 class Navigator:
@@ -77,19 +79,21 @@ class Navigator:
             if not quiz_background(self.data, self.page_id):
                 return Clicked(False)
             result = quiz_click(self.pages, self.page_id, button)
+            asked = (result.request,) if result.request else ()
             if result.page_id == self.page_id:
-                return Clicked(False, result.beep)
+                return Clicked(False, result.beep, asked)
             self.page_id = result.page_id
-            return Clicked(True, result.beep)
+            return Clicked(True, result.beep, asked)
+        beep, asked = acted.beeps > 0, acted.requests
         data, pages, book = self.data, self.pages, self.book
         if acted.book and acted.book.lower() != self.book_name.lower():
             book = self.find_book(acted.book, acted.page_id)
             data = book.read_bytes()
             pages = page_ids(data)
         if acted.page_id not in pages:
-            return Clicked(False)
+            return Clicked(False, beep, asked)
         if book == self.book and acted.page_id == self.page_id:
-            return Clicked(False)
+            return Clicked(False, beep, asked)
         self.data, self.pages, self.book = data, pages, book
         self.page_id = acted.page_id
-        return Clicked(True)
+        return Clicked(True, beep, asked)

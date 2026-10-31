@@ -77,5 +77,23 @@ class RequestTests(unittest.TestCase):
         self.assertEqual(result.request, "Do you want to discard your answer?")
 
 
+class NavigatorRequestTests(unittest.TestCase):
+    def test_the_window_gets_the_request_and_stays(self):
+        from unittest.mock import patch
+
+        from opentoolbook import navigate
+        from opentoolbook.click import Follow
+
+        fixture = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
+        nav = navigate.Navigator(fixture.read_bytes(), "")
+        asked = Follow("", None, ("You are already in the quiz review!",), 1)
+        with patch.object(navigate, "follow_click", return_value=asked):
+            clicked = nav.click("selection1")
+        self.assertEqual(
+            (clicked.moved, clicked.beep, clicked.requests),
+            (False, True, ("You are already in the quiz review!",)),
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

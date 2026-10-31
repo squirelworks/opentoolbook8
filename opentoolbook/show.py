@@ -232,6 +232,10 @@ def open_page(
                 return
             if result.beep:
                 root.bell()
+            for text in result.requests:
+                from tkinter import messagebox
+
+                messagebox.showinfo(nav.book_name or "ToolBook", text, parent=root)
             if result.moved:
                 redraw()
 
