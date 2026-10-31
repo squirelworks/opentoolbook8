@@ -311,3 +311,98 @@ class UnshippedDllTests(unittest.TestCase):
         code, calls = self._run_main([str(path)])
         self.assertEqual(code, 0)
         self.assertEqual((calls[0][1], calls[0][2], calls[0][-1]), ("P0", str(entry.book), "MINSTB32.dll named, not shipped"))
+
+
+class ReportStaysHeadlessTests(unittest.TestCase):
+    """After the window work, ``--report`` still prints and opens no window."""
+
+    FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
+    REPORT = "records 11\nfollow-up reads 3\nnamed by the book 1\n  MINSTB32.dll\ncalls 0\n"
+
+    def _run(self, argv):
+        import contextlib
+        import io
+        from unittest import mock
+
+        import opentoolbook.__main__ as entry
+
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch.object(entry, "open_page", return_value=()) as window:
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = entry.main(["opentoolbook", *argv])
+        return code, out.getvalue(), err.getvalue(), window
+
+    def test_report_in_either_order_prints_the_report_and_no_window(self):
+        book = str(self.FIXTURE)
+        for argv in (["--report", book], [book, "--report"]):
+            code, out, err, window = self._run(argv)
+            self.assertEqual((code, out, err), (0, self.REPORT, ""), argv)
+            window.assert_not_called()
+
+    def test_bare_open_opens_the_window_and_prints_no_report(self):
+        code, out, err, window = self._run([str(self.FIXTURE)])
+        self.assertEqual((code, out, err), (0, "", ""))
+        window.assert_called_once()
+        self.assertEqual(window.call_args.args[1], "")
+
+    def test_home_and_report_in_any_order_print_the_install_and_no_window(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            (home / "toolbook.lst").write_text("NC81BASE.SBK\n*NIDA81S.TBK\n", encoding="latin1")
+            (home / "version.ini").write_text("[x]\nversion=8.1\ndate=2001\n", encoding="latin1")
+            book = str(self.FIXTURE)
+            outputs = set()
+            for argv in (
+                ["--home", str(home), "--report", book],
+                ["--report", "--home", str(home), book],
+                [book, "--report", "--home", str(home)],
+                ["--home", str(home), book, "--report"],
+            ):
+                code, out, err, window = self._run(argv)
+                self.assertEqual((code, err), (0, ""), argv)
+                window.assert_not_called()
+                outputs.add(out)
+            self.assertEqual(len(outputs), 1)
+            out = outputs.pop()
+            self.assertTrue(out.startswith("version 8.1 2001\nrecords 11\n"))
+            self.assertIn("  MINSTB32.dll  named, not shipped\n", out)
+            self.assertIn("listed, not shipped\n  NIDA81S.TBK\n", out)
+            # --home without a book prints the install folder and opens nothing.
+            code, out, err, window = self._run(["--home", str(home)])
+            self.assertEqual((code, err), (0, ""))
+            window.assert_not_called()
+            self.assertEqual(
+                out,
+                "version 8.1 2001\nshipped by the install\nrequired 1\n  NC81BASE.SBK  not found\n"
+                "listed, not shipped\n  NIDA81S.TBK\n",
+            )
+            # --home with a book and no --report opens the window and prints nothing.
+            code, out, err, window = self._run(["--home", str(home), book])
+            self.assertEqual((code, out, err), (0, "", ""))
+            window.assert_called_once()
+
+    def test_the_report_runs_where_tkinter_cannot_import(self):
+        import subprocess
+        import sys
+
+        script = (
+            "import sys; sys.modules['tkinter'] = None\n"
+            "from opentoolbook.__main__ import main\n"
+            "raise SystemExit(main(['opentoolbook', sys.argv[1], '--report']))\n"
+        )
+        root = Path(__file__).resolve().parent.parent
+        done = subprocess.run(
+            [sys.executable, "-c", script, str(self.FIXTURE)],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        self.assertEqual((done.returncode, done.stdout, done.stderr), (0, self.REPORT, ""))
+
+    def test_the_report_names_no_title_and_no_window_state(self):
+        code, out, _err, window = self._run(["--report", str(self.FIXTURE)])
+        self.assertEqual(code, 0)
+        window.assert_not_called()
+        self.assertNotIn(" - ", out)
+        self.assertEqual(len(out.splitlines()), 5)
