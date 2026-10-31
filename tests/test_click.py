@@ -8,6 +8,8 @@ from opentoolbook.click import follow_click, quiz_background, run_handler
 from opentoolbook.field import page_ids
 from opentoolbook.show import show_page
 
+from lesson import companion
+
 LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 PAGES = ("P100", "P300", "P400", "P410")
 
@@ -70,7 +72,7 @@ class LessonClickTests(unittest.TestCase):
         self.assertEqual(back.page_id, "P100")
         chosen = follow_click(data, "P300", "Selection1", ids)
         self.assertEqual((chosen.page_id, chosen.book), ("P310", "nida81.tbk"))
-        other = path.with_name("nida81.tbk").read_bytes()
+        other = companion(path, "nida81.tbk").read_bytes()
         self.assertIn("P310", page_ids(other))
         shown = show_page(other, "P310", 400, 300)
         self.assertEqual(shown.page_id, "P310")

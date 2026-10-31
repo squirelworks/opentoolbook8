@@ -9,6 +9,8 @@ from pathlib import Path
 from opentoolbook.record import FOLLOW_UP
 from opentoolbook.shelf import open_book
 
+from lesson import companion
+
 
 def _book_naming(extra: bytes) -> bytes:
     """One real leaf, with ``extra`` stored in the body so a name scan can see it."""
@@ -161,7 +163,7 @@ class OpenTests(unittest.TestCase):
                 spellings = {item.name.lower(): item.name for item in real.files}
                 self.assertEqual(spellings["minstb32.dll"], "MINSTB32.dll")
                 self.assertEqual(spellings["tb80anm.sbk"], "TB80ANM.SBK")
-                nida = Path(lesson).with_name("nida81.tbk")
+                nida = companion(lesson, "nida81.tbk")
                 if nida.is_file():
                     opened_nida = open_book(nida, home)
                     nida_notes = {item.name: item for item in opened_nida.files}

@@ -13,9 +13,10 @@ shape is painted in front of a shape that contains the label.
 The page walk names classes ``0x8``, ``0x9``, ``0xA``, ``0xB``, ``0xC``,
 ``0xD``, ``0xE``, ``0x10``, ``0x11``, ``0x13``, ``0x15``, and ``0x19``.
 Of those, the window paints rectangles, ellipses, lines, class ``0x10``
-polygons, fields, and buttons, plus the class 4 background. It does not
-paint ``0xD``, arcs (``0x11``), class ``0x13`` point lists, ``0x15``, or
-``0x19``. A group is not a paint; its children are. Class ``0x12`` pies
+polygons, class ``0x13`` angled lines, fields, and buttons, plus the
+class 4 background. An angled line is its stored points, stroked in the
+color at ``+0x17`` and not filled. It does not paint ``0xD``, arcs
+(``0x11``), ``0x15``, or ``0x19``. A group is not a paint; its children are. Class ``0x12`` pies
 and class ``0x17`` records are outside that walk, and they are not painted.
 """
 
@@ -40,7 +41,9 @@ from opentoolbook.field import (
     _u16,
 )
 from opentoolbook.page import _child_nears, _object_name, _objects
+from opentoolbook.props import UserProperties
 from opentoolbook.pixels import picture_rgb
+from opentoolbook.polyline import _read as _polyline
 from opentoolbook.size import page_size
 
 # One page unit is 1/20 point. One point is 96/72 pixels at 96 dpi.
@@ -56,6 +59,7 @@ _GROUP = 0xB
 _ELLIPSE = 0xC
 _LINE = 0xE
 _POLYGON = 0x10
+_ANGLED = 0x13
 _SHAPE = {_RECTANGLE, _ELLIPSE, _LINE, _POLYGON}
 _DRAW = {
     _RECTANGLE: "rectangle",
@@ -113,12 +117,27 @@ def fit_scale(width: int, height: int, view_width: int, view_height: int) -> flo
     return min(view_width / page_w, view_height / page_h)
 
 
-def show_page(data: bytes, page_id: str, view_width: int, view_height: int) -> DisplayList:
-    """The display list for one page. It does not open a window."""
+def show_page(
+    data: bytes,
+    page_id: str,
+    view_width: int,
+    view_height: int,
+    props: UserProperties | None = None,
+) -> DisplayList:
+    """The display list for one page. It does not open a window.
+
+    ``props`` holds the ``__`` names the page's ``enterPage`` reads.
+    """
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
-    items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)))
+    items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props)
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
+
+
+def refit(listed: DisplayList, view_width: int, view_height: int) -> DisplayList:
+    """The same display list in a view of another size. Only the scale changes."""
+    scale = fit_scale(listed.width, listed.height, view_width, view_height)
+    return replace(listed, view_width=view_width, view_height=view_height, scale=scale)
 
 
 def open_page(
@@ -126,6 +145,7 @@ def open_page(
     page_id: str,
     book: str | None = None,
     home: str | None = None,
+    props: UserProperties | None = None,
 ) -> None:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
@@ -137,7 +157,12 @@ def open_page(
     book that search does not find is reported on stderr with the file
     and the page, and the window stays. A quiz page with no quiz running
     still uses OK, Next, and Skip for the next page and Back for the
-    previous page.
+    previous page. ``props`` is the ``__`` store every page in
+    this window reads. Resizing the window refits the page: the
+    scale is computed again from the page size and the new view. The
+    close button ends the Tk loop and this
+    function returns. A click that raises prints the error and the window
+    stays up.
     """
     import sys
     import tkinter as tk
@@ -158,15 +183,32 @@ def open_page(
             highlightthickness=0,
             background="#ffffff",
         )
-        canvas.pack()
+        canvas.pack(fill="both", expand=True)
         nav = Navigator(data, page_id, book, home)
+        state = {
+            "props": props if props is not None else UserProperties(),
+            "view": (view_w, view_h),
+        }
 
         def redraw() -> None:
-            listed = show_page(nav.data, nav.page_id, view_w, view_h)
+            listed = show_page(nav.data, nav.page_id, *state["view"], state["props"])
+            paint(listed)
+
+        def paint(listed: DisplayList) -> None:
             canvas.delete("all")
             draw_page(canvas, listed)
             canvas.listed = listed
             root.title(nav.page_id)
+
+        def on_configure(event) -> None:
+            view = (max(1, event.width), max(1, event.height))
+            if view == state["view"]:
+                return
+            state["view"] = view
+            listed = getattr(canvas, "listed", None)
+            if listed is None:
+                return
+            paint(refit(listed, *view))
 
         def on_click(event) -> None:
             listed = getattr(canvas, "listed", None)
@@ -187,11 +229,31 @@ def open_page(
                 redraw()
 
         canvas.bind("<Button-1>", on_click)
+        canvas.bind("<Configure>", on_configure)
+        root.protocol("WM_DELETE_WINDOW", root.quit)
+        root.report_callback_exception = _report_click_error
         redraw()
         root.mainloop()
     finally:
-        if root.winfo_exists():
+        try:
             root.destroy()
+        except tk.TclError:
+            pass
+
+
+def _report_click_error(kind, value, trace) -> None:
+    """A click that raises prints its message and leaves the window up.
+
+    A ``ValueError`` or ``OSError`` is the reader's own error, one line on
+    stderr. Anything else is a bug and keeps its traceback.
+    """
+    import sys
+    import traceback
+
+    if isinstance(value, (ValueError, OSError)):
+        print(value, file=sys.stderr)
+        return
+    traceback.print_exception(kind, value, trace, file=sys.stderr)
 
 
 def button_at(listed: DisplayList, x: float, y: float) -> str | None:
@@ -217,13 +279,18 @@ def _pixels(units: int) -> int:
     return max(1, round(unit_to_px(units, 1)))
 
 
-def _entered(data: bytes, page_id: str, items: tuple[Paint, ...]) -> tuple[Paint, ...]:
+def _entered(
+    data: bytes,
+    page_id: str,
+    items: tuple[Paint, ...],
+    props: UserProperties | None = None,
+) -> tuple[Paint, ...]:
     """Run the page's enterPage text. A missing sysLevel is reader."""
     from opentoolbook.enter import enter_fields
 
     indexes = [index for index, item in enumerate(items) if item.kind == "field"]
     packed = tuple((items[index].name, items[index].text or "", items[index].runs) for index in indexes)
-    changed = enter_fields(data, page_id, packed)
+    changed = enter_fields(data, page_id, packed, props=props)
     if changed == packed:
         return items
     out = list(items)
@@ -329,6 +396,13 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
     if kind == _LINE:
         _fill, stroke = _colors(data, at)
         return Paint("line", object_id, name, bounds, None, stroke, None, _line_points(data, at))
+    if kind == _ANGLED:
+        _fill, stroke = _colors(data, at)
+        try:
+            points = _polyline(data, segment, at).points
+        except ValueError:
+            return None
+        return Paint("angled line", object_id, name, bounds, None, stroke, None, points)
     if kind == _FIELD:
         text, runs = _runs(data, trailer, base, known, at)
         return Paint("field", object_id, name, bounds, text=text, runs=runs)
@@ -510,6 +584,10 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list) -> None:
         )
         return
     if item.kind == "line" and len(item.points) == 2:
+        flat = [unit_to_px(value, scale) for point in item.points for value in point]
+        canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000")
+        return
+    if item.kind == "angled line" and len(item.points) >= 2:
         flat = [unit_to_px(value, scale) for point in item.points for value in point]
         canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000")
         return
