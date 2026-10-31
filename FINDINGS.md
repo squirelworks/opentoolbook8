@@ -188,6 +188,20 @@ Words `+0x06` and `+0x08` are 65535. Words `+0x02` and `+0x20` are 0. Word `+0x2
 110000008802ffffffff08000026009213c70bae15f20dffffff00ffff00000100000400004a07c91317070c121707ed120e01e1000300000f000f0069
 ```
 
+### Class `0x11` third pair, and why the window does not paint arcs
+
+The signed pair at `+0x2D` is a third point. On all 62 arcs in `9e954d01.tbk` and both in `nida81.tbk` the three pairs at `+0x25`, `+0x29`, and `+0x2D` are one of three triples, and each triple occurs on arcs whose rectangles at `+0x0F` differ:
+
+| book | count | `+0x25` | `+0x29` | `+0x2D` | words `+0x31`, `+0x33`, `+0x35` |
+|---|---|---|---|---|---|
+| `9e954d01.tbk` | 43 | (5433, 3955) | (5428, 3544) | (5385, 3750) | 255, 210, 3 |
+| `9e954d01.tbk` | 19 | (1866, 5065) | (1815, 4620) | (1815, 4845) | 270, 225, 3 |
+| `nida81.tbk` | 2 | (3465, 4126) | (3316, 4320) | (3465, 4320) | 150, 195, 22 |
+
+The words at `+0x37` and `+0x39` are 3840 on all 64. In the first two rows the y of the third pair is within 3 of halfway between the first two (3750 against 3749.5, 4845 against 4842.5). In the third row it is not.
+
+On P1140 objects 17, 65, and 80 store the second triple. Their rectangles are (5010, 3015, 5550, 3570), (2985, 3030, 3525, 3585), and (5010, 3675, 5550, 4230). Drawing the stored pairs would put all three arcs on the same spot, outside every one of those rectangles. The TBKX export's arc `Vertices` sit inside the rectangle: object 80 is `5331,4224,5280,3675`. Against the rectangle's left and top, the export x offsets differ by 51, the same 51 as the stored x values (1866 and 1815). The export y span is 549 where the stored y span is 445, so the y mapping is not a shift. On the first triple the spans are equal (411). The source rectangle that would map the stored pairs onto the rectangle at `+0x0F` is not named by bytes that repeat, so the arc stays off the display list. The words at `+0x31` and `+0x33` may be angles. That is not settled.
+
 ### Class `0x13`, 55 bytes, 66 records
 
 Words `+0x06` and `+0x08` are 65535. Word `+0x02` is 0 and word `+0x0A` is 8. The four signed words at `+0x0F` are an ordered rectangle in 64 of the 66. The other two are flat: (5985, 3446, 5998, 3446) and (6678, 3421, 6678, 3446). Two records:
@@ -293,6 +307,15 @@ These class words occur on one object only, so none of their fields is recorded 
 `nida81.tbk` has no class `0x17` record of 17 bytes. On each of the five records in `9e954d01.tbk`, the word at `+0x04` is a near pointer to a 61-byte class `0xA` field, and that field is named `Text`. On page `P1080` the word is `0x240`. On page `P1082` it is `0x9C`.
 
 `nida81.tbk` has two class `0x26` records of 83 bytes, and those records use the same constant words. One of the two carries the C string `Key Map`. That is a second record with the string.
+
+## Class `0xD` words at +0x28 and +0x2A
+
+All 14 class `0xD` records in `nida81.tbk` are on page `P22100`. The word at `+0x28` equals the word at `+0x2A` on all 14: 27 on two, 56 on eight, and 11 on four. A rounded corner size would fit, but nothing in the repo names it, so the window draws square corners. The bytes `01 00 00 01 00 00` at `+0x1F` through `+0x24` are the same on 10 records; the byte at `+0x1F` is 3 on the four whose pair is 11. Two records:
+
+```
+170100009e08ffffffff0000004900721c5010471da31060606000ff000000010000010000fe00001b001b004b
+da0000000019ffffffff0000001400161a500d391a9713ffffff0060606000030000010000fe00000b000b008b
+```
 
 ## Class `0x19`
 

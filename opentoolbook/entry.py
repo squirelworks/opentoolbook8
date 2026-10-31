@@ -22,6 +22,7 @@ from pathlib import Path
 
 from opentoolbook.enter import _enter_page, _norm
 from opentoolbook.field import page_ids
+from opentoolbook.props import UserProperties
 from opentoolbook.script import book_handlers, quoted_go_to, resource_scripts
 from opentoolbook.shelf import find_file, open_book, search_roots
 
@@ -42,6 +43,7 @@ class Entry:
     page_id: str
     book: Path
     data: bytes
+    props: UserProperties = field(default_factory=UserProperties)
 
 
 @dataclass
@@ -51,6 +53,7 @@ class _State:
     roots: tuple[Path, ...]
     book_file: str
     variables: dict[str, object] = field(default_factory=dict)
+    props: UserProperties = field(default_factory=UserProperties)
     it: object = 0
     page_id: str | None = None
     book_name: str | None = None
@@ -61,8 +64,14 @@ class _State:
     stack: list[str] = field(default_factory=list)
 
 
-def opening_page(path: Path, home: Path | None = None) -> Entry:
-    """The page ``path`` opens on, after the startup handlers and ``enterPage``."""
+def opening_page(path: Path, home: Path | None = None, props: UserProperties | None = None) -> Entry:
+    """The page ``path`` opens on, after the startup handlers and ``enterPage``.
+
+    The ``__`` names those handlers assign are kept in ``props`` and
+    returned on the entry, so the window reads the same values.
+    """
+    if props is None:
+        props = UserProperties()
     try:
         data = path.read_bytes()
     except OSError as exc:
@@ -81,6 +90,7 @@ def opening_page(path: Path, home: Path | None = None) -> Entry:
         _page_scripts(data, pages),
         roots=roots,
         book_name=path.name,
+        props=props,
     )
     current_path = path
     current_data = data
@@ -109,8 +119,9 @@ def opening_page(path: Path, home: Path | None = None) -> Entry:
             book_name=found.name,
             startup=False,
             page_id=page,
+            props=props,
         )
-    return Entry(page, current_path, current_data)
+    return Entry(page, current_path, current_data, props)
 
 
 def choose_opening(
@@ -122,14 +133,18 @@ def choose_opening(
     book_name: str = "book.tbk",
     startup: bool = True,
     page_id: str | None = None,
+    props: UserProperties | None = None,
 ) -> tuple[str, str | None]:
     """``(page id, other book or None)`` after startup and this book's ``enterPage``.
 
     ``handlers`` maps a lower-case handler name to its source. ``page_scripts``
     maps a page id to that page's script. An other book is a file name, not
-    a path. The caller resolves it.
+    a path. The caller resolves it. ``props`` keeps the ``__`` names the
+    handlers assign.
     """
     state = _State(pages, {key.lower(): value for key, value in handlers.items()}, roots, book_name)
+    if props is not None:
+        state.props = props
     state.page_id = page_id
     if startup:
         _run_startup(state)
@@ -279,7 +294,7 @@ def _walk(lines: list[str], state: _State) -> object:
         if assigned is not None:
             value = _value(assigned.group(2).strip(), state)
             if value is not None:
-                state.variables[assigned.group(1).lower()] = value
+                _assign(state, assigned.group(1), value)
             index += 1
             continue
         index += 1
@@ -327,10 +342,29 @@ def _condition(text: str, state: _State) -> bool | None:
     named = _COMPARE.fullmatch(low)
     if named is not None:
         expected = _literal(named.group(2))
-        if named.group(1) not in state.variables:
+        if not _known(state, named.group(1)):
             return expected in (False, 0)
-        return state.variables[named.group(1)] == expected
+        return _lookup(state, named.group(1)) == expected
     return None
+
+
+def _assign(state: _State, name: str, value: object) -> None:
+    if UserProperties.owns(name):
+        state.props.set(name, value)
+    else:
+        state.variables[name.lower()] = value
+
+
+def _known(state: _State, name: str) -> bool:
+    if UserProperties.owns(name):
+        return name in state.props
+    return name.lower() in state.variables
+
+
+def _lookup(state: _State, name: str) -> object:
+    if UserProperties.owns(name):
+        return state.props.get(name)
+    return state.variables.get(name.lower())
 
 
 def _literal(text: str) -> object:
@@ -358,8 +392,8 @@ def _return_value(low: str, state: _State) -> object:
     expr = low[6:].strip()
     if not expr:
         return None
-    if expr in state.variables:
-        return state.variables[expr]
+    if _known(state, expr):
+        return _lookup(state, expr)
     value = _value(expr, state)
     if value is not None:
         return value
