@@ -19,17 +19,6 @@ _INIT = re.compile(rb"initialize[A-Za-z]+", re.I)
 _ENTRY = ("opensession", "gotopagelist", "entersystem", "enterapplication")
 # These belong to a key disk, not to a book report.
 KEYDISK_NAMES = frozenset({"class.s3", "id.s3", "criteria.s4", "m00001.s3", "login.m3"})
-# The four initialize calls are the four nc81 books. The other four are the shell.
-CALL_BOOKS = {
-    "initializebase": "nc81base.sbk",
-    "initializerecs": "nc81recs.sbk",
-    "initializetest": "nc81test.sbk",
-    "initializetrnr": "nc81trnr.sbk",
-    "enterapplication": "nida81.tbk",
-    "entersystem": "nida81.tbk",
-    "gotopagelist": "nida81.tbk",
-    "opensession": "nida81.tbk",
-}
 
 
 class MissingBook(ValueError):

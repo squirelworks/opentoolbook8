@@ -20,9 +20,9 @@ from pathlib import Path
 
 from opentoolbook.entry import opening_page
 from opentoolbook.nida import catalog_lesson, discs_for, parse_cailt, parse_catalog, read_keydisk, zip_names_for
+from opentoolbook.send import handler_chain
 from opentoolbook.show import open_page
 from opentoolbook.shelf import (
-    CALL_BOOKS,
     find_file,
     missing_sentence,
     named_calls,
@@ -190,16 +190,29 @@ def _print_book(path: Path, home: Path | None) -> None:
             print(f"  {item.name}  {item.note}")
         else:
             print(f"  {item.name}")
+    sysbooks = _startup_sysbooks(path, home)
+    print(f"sysBooks {len(sysbooks)}")
+    for name in sysbooks:
+        print(f"  {name}")
+    chain = handler_chain(book.data, path.name, search_roots(path, home), sysbooks)
     print(f"calls {len(calls)}")
     for name in calls:
-        owner = CALL_BOOKS.get(name)
-        print(f"  {name}  {owner}" if owner else f"  {name}")
+        found = chain.find(name)
+        print(f"  {name}  {found[0]}" if found else f"  {name}")
     if home is not None:
         roots = search_roots(path, home)
         _print_shipped(home, roots)
         table = _find(home, "CAILT.DAT")
         if table is not None:
             _print_discs(table.read_text(encoding="latin1"), path.stem, roots)
+
+
+def _startup_sysbooks(path: Path, home: Path | None) -> tuple[str, ...]:
+    """``sysBooks`` after the book's own startup handlers, or none when startup fails."""
+    try:
+        return opening_page(path, home).sysbooks
+    except ValueError:
+        return ()
 
 
 def _print_catalogs(courses: Path, programs: Path | None) -> None:

@@ -1,4 +1,4 @@
-"""``send name`` goes to the open book, then nc81base, nc81recs, nc81test, nc81trnr."""
+"""``send name`` goes to the open book, then each book in ``sysBooks``."""
 
 import os
 import tempfile
@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from opentoolbook.entry import choose_opening
-from opentoolbook.send import SYSTEM_BOOKS, Chain, calls_dll, handler_chain, send_message
+from opentoolbook.send import Chain, calls_dll, handler_chain, send_message
 
 from test_entry import LOGO
 
@@ -21,7 +21,6 @@ end
 
 class SendTests(unittest.TestCase):
     def test_the_order(self):
-        self.assertEqual(SYSTEM_BOOKS, ("nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk"))
         chain = Chain((
             ("lesson.tbk", {"pick": "to get pick\nreturn 1\nend\n"}),
             ("nc81base.sbk", {"pick": "to get pick\nreturn 2\nend\n", "other": "to get other\nreturn 3\nend\n"}),
@@ -66,14 +65,49 @@ class SendTests(unittest.TestCase):
 
         lesson = Path(path)
         roots = search_roots(lesson, None)
-        chain = handler_chain(lesson.read_bytes(), lesson.name, roots)
-        self.assertEqual([book.lower() for book, _ in chain.books[1:]], list(SYSTEM_BOOKS))
+        sysbooks = opening_page(lesson).sysbooks
+        self.assertEqual(sysbooks, ("nc81trnr.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81base.sbk", "tb80r.sbk"))
+        chain = handler_chain(lesson.read_bytes(), lesson.name, roots, sysbooks)
+        self.assertEqual([book.lower() for book, _ in chain.books[1:]], list(sysbooks))
         sent = send_message(chain, "getLogoBook", roots=roots, book_name=lesson.name)
         self.assertEqual(sent.book.lower(), "nc81base.sbk")
         self.assertFalse(sent.skipped)
         self.assertEqual(sent.value, opening_page(lesson).book.name)
         self.assertTrue(send_message(chain, "initializeBase").skipped)
         self.assertTrue(send_message(chain, "openSession").skipped)
+
+
+class SysBooksTests(unittest.TestCase):
+    """``push "x" onto sysBooks`` and ``"x" is not in sysBooks`` in startup."""
+
+    def test_a_pushed_book_answers_the_next_get(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            from opentoolbook.entry import _State, _statement, _condition, _call
+
+            state = _State(("P0",), {}, (Path(tmp),), "lesson.tbk")
+            self.assertTrue(_condition('"base.sbk" is not in sysBooks', state))
+            _statement('push "BASE.sbk" onto sysBooks', 'push "base.sbk" onto sysbooks', state)
+            self.assertEqual(state.sysbooks, ["base.sbk"])
+            self.assertFalse(_condition('"base.sbk" is not in sysBooks', state))
+            self.assertTrue(_condition('"Base.sbk" is in sysBooks', state))
+            _statement('push "other.sbk" onto sysBooks', 'push "other.sbk" onto sysbooks', state)
+            self.assertEqual(state.sysbooks, ["other.sbk", "base.sbk"])
+
+    def test_startup_without_a_push_has_no_system_book(self):
+        handlers = {
+            "entersystem": 'to handle enterSystem\n  get pick()\n  if it is 2\n    go to page "P1"\n  end\nend\n',
+        }
+        self.assertEqual(choose_opening(("P0", "P1"), handlers), ("P0", None))
+
+    def test_the_book_handler_wins_over_a_sysbooks_handler(self):
+        from opentoolbook.entry import _State, _merge_sysbooks
+
+        state = _State(("P0",), {"pick": "own"}, (), "lesson.tbk")
+        state.loaded["base.sbk"] = {"pick": "base", "other": "base other"}
+        state.sysbooks = ["base.sbk"]
+        _merge_sysbooks(state)
+        self.assertEqual(state.handlers["pick"], "own")
+        self.assertEqual(state.handlers["other"], "base other")
 
 
 if __name__ == "__main__":

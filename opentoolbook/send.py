@@ -1,9 +1,9 @@
-"""``send name`` to the open book, then to the four NIDA system books.
+"""``send name`` to the open book, then to the books in ``sysBooks``.
 
-The handler is looked up in the open book first, then in
-``nc81base.sbk``, ``nc81recs.sbk``, ``nc81test.sbk``, and
-``nc81trnr.sbk``, in that order. The system books are found with the
-same search as the book report. A handler whose body links or unlinks a DLL
+The handler is looked up in the open book first, then in each book of
+``sysBooks`` in order. ``sysBooks`` is what the book's own startup
+handlers pushed onto it. No system book is named here. The books are
+found with the same search as the book report. A handler whose body links or unlinks a DLL
 (``linkDLL``, ``linkDLL32``, or ``unlinkDLL``) returns without running, so no DLL is
 called. Every other handler runs with the statement walker that opening
 the book uses.
@@ -14,8 +14,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-
-SYSTEM_BOOKS = ("nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk")
 
 _LINK = re.compile(r"^\s*(?:un)?linkdll(32)?\b", re.IGNORECASE | re.MULTILINE)
 
@@ -88,13 +86,18 @@ def reaches_dll(chain: Chain, name: str, seen: set[str] | None = None) -> str | 
     return None
 
 
-def handler_chain(data: bytes, book_name: str, roots: tuple[Path, ...]) -> Chain:
-    """The open book, then each system book the search finds."""
+def handler_chain(
+    data: bytes,
+    book_name: str,
+    roots: tuple[Path, ...],
+    sysbooks: tuple[str, ...] = (),
+) -> Chain:
+    """The open book, then each ``sysBooks`` book the search finds, in order."""
     from opentoolbook.entry import _handler_map
     from opentoolbook.shelf import find_file
 
     books = [(book_name, _handler_map(data))]
-    for name in SYSTEM_BOOKS:
+    for name in sysbooks:
         found = find_file(roots, name)
         if found is None:
             continue

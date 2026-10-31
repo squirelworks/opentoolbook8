@@ -24,7 +24,7 @@ from opentoolbook.enter import _enter_page
 from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
 from opentoolbook.script import book_handlers, quoted_go_to, resource_scripts
-from opentoolbook.send import calls_dll, handler_chain
+from opentoolbook.send import calls_dll
 from opentoolbook.shelf import MissingBook, file_exists32, find_file, open_book, search_roots
 from opentoolbook.walk import norm, reader_condition, this_name, walk
 
@@ -38,6 +38,8 @@ _GET_VALUE = re.compile(r"^get\s+(.+)$")
 _IT_IS = re.compile(r'^it (?:is|=) (-?\d+|true|false|"[^"]*")$')
 _COMPARE = re.compile(r"^([a-z_][a-z0-9_]*) = (false|true|\d+)$")
 _MESSAGES = ("entersystem", "enterapplication")
+_PUSH_SYSBOOKS = re.compile(r'^push\s+"([^"]+)"\s+onto\s+sysbooks$')
+_IN_SYSBOOKS = re.compile(r'^"([^"]+)"\s+is\s+(not\s+)?in\s+sysbooks$')
 _OTHER_STARTUP = ("opensession", "gotopagelist", "entersystem", "enterapplication")
 
 
@@ -51,6 +53,8 @@ class Entry:
     props: UserProperties = field(default_factory=UserProperties)
     # System variables the startup handlers assigned, by lower-case name.
     variables: dict[str, object] = field(default_factory=dict)
+    # ``sysBooks`` after startup, first item first, in lower case.
+    sysbooks: tuple[str, ...] = ()
 
 
 @dataclass
@@ -70,6 +74,10 @@ class _State:
     breaking: bool = False
     stack: list[str] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)
+    # ``sysBooks``, first item first. A pushed book's handlers follow the open book's.
+    sysbooks: list[str] = field(default_factory=list)
+    own: dict[str, str] | None = None
+    loaded: dict[str, dict[str, str]] = field(default_factory=dict)
 
 
 def opening_page(path: Path, home: Path | None = None, props: UserProperties | None = None) -> Entry:
@@ -93,9 +101,8 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
         raise ValueError(f"no opening page in {path.name}: {exc}") from exc
     pages = _pages(data)
     roots = search_roots(path, home)
-    handlers = handler_chain(data, path.name, roots).merged()
-    for name, body in _companion_handlers(opened).items():
-        handlers.setdefault(name, body)
+    handlers = _handler_map(data)
+    sysbooks: list[str] = []
     page, other = choose_opening(
         pages,
         handlers,
@@ -104,6 +111,7 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
         book_name=path.name,
         props=props,
         variables=variables,
+        sysbooks=sysbooks,
     )
     current_path = path
     current_data = data
@@ -123,7 +131,7 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
         if key in seen:
             break
         seen.add(key)
-        handlers.update(_handler_map(current_data))
+        handlers = _handler_map(current_data)
         page, other = choose_opening(
             current_pages,
             handlers,
@@ -134,8 +142,9 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
             page_id=page,
             props=props,
             variables=variables,
+            sysbooks=sysbooks,
         )
-    return Entry(page, current_path, current_data, props, variables)
+    return Entry(page, current_path, current_data, props, variables, tuple(sysbooks))
 
 
 def choose_opening(
@@ -149,6 +158,7 @@ def choose_opening(
     page_id: str | None = None,
     props: UserProperties | None = None,
     variables: dict[str, object] | None = None,
+    sysbooks: list[str] | None = None,
 ) -> tuple[str, str | None]:
     """``(page id, other book or None)`` after startup and this book's ``enterPage``.
 
@@ -163,6 +173,9 @@ def choose_opening(
         state.props = props
     if variables is not None:
         state.variables = variables
+    if sysbooks is not None:
+        state.sysbooks = sysbooks
+        _merge_sysbooks(state)
     state.page_id = page_id
     if startup:
         _run_startup(state)
@@ -243,6 +256,10 @@ def _walk(lines: list[str], state: _State) -> object:
 
 
 def _statement(raw: str, low: str, state: _State) -> None:
+    pushed = _PUSH_SYSBOOKS.fullmatch(low)
+    if pushed is not None:
+        push_sysbook(state, pushed.group(1))
+        return
     found = quoted_go_to(raw)
     if found is not None:
         page, book = found
@@ -321,6 +338,10 @@ def _call(name: str, state: _State) -> object:
 
 def _condition(text: str, state: _State) -> bool | None:
     low = norm(text)
+    member = _IN_SYSBOOKS.fullmatch(low)
+    if member is not None:
+        present = member.group(1).lower() in state.sysbooks
+        return not present if member.group(2) else present
     reader = reader_condition(low)
     if reader is not None:
         return reader
@@ -344,6 +365,45 @@ def _condition(text: str, state: _State) -> bool | None:
             return expected in (False, 0)
         return _lookup(state, named.group(1)) == expected
     return None
+
+
+def push_sysbook(state: _State, name: str) -> None:
+    """``push "name" onto sysBooks``: the book goes first in ``sysBooks``.
+
+    Handler lookup is the open book, then each book in ``sysBooks`` in
+    order. A book the shelf does not find is still listed and adds no
+    handler. The name is kept in lower case.
+    """
+    key = name.lower()
+    if key in state.sysbooks:
+        state.sysbooks.remove(key)
+    state.sysbooks.insert(0, key)
+    _merge_sysbooks(state)
+
+
+def _merge_sysbooks(state: _State) -> None:
+    """Handlers: the open book's own, then each ``sysBooks`` book in order."""
+    if state.own is None:
+        state.own = dict(state.handlers)
+    merged = dict(state.own)
+    for book in state.sysbooks:
+        if book not in state.loaded:
+            state.loaded[book] = sysbook_handlers(state.roots, book)
+        for handler, body in state.loaded[book].items():
+            merged.setdefault(handler, body)
+    state.handlers.clear()
+    state.handlers.update(merged)
+
+
+def sysbook_handlers(roots: tuple[Path, ...], name: str) -> dict[str, str]:
+    """Handlers of one ``sysBooks`` book found on the shelf, or none."""
+    found = find_file(roots, name)
+    if found is None:
+        return {}
+    try:
+        return _handler_map(found.read_bytes())
+    except OSError:
+        return {}
 
 
 def _assign(state: _State, name: str, value: object) -> None:

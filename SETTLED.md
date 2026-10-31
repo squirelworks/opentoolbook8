@@ -17,19 +17,7 @@ Logic Families is `9e954d01.tbk`. The filenames and calls below are the ones tha
 
 ## Calls
 
-`initializebase`, `initializerecs`, `initializetest`, and `initializetrnr` are the four `nc81*.sbk` books.
-
-- `initializebase` is `nc81base.sbk`
-- `initializerecs` is `nc81recs.sbk`
-- `initializetest` is `nc81test.sbk`
-- `initializetrnr` is `nc81trnr.sbk`
-
-The other four calls are `nida81.tbk`.
-
-- `enterapplication` is `nida81.tbk`
-- `entersystem` is `nida81.tbk`
-- `gotopagelist` is `nida81.tbk`
-- `opensession` is `nida81.tbk`
+No call name is tied to a book by the reader. `--report` runs the book's startup handlers and prints `sysBooks` as they leave it, first item first, then each call name with the book whose handler answers it: the open book first, then each `sysBooks` book in order. On `9e954d01.tbk` startup leaves `sysBooks` as `nc81trnr.sbk`, `nc81recs.sbk`, `nc81test.sbk`, `nc81base.sbk`, `tb80r.sbk`. `enterSystem` and `enterApplication` are the lesson's own. `initializeBase` and `gotoPageList` are `nc81base.sbk`, `initializeRecs` and `openSession` are `nc81recs.sbk`, `initializeTest` is `nc81test.sbk`, and `initializeTrnr` is `nc81trnr.sbk`. A book whose startup pushes nothing, such as `otb-line-rect.tbk` or the Instructor 8.1 `Walkthrough.tbk`, prints `sysBooks 0`.
 
 ## Resolve on open
 
@@ -371,7 +359,7 @@ Resource type 16 in the PE resource directory is a version resource. The reader 
 
 ## Opening the book
 
-`python3 -m opentoolbook path/to/book.tbk` opens a Tk window on the book's opening page. `enterSystem` runs, then `enterApplication`, when the book defines them. A `get` call in a branch the reader takes runs that handler when its body is in the book or in a companion the report's search finds. A quoted `go to page` in a taken branch is the page. A missing `sysLevel` is `reader`, so `sysLevel = "reader"` is the branch that runs. `forward` is not executed. A `linkDLL` line is not called.
+`python3 -m opentoolbook path/to/book.tbk` opens a Tk window on the book's opening page. `enterSystem` runs, then `enterApplication`, when the book defines them. A `get` call in a branch the reader takes runs that handler when its body is in the book or in a book in `sysBooks`. A quoted `go to page` in a taken branch is the page. A missing `sysLevel` is `reader`, so `sysLevel = "reader"` is the branch that runs. `forward` is not executed. A `linkDLL` line is not called.
 
 `openSession` returns 0 when `__studentRecords` has not been set. `if it is 1` does not run, so `gotoPageList` does not run. `gotoPageList` says `go to page(pagename) of book(bookname)`. Those names are not quoted. The list is filled by the session DLL, which is not called. A resumed session is not the page the window opens.
 
@@ -423,7 +411,11 @@ A page whose byte at `+0x30` has low bits 0 stores its script inline. The word a
 
 ## Send to the system books
 
-`send name` looks for that handler in the open book, then in `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk`, in that order. The first book that has the name wins. The system books are found with the same search as the book report. On `9e954d01.tbk` no handler name is in more than one of the four system books. The lesson and `nida81.tbk` share `enterPage`, `keyUp`, `enterApplication`, `author`, and `enterBook`, and the open book's copy wins. A handler whose body has a `linkDLL`, `linkDLL32`, or `unlinkDLL` line returns without running, so no DLL is called. 76 handlers in the lesson, `nida81.tbk`, and the four system books link or unlink a DLL this way, among them `initializeBase`, `openSession`, `setSection`, `setupQuizEx`, `initializeTest`, and `initializeTrnr`. Every other handler runs with the same statement walker as startup. `send getLogoBook` runs the handler in `nc81base.sbk` and returns `nida81.tbk`, or `logo81.tbk` / `mrj81.tbk` when the search finds that file, the same book the window opens. Startup builds its handler map in this order too. `get name()` is unchanged and still runs a handler that links a DLL without calling the DLL.
+`sysBooks` is a list of book names, first item first. `push "name" onto sysBooks` in a handler the reader runs puts that name first, and a name already in the list moves to the front. The name is compared without case. `"name" is not in sysBooks` and `"name" is in sysBooks` are decided from that list. Handler lookup is the open book, then each `sysBooks` book in order, and the first book that has the name wins. A pushed book is found with the same search as the book report. A name the search does not find stays in the list and answers no handler. Startup starts with an empty `sysBooks` and with only the open book's handlers. No system book is named by the reader, and no handler of a book the open book merely mentions is in the chain.
+
+`enterSystem` of `9e954d01.tbk` pushes `tb80r.sbk`, then `nc81base.sbk` and runs `get initializebase(cmdLine)`, then `nc81test.sbk` and `initializetest()`, `nc81recs.sbk` and `initializerecs()`, and `nc81trnr.sbk` and `initializetrnr()`, each under `if "x" is not in sysBooks`. Each `get` now finds its handler because the push before it put that book in the chain. So startup runs the literal assignments of all four `initialize*` handlers: the store holds `__quizMaxResponse` 5 and `__trainerAddress` 0 after open. The window still opens on `P0` of `nida81.tbk`.
+
+A handler whose body has a `linkDLL`, `linkDLL32`, or `unlinkDLL` line returns from `send` without running, so no DLL is called. Every other handler runs with the same statement walker as startup. `send getLogoBook` runs the handler in `nc81base.sbk` once that book is in `sysBooks`, and returns `nida81.tbk`, or `logo81.tbk` / `mrj81.tbk` when the search finds that file. `get name()` still runs a handler that links a DLL without calling the DLL.
 
 
 ## fileExists32
@@ -458,7 +450,7 @@ In a click, `hide field "name"` and `show field "name"` change whether that obje
 
 ## initializeBase literals
 
-`initializeBase(cmdLine)` in `nc81base.sbk` runs its literal assignments only. An assignment runs when its right side is a whole or decimal number, a quoted string, `true`, `false`, the `cmdLine` parameter, or a name the handler or the store already holds. A `__` name goes to the in-memory store, and any other name is local to the handler. Every other line is skipped, and the skip is named: `linkDLL tbfile32.dll`, `linkDLL32 kernel32.dll`, and `linkDLL32 user32.dll` by library, a call by the name it calls (`clearMenuFlags`, `specifyMenuColors`, `clearExperimentFlags`, `WritePrivateProfileStringA`, `GetPrivateProfileIntA`, `placeLesson`), `set saveOnClose of this book` and `set sysChangesDB` by property, and the `/Quester` `conditions` block under `if wordcount(__cmdline) >= 2` by its condition. `setSection` is not called. With an empty command line the store holds `__pageIndex` 0, `__pageListCleared` 0, `__quizDisableMenuKey` 0, and `__cmdLine` empty. `__lessonMode` comes from `GetPrivateProfileIntA` on `NIDAREC.INI`, so it stays unset, and `if __lessonMode = 5` and `= 6` run neither branch. `__nidaVersion` is not assigned there. `if sysLevel = reader` is taken. A condition on a value the handler holds is decided, and any other condition runs neither branch and is named. The walker skips a whole `conditions`, `step`, or `while` block when its caller asks, as this one does. Startup does not call this yet: `enterSystem` guards `get initializebase(cmdLine)` with `if "nc81base.sbk" is not in sysBooks`, and the reader does not decide `sysBooks`.
+`initializeBase(cmdLine)` in `nc81base.sbk` runs its literal assignments only. An assignment runs when its right side is a whole or decimal number, a quoted string, `true`, `false`, the `cmdLine` parameter, or a name the handler or the store already holds. A `__` name goes to the in-memory store, and any other name is local to the handler. Every other line is skipped, and the skip is named: `linkDLL tbfile32.dll`, `linkDLL32 kernel32.dll`, and `linkDLL32 user32.dll` by library, a call by the name it calls (`clearMenuFlags`, `specifyMenuColors`, `clearExperimentFlags`, `WritePrivateProfileStringA`, `GetPrivateProfileIntA`, `placeLesson`), `set saveOnClose of this book` and `set sysChangesDB` by property, and the `/Quester` `conditions` block under `if wordcount(__cmdline) >= 2` by its condition. `setSection` is not called. With an empty command line the store holds `__pageIndex` 0, `__pageListCleared` 0, `__quizDisableMenuKey` 0, and `__cmdLine` empty. `__lessonMode` comes from `GetPrivateProfileIntA` on `NIDAREC.INI`, so it stays unset, and `if __lessonMode = 5` and `= 6` run neither branch. `__nidaVersion` is not assigned there. `if sysLevel = reader` is taken. A condition on a value the handler holds is decided, and any other condition runs neither branch and is named. The walker skips a whole `conditions`, `step`, or `while` block when its caller asks, as this one does. Startup calls it: `enterSystem` pushes `nc81base.sbk` onto `sysBooks` and then runs `get initializebase(cmdLine)`.
 
 ## Stored user properties
 

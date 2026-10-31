@@ -317,7 +317,7 @@ class ReportStaysHeadlessTests(unittest.TestCase):
     """After the window work, ``--report`` still prints and opens no window."""
 
     FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
-    REPORT = "records 11\nfollow-up reads 3\nnamed by the book 1\n  MINSTB32.dll\ncalls 0\n"
+    REPORT = "records 11\nfollow-up reads 3\nnamed by the book 1\n  MINSTB32.dll\nsysBooks 0\ncalls 0\n"
 
     def _run(self, argv):
         import contextlib
@@ -405,4 +405,4 @@ class ReportStaysHeadlessTests(unittest.TestCase):
         self.assertEqual(code, 0)
         window.assert_not_called()
         self.assertNotIn(" - ", out)
-        self.assertEqual(len(out.splitlines()), 5)
+        self.assertEqual(len(out.splitlines()), 6)
