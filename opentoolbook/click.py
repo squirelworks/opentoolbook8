@@ -58,8 +58,9 @@ class Follow:
     fields: tuple[tuple[str, str], ...] = ()
     visible: tuple[tuple[tuple[str, str | int], bool], ...] = ()
     inverts: tuple[tuple[str, bool], ...] = ()
-    # ``set checked of button`` lines: page id, lower-case button name, state, in order.
-    checks: tuple[tuple[str, str, bool], ...] = ()
+    # Properties a script set: (owner, kind, lower-case name, property, value), in order.
+    # The owner is a page id or a background key.
+    writes: tuple[tuple[str, str, str, str, object], ...] = ()
 
 
 def follow_click(

@@ -82,7 +82,7 @@ class NavigatorFieldTests(unittest.TestCase):
         nav = navigate.Navigator.__new__(navigate.Navigator)
         nav.data, nav.pages, nav.page_id, nav.book, nav.home, nav.fields = b"", ("P1", "P2"), "P1", None, None, {}
         nav.lesson, nav.variables, nav._handlers, nav.sysbooks = None, {}, {}, ()
-        nav.props, nav.letters = navigate.UserProperties(), {}
+        nav.props, nav.state = navigate.UserProperties(), {}
         nav.history = []
         wrote = Follow("P1", None, fields=(("Stem", "new"),))
         with patch.object(navigate.Navigator, "_send", return_value=wrote) as called:

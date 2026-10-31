@@ -58,7 +58,7 @@ class LessonKeyTests(unittest.TestCase):
         clicked.click("Next")
         self.assertEqual(clicked.page_id, right.page_id)
 
-    def test_right_on_a_quiz_page_uses_the_background_next(self):
+    def test_right_on_a_quiz_page_is_the_background_next(self):
         path = _lesson()
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
@@ -72,14 +72,14 @@ class LessonKeyTests(unittest.TestCase):
         fixed = patch.object(interp._random, "randint", lambda low, high: low)
         fixed.start()
         self.addCleanup(fixed.stop)
-        # The pre-test opens question 110 on P10210; Next skips it to 111 on P10211.
+        # The pre-test opens question 110 on P10210. Pass 1 disables the
+        # background's Next, so Right is Next and does nothing there.
         nav.click("selection1")
         self.assertEqual(nav.page_id, "P10210")
         listed = nav.display(624, 442)
         self.assertEqual(key_button(listed, "Right"), "Next")
-        self.assertTrue(press_key(nav, listed, "Right").moved)
-        self.assertEqual(nav.page_id, "P10211")
-
+        self.assertFalse(press_key(nav, listed, "Right").moved)
+        self.assertEqual(nav.page_id, "P10210")
 
 if __name__ == "__main__":
     unittest.main()

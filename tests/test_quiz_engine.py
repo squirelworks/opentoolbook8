@@ -83,19 +83,33 @@ class QuizOnTheEngineTests(unittest.TestCase):
         self.assertEqual((clicked.moved, clicked.beep), (False, True))
         self.assertEqual(nav.page_id, "P10210")
 
-    def test_next_with_no_letter_skips_the_question(self):
+    def test_pass_1_disables_next_and_back_so_they_get_no_click(self):
+        # setupQuizPage on pass 1 sets enabled of the background's Next and Back to false.
         nav = self.nav
         nav.click("selection1")
-        self.assertTrue(nav.click("Next").moved)
-        self.assertEqual(nav.page_id, "P10211")
-        self.assertEqual(_cells(nav.props, "__quizQuestionNo"), {1: "110"})
-        self.assertEqual(_cells(nav.props, "__quizResponse"), {})
+        listed = nav.display(800, 600)
+        state = {item.name: item.enabled for item in listed.items if item.kind == "button" and item.name in ("OK", "Next", "Back")}
+        self.assertEqual(state, {"OK": True, "Next": False, "Back": False})
+        self.assertFalse(nav.click("Next").moved)
+        self.assertEqual(nav.page_id, "P10210")
+        self.assertEqual(_cells(nav.props, "__quizQuestionNo"), {})
+
+    def test_background_fields_show_the_question_index(self):
+        nav = self.nav
+        nav.click("selection1")
+        texts = {item.name: item.text for item in nav.display(800, 600).items if item.kind == "field"}
+        self.assertEqual(texts.get("Index"), "Question 1.")
+        nav.click("C")
+        nav.click("OK")
+        texts = {item.name: item.text for item in nav.display(800, 600).items if item.kind == "field"}
+        self.assertEqual(texts.get("Index"), "Question 2.")
 
     def test_the_checked_state_stays_with_its_page(self):
         nav = self.nav
         nav.click("selection1")
         nav.click("A")
-        nav.click("Next")
+        nav.click("OK")
+        self.assertEqual(nav.page_id, "P10211")
         self.assertNotIn(True, nav.checked_buttons().values())
         self.assertTrue(nav.back())
         self.assertEqual(nav.page_id, "P10210")

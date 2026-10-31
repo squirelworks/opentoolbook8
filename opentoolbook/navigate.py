@@ -14,7 +14,8 @@ message goes to the object, the groups that hold it, the page, the
 background, the book and then each ``sysBooks`` book, until a handler
 takes it. A quiz runs that way too: the quiz background's
 ``buttonClick`` calls ``handleQuizClick`` in ``nc81test.sbk``. The
-``checked`` states a click sets are kept by page in ``letters``.
+properties scripts set (text, checked, enabled, visible) are kept in ``state``
+by book and owner, and stay while the window is open.
 A page id matches
 regardless of case. A ``request`` the click runs is returned with the
 result, and the window shows it. Field text a click writes, and objects
@@ -90,8 +91,9 @@ class Navigator:
         self.fields: dict[str, str] = {}
         # Objects a click hid or showed, by (kind, name or id). Cleared when the page changes.
         self.visible: dict[tuple[str, str | int], bool] = {}
-        # checked of button a click set, by page, then lower-case button name.
-        self.letters: dict[tuple[str, str], dict[str, bool]] = {}
+        # Properties scripts set while the window is open: by book, then owner
+        # (a page id or a background key), then (kind, lower-case name).
+        self.state: dict[str, dict[str, dict[tuple[str, str], dict[str, object]]]] = {}
         # Buttons a buttonDown or buttonUp handler set the invert of, by lower-case name.
         self.inverted: dict[str, bool] = {}
 
@@ -154,6 +156,9 @@ class Navigator:
         return True
 
     def _click(self, button: str | None, shown: dict[str, str] | None) -> Clicked:
+        if button and not self._enabled(button):
+            # A disabled button gets no buttonClick.
+            return Clicked(False)
         acted = self._send(("button", button) if button else None, "buttonclick", shown)
         if acted is None:
             return Clicked(False)
@@ -183,7 +188,6 @@ class Navigator:
         from opentoolbook.show import show_page
 
         listed = show_page(self.data, self.page_id, 1, 1, None)
-        present = {(item.kind, item.name.lower()) for item in listed.items if item.name}
         groups: tuple[str, ...] = ()
         if target is not None:
             for item in listed.items:
@@ -202,20 +206,24 @@ class Navigator:
             variables=self.variables,
             sysbooks=list(self.sysbooks),
             fields=shown,
-            present=present,
-            checked=self.checked_buttons(),
+            state=self._book_state(),
             message=message,
             groups=groups,
         )
 
     def _apply(self, acted) -> Clicked:
         beep, asked = acted.beeps > 0, acted.requests
-        for page_id, name, on in acted.checks:
-            self.letters.setdefault((str(self.book or ""), page_id), {})[name] = on
-        checked = bool(acted.checks)
+        owners = self._owners()
+        state = self._book_state()
+        checked = changed = False
+        for owner, kind, name, prop, value in acted.writes:
+            state.setdefault(owner, {}).setdefault((kind, name), {})[prop] = value
+            if owner in owners:
+                checked = checked or prop == "checked"
+                changed = changed or prop != "checked"
         for button, inverted in acted.inverts:
             self.inverted[button.lower()] = inverted
-        changed = bool(acted.fields or acted.visible or acted.inverts)
+        changed = changed or bool(acted.fields or acted.visible or acted.inverts)
         for name, text in acted.fields:
             self.fields[name] = text
         for key, shown_now in acted.visible:
@@ -255,15 +263,67 @@ class Navigator:
 
         from opentoolbook.show import pressed
 
-        listed = show_page(self.data, self.page_id, view_width, view_height, props, fields=self.fields, visible=self.visible, checked=self.checked_buttons())
+        overlay = self._overlay()
+        fields = {name: values["text"] for (kind, name), values in overlay.items() if kind == "field" and "text" in values}
+        fields.update(self.fields)
+        visible = {(kind, name): values["visible"] for (kind, name), values in overlay.items() if "visible" in values}
+        visible.update(self.visible)
+        enabled = {name: values["enabled"] for (kind, name), values in overlay.items() if kind == "button" and "enabled" in values}
+        correct = overlay.get(("rectangle", "correct"), {}).get("visible") is True
+        listed = show_page(
+            self.data,
+            self.page_id,
+            view_width,
+            view_height,
+            props,
+            fields=fields,
+            visible=visible,
+            checked=self.checked_buttons(),
+            enabled=enabled,
+            correct=correct,
+        )
         for name, inverted in self.inverted.items():
             if inverted:
                 listed = pressed(self.data, listed, name)
         return listed
 
     def checked_buttons(self) -> dict[str, bool]:
-        """The ``checked`` states clicks set on this page, for ``show_page``."""
-        return dict(self.letters.get(self._key(), {}))
+        """The ``checked`` states scripts set on this page and its background, for ``show_page``."""
+        return {name: values["checked"] for (kind, name), values in self._overlay().items() if kind == "button" and "checked" in values}
+
+    def _book_state(self) -> dict:
+        return self.state.setdefault(str(self.book or ""), {})
+
+    def _owners(self) -> tuple[str, str]:
+        """The background key and the page id whose properties the page on screen shows."""
+        from opentoolbook.show import background_key
+
+        return (background_key(self.data, self.page_id), self.page_id)
+
+    def _overlay(self) -> dict[tuple[str, str], dict[str, object]]:
+        """Properties scripts set on the page on screen: its background's, then its own."""
+        state = self.state.get(str(self.book or ""), {})
+        found: dict[tuple[str, str], dict[str, object]] = {}
+        for owner in self._owners():
+            for key, values in state.get(owner, {}).items():
+                found.setdefault(key, {}).update(values)
+        return found
+
+    def _enabled(self, button: str) -> bool:
+        """``enabled`` of the named button on screen: a script's state, else the stored bit."""
+        from opentoolbook.show import show_page
+
+        values = self._overlay().get(("button", button.lower()), {})
+        if "enabled" in values:
+            return values["enabled"] is True
+        try:
+            listed = show_page(self.data, self.page_id, 1, 1, None)
+        except ValueError:
+            return True
+        for item in listed.items:
+            if item.kind == "button" and item.name.lower() == button.lower():
+                return item.enabled
+        return True
 
     def _key(self) -> tuple[str, str]:
         return (str(self.book or ""), self.page_id)

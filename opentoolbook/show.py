@@ -132,6 +132,10 @@ class Paint:
     width: int = 1
     # Names of the groups that hold this object, innermost first.
     groups: tuple[str, ...] = ()
+    # ``background`` for an object of the page's background, else ``page``.
+    layer: str = "page"
+    enabled: bool = True
+    disabled_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -173,6 +177,7 @@ def show_page(
     sys_level: str | None = None,
     checked: Mapping[str, bool] | None = None,
     correct: bool = False,
+    enabled: Mapping[str, bool] | None = None,
 ) -> DisplayList:
     """The display list for one page. It does not open a window.
 
@@ -186,7 +191,8 @@ def show_page(
     The rectangle named ``Correct`` is the answer mark. It is on the list
     only when ``correct`` is True, which is when ``setupQuizPage`` ran
     ``set visible of rectangle("correct") of page iPage to true`` for
-    this page.
+    this page. ``enabled`` maps a button name to the enabled state a
+    script gave it; a disabled button with a disabled picture draws it.
     """
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
@@ -195,6 +201,8 @@ def show_page(
         items = tuple(item for item in items if not _answer_mark(item))
     if fields:
         items = _written(items, fields)
+    if enabled:
+        items = _enabled(data, items, enabled)
     if checked:
         items = _checked(data, items, checked)
     if visible:
@@ -637,7 +645,7 @@ def _stored(data: bytes, page_id: str, width: int, height: int) -> list[Paint]:
         if owner is not None:
             found = owner.base + (far & 0xFFFF)
             if found >= 2 and found + 8 <= len(data) and _u16(data, found - 2) == 4:
-                items.extend(_walk(
+                items.extend(replace(item, layer="background") for item in _walk(
                     data,
                     owner,
                     _trailer(data, owner),
@@ -762,6 +770,45 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
     return None
 
 
+def _enabled(data: bytes, items: tuple[Paint, ...], enabled: Mapping[str, bool]) -> tuple[Paint, ...]:
+    """Buttons drawn with the enabled state a script set, not the stored bit."""
+    wanted = {name.lower(): on for name, on in enabled.items()}
+    out = list(items)
+    for index, item in enumerate(out):
+        on = wanted.get(item.name.lower()) if item.kind == "button" else None
+        if on is None or on == item.enabled:
+            continue
+        if not on and item.disabled_id:
+            picture_id, role = item.disabled_id, "disabled"
+        elif item.picture_role == "disabled":
+            picture_id, role = item.up_id, "up" if item.up_id else None
+        else:
+            out[index] = replace(item, enabled=on)
+            continue
+        out[index] = replace(item, enabled=on, picture_id=picture_id, picture_role=role, picture=_picture(data, picture_id))
+    return tuple(out)
+
+
+def background_key(data: bytes, page_id: str) -> str:
+    """A name for the background ``page_id`` uses, the same for every page that shares it."""
+    try:
+        segments = _segments(data)
+    except ValueError:
+        return "background"
+    by_key = {segment.key: segment for segment in segments}
+    book_segment, book_record = _book(data, segments)
+    for handle in _page_handles(data, by_key, book_segment, book_record):
+        segment = by_key.get(handle >> 16)
+        if segment is None:
+            continue
+        record = segment.base + (handle & 0xFFFF)
+        if record < 2 or record + 0x4B > len(data) or _u16(data, record - 2) != 5:
+            continue
+        if _chars(data, record + 6, 32) == page_id:
+            return f"background {struct.unpack_from('<I', data, record + 0x47)[0]:08x}"
+    return "background"
+
+
 def _checked(data: bytes, items: tuple[Paint, ...], checked: Mapping[str, bool]) -> tuple[Paint, ...]:
     """Buttons drawn with the checked state a click set, not the stored bit."""
     wanted = {name.lower(): on for name, on in checked.items()}
@@ -819,6 +866,8 @@ def _button(data, segment, at: int, object_id: int, name: str, bounds) -> Paint:
         up_id=up or None,
         checked_id=checked_id or None,
         invert_id=_graphic_word(data, segment, at, 0x27) or None,
+        enabled=bool(enabled),
+        disabled_id=disabled_id or None,
     )
 
 
