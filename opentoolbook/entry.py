@@ -24,9 +24,11 @@ from opentoolbook.enter import _enter_page
 from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
 from opentoolbook.script import book_handlers, quoted_go_to, resource_scripts
+from opentoolbook.send import calls_dll, handler_chain
 from opentoolbook.shelf import find_file, open_book, search_roots
 from opentoolbook.walk import norm, reader_condition, walk
 
+_SEND = re.compile(r"^send\s+([a-z_][a-z0-9_]*)$")
 _GET = re.compile(r"^get\s+([a-z_][a-z0-9_]*)\s*\((.*)\)\s*$")
 _ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$")
 _BOOK_CALL = re.compile(r"of\s+book\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", re.IGNORECASE)
@@ -63,6 +65,7 @@ class _State:
     return_value: object = None
     breaking: bool = False
     stack: list[str] = field(default_factory=list)
+    skipped: list[str] = field(default_factory=list)
 
 
 def opening_page(path: Path, home: Path | None = None, props: UserProperties | None = None) -> Entry:
@@ -82,9 +85,10 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
     except ValueError as exc:
         raise ValueError(f"no opening page in {path.name}: {exc}") from exc
     pages = _pages(data)
-    handlers = _companion_handlers(opened)
-    handlers.update(_handler_map(data))
     roots = search_roots(path, home)
+    handlers = handler_chain(data, path.name, roots).merged()
+    for name, body in _companion_handlers(opened).items():
+        handlers.setdefault(name, body)
     page, other = choose_opening(
         pages,
         handlers,
@@ -250,11 +254,26 @@ def _statement(raw: str, low: str, state: _State) -> None:
         state.page_id = _step(state.pages, current, step)
         state.book_name = None
         return
+    sent = _SEND.match(low)
+    if sent is not None:
+        _send(sent.group(1), state)
+        return
     assigned = _ASSIGN.match(raw.strip())
     if assigned is not None:
         value = _value(assigned.group(2).strip(), state)
         if value is not None:
             _assign(state, assigned.group(1), value)
+
+
+def _send(name: str, state: _State) -> object:
+    """``send name``: the handler runs unless it links a DLL."""
+    body = state.handlers.get(name.lower())
+    if body is None:
+        return None
+    if calls_dll(body):
+        state.skipped.append(name.lower())
+        return None
+    return _call(name, state)
 
 
 def _book_from_call(line: str, state: _State) -> tuple[str | None, str | None]:
