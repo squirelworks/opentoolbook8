@@ -54,7 +54,7 @@ class SceneTests(unittest.TestCase):
         self.assertEqual(rectangle.stroke, (0, 0, 0))
         width_px = unit_to_px(rectangle.bounds[2] - rectangle.bounds[0], fitted.scale)
         self.assertNotEqual(width_px, unit_to_px(rectangle.bounds[2] - rectangle.bounds[0], fitted.scale * fitted.scale))
-        self.assertEqual([item.kind for item in fitted.items], ["background", "rectangle"])
+        self.assertEqual([item.kind for item in fitted.items], ["background", "rectangle", "angled line"])
         pie = show_page(PIE.read_bytes(), "", 200, 100)
         ellipse = next(item for item in pie.items if item.kind == "ellipse")
         self.assertEqual(ellipse.bounds, (700, 700, 2200, 1800))
@@ -184,3 +184,34 @@ def _index(shown, kind: str, object_id: int) -> int:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ResizeTests(unittest.TestCase):
+    def test_a_narrower_view_refits_the_fixture(self):
+        from opentoolbook.show import refit
+
+        data = FIXTURE.read_bytes()
+        self.assertEqual(page_size(data), (9000, 6000))
+        wide = show_page(data, "", 600, 400)
+        narrow = refit(wide, 300, 400)
+        self.assertEqual(narrow.scale, fit_scale(9000, 6000, 300, 400))
+        self.assertLess(narrow.scale, wide.scale)
+        self.assertEqual((narrow.view_width, narrow.view_height), (300, 400))
+        self.assertEqual(narrow.items, wide.items)
+        self.assertEqual(narrow, show_page(data, "", 300, 400))
+        # The page is 600 by 400 pixels at scale 1, so a 300-pixel view halves it.
+        self.assertEqual(narrow.scale, 0.5)
+
+    def test_a_narrower_view_refits_the_lesson(self):
+        from opentoolbook.show import refit
+
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        data = path.read_bytes()
+        self.assertEqual(page_size(data), (9360, 6624))
+        wide = show_page(data, "P300", 624, 442)
+        narrow = refit(wide, 312, 442)
+        self.assertEqual(narrow.scale, fit_scale(9360, 6624, 312, 442))
+        self.assertLess(narrow.scale, wide.scale)
+        self.assertEqual(narrow.items, wide.items)

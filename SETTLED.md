@@ -103,9 +103,13 @@ A quiz question page has fields named `Stem`, `A`, `B`, `C`, and `D`. The traile
 
 A class `0x13` record is 55 bytes. The count is the word at `+0x2D` and the near pointer at `+0x2F` names the stored points, four bytes each. The four signed words at `+0x25` are the minimum x, the minimum y, the maximum x, and the maximum y of those points. The reader returns the stored points. The same read holds for every such record in `9e954d01.tbk` and in `nida81.tbk`.
 
+## Angled line
+
+The window paints a class `0x13` record as an angled line. The line is the stored points the polyline reader returns, in stored order, stroked in the color at `+0x17`. It is not filled. The byte at `+0x1A` and the byte at `+0x1E` are 0 on all 66 records in `9e954d01.tbk` and all 14 in `nida81.tbk`. The TBKX export of `9e954d01.tbk` names `+0x17` `RgbStroke` and `+0x1B` `RgbFill` on all 66 angled lines. Every one of the 66 point lists in `9e954d01.tbk` and the 14 in `nida81.tbk` is on the display list of the page or background that holds it. The line Instructor drew on `otb-line-rect.tbk` is that book's one class `0x13` record, object 1, from (2040, 2955) to (240, 5295) in 0, 0, 0, and it is on that page's display list after the rectangle. The window does not change the field-under-shape order for an angled line.
+
 ## Arc
 
-Class `0x11` object 80 on page P1140 of `9e954d01.tbk` stores two points, the signed pairs at `+0x25` and `+0x29`: (1866, 5065) and (1815, 4620). Those are the points in the record. The arc is not filled.
+Class `0x11` object 80 on page P1140 of `9e954d01.tbk` stores two points, the signed pairs at `+0x25` and `+0x29`: (1866, 5065) and (1815, 4620). Those are the points in the record. The arc is not filled. A third signed pair is at `+0x2D`. The reader returns the object id, the rectangle at `+0x0F`, and the three pairs. On `9e954d01.tbk` 43 of the 62 arcs store (5433, 3955), (5428, 3544), (5385, 3750) and 19 store (1866, 5065), (1815, 4620), (1815, 4845), each group across more than one rectangle. On `nida81.tbk` both arcs store (3465, 4126), (3316, 4320), (3465, 4320). On P1140 objects 17, 65, and 80 store the same three pairs with three different rectangles, and none of object 80's pairs is inside its rectangle (5010, 3675, 5550, 4230). The pairs are not page positions, so the window does not paint an arc. The mapping onto the rectangle is in `FINDINGS.md`.
 
 ## Missing files are reported, not fatal
 
@@ -213,6 +217,10 @@ The book record stores the page width at `+0x20` and the page height at `+0x1E`.
 
 An inline type-1 picture stores a `BM` file eight bytes after `01 02 01 00`. On `9e954d01.tbk` that marker is at byte 18 of all 63 inline pictures. On `nida81.tbk` it is at byte 18 of 21 pictures and at byte 36 of the other 2. A huge-table picture keeps the `BM` file after the 8-byte prefix.
 
+## Window resize
+
+Resizing the window refits the page. The canvas fills the window. A `Configure` event with a new canvas size computes the fit scale again from the stored page size and that view: 9360 by 6624 on the lesson, 9000 by 6000 on the fixtures. The paint list is unchanged and only the scale moves. A 600 by 400 view of `otb-line-rect.tbk` is scale 1, and a 300 by 400 view of the same page is scale 0.5. There are no scroll bars.
+
 ## Enter page greeting
 
 On `P10` of `9e954d01.tbk` the `enterPage` handler sets the text of field `First` to `"Hello" && getFirst() & ", this lesson is about:"` when `sysLevel` is `reader`, and to `"Hello, this lesson is about:"` otherwise. The field's stored name is `first`. A missing `sysLevel` is `reader`. `getFirst` in `nc81recs.sbk` returns `__studentFirst`. The reader strips the ends of that variable, and returns `Student` when it is empty. `&&` is one operator and is recognized before `&`. `&&` concatenates with a space. `&` concatenates. The display list for `P10` shows `Hello Student, this lesson is about:`. The one style run at offset 0, face `Arial`, covered the stored string and covers the new string. The field `Text` stays `LOGIC FAMILIES`.
@@ -249,7 +257,7 @@ A book with no startup page and no stored page is an error. The error names the 
 
 `python3 -m opentoolbook path/to/book.tbk --report` prints the record count, the follow-up reads, the files the book names, and the startup call names. It does not open a window. `--report path/to/book.tbk` prints the same report. `--home` with a book and without `--report` opens the book and searches that install. It does not print the install list. `--home` without a book still prints the install folder.
 
-`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds classes `0xD`, `0x11`, `0x13`, `0x15`, and `0x19`, and the window does not paint those. Class `0x12` pies and class `0x17` records are outside that walk and are not painted.
+`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds classes `0xD`, `0x11`, `0x15`, and `0x19`, and the window does not paint those. It paints class `0x13` as an angled line. Class `0x12` pies and class `0x17` records are outside that walk and are not painted.
 
 ## User properties
 
