@@ -157,6 +157,31 @@ class EngineTests(unittest.TestCase):
         self.assertNotIn("flushmessagequeue", engine.skipped)
         self.assertNotIn("flushmessagequeue()", engine.skipped)
 
+    def test_sysdate_follows_sysdateformat(self):
+        from unittest import mock
+        import time
+
+        fixed = time.struct_time((2026, 10, 31, 12, 0, 0, 5, 304, -1))
+        engine = _engine(
+            "to get f\n"
+            "  sysDateFormat = \"yyyy-mm-dd\"\n"
+            "  a = sysDate\n"
+            "  sysDateFormat = \"m/d/yy\"\n"
+            "  return a & \",\" & sysDate & \",\" & sysDateFormat\n"
+            "end\n"
+        )
+        with mock.patch("time.localtime", return_value=fixed):
+            self.assertEqual(engine.get("f"), "2026-10-31,10/31/26,m/d/yy")
+
+    def test_systime_is_milliseconds_since_midnight(self):
+        from unittest import mock
+        import time
+
+        fixed = time.struct_time((2026, 10, 31, 1, 2, 3, 5, 304, -1))
+        engine = _engine("to get f\n  return sysTime\nend\n")
+        with mock.patch("time.localtime", return_value=fixed):
+            self.assertEqual(engine.get("f"), (1 * 3600 + 2 * 60 + 3) * 1000)
+
 
 class ReferenceTests(unittest.TestCase):
     def test_an_array_by_reference_is_shared_and_otherwise_copied(self):

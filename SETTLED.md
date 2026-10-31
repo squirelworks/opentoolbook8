@@ -488,6 +488,8 @@ Opening a book sends `enterSystem`, `enterApplication` and `enterBook` to the bo
 
 `shortFileName(path)` returns the path unchanged, since the books on hand name 8.3 files. `tb80r.sbk`'s `enterPage` uses it to clear duplicate `sysBooks` entries; with no answer, every entry looked like the same name and all but one were cleared. On `9e954d01.tbk` the window opens on `P0` of `nida81.tbk` with `sysBooks` `nc81trnr.sbk`, `nc81recs.sbk`, `nc81test.sbk`, `nc81base.sbk`, `tb80anm.sbk`, `tb80r.sbk`. All 43 Instructor 8.1 books open.
 
+`sysTime` is milliseconds since local midnight. `sysDate` is today's local date as text, shaped by `sysDateFormat` (default `m/d/yy`). The format tokens are `yyyy`, `yy`, `mm`, `m`, `dd`, and `d`. Setting `sysDateFormat` changes later `sysDate` reads. A synthetic handler that sets `yyyy-mm-dd` then `m/d/yy` returns both spellings for a fixed clock.
+
 ## The display list runs no script
 
 `show_page` is the page as the book stores it, with the properties scripts set laid over it: field text, `visible`, `checked` and `enabled`. It does not run `enterPage`; that runs on the interpreter when the window enters a page, and its writes are in the object state. `--show` enters the page it opens with `enterBackground` and `enterPage`. A user property of this book, such as `__nidaVersion of this book`, is the value the book stores until a script sets it, so `PINFO` and `PQINFO` show `Version: 2.003.0001`. The old `enterPage` field walker (`enter_fields`, `concatenate`, `getFirst` in Python, the `sysLevel` author branch) is gone.

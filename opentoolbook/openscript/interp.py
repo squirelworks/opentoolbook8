@@ -87,15 +87,30 @@ class Host:
 
     page_id: str = ""
     book_name: str = ""
+    # ``sysDateFormat`` default matches ToolBook's common short date.
+    sysdateformat: str = "m/d/yy"
 
     def go(self, target: object) -> None:
         """``go to`` an object reference or text."""
 
     def property(self, name: str, of: object) -> tuple[bool, object]:
         """``(found, value)`` for ``name of of``. ``of`` is None for a system property."""
+        if of is None:
+            if name == "systime":
+                import time
+
+                now = time.localtime()
+                return True, (now.tm_hour * 3600 + now.tm_min * 60 + now.tm_sec) * 1000
+            if name == "sysdate":
+                return True, _format_sysdate(self.sysdateformat)
+            if name == "sysdateformat":
+                return True, self.sysdateformat
         return False, None
 
     def set_property(self, name: str, of: object, value: object) -> bool:
+        if of is None and name == "sysdateformat":
+            self.sysdateformat = text(value) or "m/d/yy"
+            return True
         return False
 
     def command(self, engine: "Engine", name: str, args: tuple) -> tuple[bool, object]:
@@ -921,3 +936,24 @@ def _is_object(engine, args: tuple) -> bool:
     if handled:
         return bool(value)
     return isinstance(_arg(args, 0), Ref)
+
+
+def _format_sysdate(pattern: str) -> str:
+    """Format today's date with a ToolBook-style ``sysDateFormat`` pattern."""
+    import time
+
+    now = time.localtime()
+    month, day, year = now.tm_mon, now.tm_mday, now.tm_year
+    replacements = (
+        ("yyyy", f"{year:04d}"),
+        ("yy", f"{year % 100:02d}"),
+        ("mm", f"{month:02d}"),
+        ("m", str(month)),
+        ("dd", f"{day:02d}"),
+        ("d", str(day)),
+    )
+    out = pattern or "m/d/yy"
+    # Longer tokens first so ``yyyy`` wins over ``yy``.
+    for token, value in replacements:
+        out = out.replace(token, "\0" + value + "\0")
+    return out.replace("\0", "")

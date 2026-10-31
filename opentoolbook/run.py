@@ -132,11 +132,9 @@ class BookHost(Host):
                 return True, "reader"
             if name in _SYSTEM:
                 return True, _SYSTEM[name]
-            if name == "systime":
-                import time
-
-                now = time.localtime()
-                return True, (now.tm_hour * 3600 + now.tm_min * 60 + now.tm_sec) * 1000
+            found, value = super().property(name, of)
+            if found:
+                return found, value
             return False, None
         if isinstance(of, Ref) and of.by == "this":
             if name == "name" and of.kind == "page":

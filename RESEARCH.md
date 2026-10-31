@@ -1564,3 +1564,11 @@ Source: the handoff M5 note that invert from buttonDown/buttonUp must persist (S
 ## buttonDoubleClick
 
 Source: OpenScript message list (DENNY-OBJECTS.md draw-object chart) and the handoff M5 note. The window binds Tk Double-Button-1, cancels the delayed single buttonClick, and sends buttonDoubleClick to the named button or field under the pointer.
+
+## sysDate and sysTime
+
+Source: OpenScript system properties (keyword list) and the handoff M5 note. `sysTime` was already answered by BookHost; both now live on the base Host so every runner sees them. `sysDateFormat` defaults to `m/d/yy`.
+
+## Preventing_Fraud.tbk (M3)
+
+Source: handoff M3. This environment has no `Preventing_Fraud.tbk` and no Instructor 8.1 sample folder (workspace search and Google Drive exact-name search returned nothing). Diagnosis of its format vs TB80 waits on that file.
