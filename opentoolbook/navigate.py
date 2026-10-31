@@ -9,9 +9,11 @@ starts from the lesson the user opened, then the book on screen, then
 ``--home``. A file that search does not find is an error that names the
 file and the page, in the same sentence as the open:
 ``nida81.tbk was not found; P310 of that book does not open``. A click
-that hits no button, or a button with no ``buttonClick``, goes to the
-page's own ``buttonClick``. A quiz button on a page whose background
-calls ``handleQuizClick`` uses the stored page list. A letter button on
+runs on the OpenScript interpreter (``clickrun.send_click``): the
+message goes to the object, the groups that hold it, the page, the
+background, the book and then each ``sysBooks`` book, until a handler
+takes it. On a page whose background calls ``handleQuizClick`` the path
+stops at the page for now, and a quiz button uses the stored page list. A letter button on
 that page, ``A`` through ``E``, is ``manageQuizButtons``: the letter is
 checked and every other letter on the page is unchecked. The page stays.
 With a ``props`` store, ``OK`` and ``Next`` there run the first block of
@@ -36,7 +38,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from opentoolbook.click import follow_click, object_handler, page_click, quiz_background, quiz_setup_click, run_handler
+from opentoolbook.click import object_handler, quiz_background
 from opentoolbook.enter import _enter_page, page_source
 from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
@@ -92,6 +94,7 @@ class Navigator:
         # System variables a handler this runner executed assigned, by lower-case name.
         self.variables: dict[str, object] = {key.lower(): value for key, value in (variables or {}).items()}
         self._handlers: dict[Path | None, dict[str, str]] = {}
+        self._chains: dict = {}
         # The __ names this window's handlers read and write.
         self.props = props if props is not None else UserProperties()
         # Pages shown before this one, oldest first: (book, page id, book bytes).
@@ -163,14 +166,7 @@ class Navigator:
         return True
 
     def _click(self, button: str | None, shown: dict[str, str] | None) -> Clicked:
-        acted = None
-        if button:
-            quiz_setup_click(self.data, self.page_id, button, self.pages, self.handlers(), self.props)
-            acted = follow_click(
-                self.data, self.page_id, button, self.pages, self.variables, self.book_name, shown, call=self.call
-            )
-        if acted is None:
-            acted = page_click(self.data, self.page_id, self.pages, self.variables, self.book_name, shown)
+        acted = self._send(("button", button) if button else None, "buttonclick", shown)
         if acted is None:
             if not button or not quiz_background(self.data, self.page_id):
                 return Clicked(False)
@@ -200,22 +196,46 @@ class Navigator:
         source = object_handler(self.data, self.page_id, kind, name, message)
         if source is None:
             return None
-        from opentoolbook.show import show_page
-
-        listed = show_page(self.data, self.page_id, 1, 1, None)
-        present = {(item.kind, item.name.lower()) for item in listed.items if item.name}
-
-        def objects(kind_name: str, key: str | int) -> bool:
-            return isinstance(key, str) and (kind_name, key) in present
-
         before = (self.book, self.page_id, self.data)
-        acted = run_handler(
-            source, self.pages, self.page_id, self.variables, self.book_name, shown, call=self.call, objects=objects
-        )
+        acted = self._send((kind, name), message.lower(), shown)
+        if acted is None:
+            return None
         result = self._apply(acted)
         if result.moved:
             self.history.append(before)
         return result
+
+    def _send(self, target: tuple[str, str] | None, message: str, shown: dict[str, str] | None):
+        """Send ``message`` along the object path on the interpreter. None when nothing takes it."""
+        from opentoolbook.clickrun import send_click
+        from opentoolbook.show import show_page
+
+        listed = show_page(self.data, self.page_id, 1, 1, None)
+        present = {(item.kind, item.name.lower()) for item in listed.items if item.name}
+        groups: tuple[str, ...] = ()
+        if target is not None:
+            for item in listed.items:
+                if item.kind == target[0] and item.name.lower() == target[1].lower():
+                    groups = item.groups
+                    break
+        return send_click(
+            self.data,
+            self.page_id,
+            self.pages,
+            self.book_name,
+            self.roots(),
+            [handlers for _book, handlers in self.chain().books],
+            target,
+            props=self.props,
+            variables=self.variables,
+            sysbooks=list(self.sysbooks),
+            fields=shown,
+            present=present,
+            message=message,
+            groups=groups,
+            # The quiz background's buttonClick still goes to the reader's quiz path.
+            beyond_page=not quiz_background(self.data, self.page_id),
+        )
 
     def _apply(self, acted) -> Clicked:
         beep, asked = acted.beeps > 0, acted.requests
@@ -372,14 +392,22 @@ class Navigator:
                 return
             self.data, self.pages, self.book, self.page_id = data, pages, book, matched
 
-    def handlers(self) -> dict[str, str]:
-        """Handler bodies by lower-case name: this book's, then each ``sysBooks`` book's."""
+    def chain(self):
+        """Handler maps by book: this book's, then each ``sysBooks`` book's."""
         from opentoolbook.send import handler_chain
 
         key = self.book
+        if not hasattr(self, "_chains"):
+            self._chains = {}
+        if key not in self._chains:
+            self._chains[key] = handler_chain(self.data, self.book_name, self.roots(), self.sysbooks)
+        return self._chains[key]
+
+    def handlers(self) -> dict[str, str]:
+        """Handler bodies by lower-case name: this book's, then each ``sysBooks`` book's."""
+        key = self.book
         if key not in self._handlers:
-            chain = handler_chain(self.data, self.book_name, self.roots(), self.sysbooks)
-            self._handlers[key] = chain.merged()
+            self._handlers[key] = self.chain().merged()
         return self._handlers[key]
 
 

@@ -57,7 +57,7 @@ class NavigatorHideTests(unittest.TestCase):
 
         nav = navigate.Navigator(FIXTURE.read_bytes(), "")
         hid = Follow("", None, visible=((("rectangle", 0), False),))
-        with patch.object(navigate, "follow_click", return_value=hid):
+        with patch.object(navigate.Navigator, "_send", return_value=hid):
             clicked = nav.click("Hide")
         self.assertEqual((clicked.moved, clicked.changed), (False, True))
         listed = show_page(nav.data, nav.page_id, 800, 600, visible=nav.visible)

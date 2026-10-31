@@ -83,7 +83,7 @@ class Nida71Tests(unittest.TestCase):
         self.assertEqual(caught.exception.name, "nida71.tbk")
         self.assertEqual(len(caught.exception.roots), 3)
 
-    def test_retry_on_all_four_pages_of_nida81_prints_the_error_and_stays(self):
+    def test_retry_on_all_four_pages_of_nida81_stays_without_a_trainer_handler(self):
         path = _lesson()
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
@@ -92,15 +92,16 @@ class Nida71Tests(unittest.TestCase):
 
         self.assertIsNone(find_file(search_roots(nida, None), "nida71.tbk"))
         data = nida.read_bytes()
-        sentence = "nida71.tbk was not found; P12060 of that book does not open"
+        # verifyVoltages130a has no handler in any book, so its result is not 60
+        # and the nida71.tbk line under "when it is 60" is not reached.
         for page in ("P12000", "P12001", "P12002", "P12003"):
             with self.subTest(page=page):
                 nav = Navigator(data, page, nida)
                 errors: list[str] = []
                 stream = io.StringIO()
-                self.assertIsNone(click_reported(nav, "Retry", errors, stream))
-                self.assertEqual(errors, [sentence])
-                self.assertEqual(stream.getvalue(), sentence + "\n")
+                clicked = click_reported(nav, "Retry", errors, stream)
+                self.assertFalse(clicked.moved)
+                self.assertEqual(errors, [])
                 self.assertEqual((nav.page_id, nav.book), (page, nida))
 
 

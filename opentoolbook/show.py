@@ -130,6 +130,8 @@ class Paint:
     sizes: tuple[tuple[int, int | None], ...] = ()
 
     width: int = 1
+    # Names of the groups that hold this object, innermost first.
+    groups: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -670,8 +672,9 @@ def _walk(data, segment, trailer, base: int, known: set[int], parent: int) -> li
     for at, kind in _layered(data, segment, trailer, found, parent):
         near = at - segment.base
         if kind == _GROUP:
+            held = (_group_name(data, trailer, at),)
             for child in _child_nears(data, segment, at):
-                items.extend(_child(data, segment, trailer, base, known, by_near, child))
+                items.extend(_child(data, segment, trailer, base, known, by_near, child, held))
             continue
         painted = _paint(data, segment, trailer, base, known, at, kind)
         if painted is not None:
@@ -690,18 +693,23 @@ def _layered(data, segment, trailer, found, parent: int):
     return sorted(children, key=lambda child: place[child[0] - segment.base])
 
 
-def _child(data, segment, trailer, base, known, by_near, near: int) -> list[Paint]:
+def _child(data, segment, trailer, base, known, by_near, near: int, held: tuple[str, ...]) -> list[Paint]:
     child = by_near.get(near)
     if child is None:
         return []
     at, kind = child
     if kind == _GROUP:
+        inner = (_group_name(data, trailer, at), *held)
         found: list[Paint] = []
         for nested in _child_nears(data, segment, at):
-            found.extend(_child(data, segment, trailer, base, known, by_near, nested))
+            found.extend(_child(data, segment, trailer, base, known, by_near, nested, inner))
         return found
     painted = _paint(data, segment, trailer, base, known, at, kind)
-    return [] if painted is None else [painted]
+    return [] if painted is None else [replace(painted, groups=held)]
+
+
+def _group_name(data, trailer, at: int) -> str:
+    return _object_name(data, trailer, at) if trailer is not None else ""
 
 
 def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | None:

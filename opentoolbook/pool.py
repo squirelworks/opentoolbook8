@@ -163,7 +163,12 @@ def _openscript_random(rng: _random.Random, limit: int) -> int:
 
 
 def _table(props: UserProperties, name: str) -> dict:
+    """A one-index ``__`` array as a dict. The interpreter stores an ``Array``."""
+    from opentoolbook.openscript.values import Array
+
     found = props.get(name)
+    if isinstance(found, Array):
+        return {index[0]: value for index, value in found.cells.items() if len(index) == 1}
     return found if isinstance(found, dict) else {}
 
 

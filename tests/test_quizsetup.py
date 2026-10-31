@@ -118,7 +118,8 @@ class LessonTests(unittest.TestCase):
         nav = Navigator(path.read_bytes(), "P10002", path, sysbooks=opening_page(path).sysbooks)
         self.assertFalse(nav.click("selection1").moved)
         self.assertEqual(nav.page_id, "P10002")
-        self.assertEqual(nav.props.get("__quizPages"), {1: "P10301", 2: "P10302", 3: "P10303"})
+        # setupQuizEx in nc81test.sbk runs on the interpreter and stores an array.
+        self.assertEqual(nav.props.get("__quizPages").cells, {(1,): "P10301", (2,): "P10302", (3,): "P10303"})
         self.assertEqual(nav.props.get("__quizPass"), 1)
         self.assertEqual(nav.props.get("__quizType"), 1)
 
