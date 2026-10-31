@@ -11,6 +11,7 @@ no body. ``end`` at the top of a handler ends it.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Callable
 
@@ -60,6 +61,22 @@ def reader_condition(text: str, reader: bool = True) -> bool | None:
         return not reader
     return None
 
+
+_REQUEST = re.compile(r'^request\s+"((?:[^"]|"")*)"(?:\s+with\s+.*)?$', re.IGNORECASE)
+_BEEP = re.compile(r"^beep(?:\s*\(\s*\d*\s*\)|\s+\d+)?$", re.IGNORECASE)
+
+
+def request_text(line: str) -> str | None:
+    """The quoted text of ``request "..."``, with or without ``with "a" or "b"``."""
+    found = _REQUEST.match(line.strip())
+    if found is None:
+        return None
+    return found.group(1).replace('""', '"')
+
+
+def is_beep(line: str) -> bool:
+    """``beep``, ``beep 1``, or ``beep(1)``. The reader does not sound it."""
+    return _BEEP.match(line.strip()) is not None
 
 def this_name(expression: str, page_id: str | None, book_name: str | None) -> str | None:
     """``name of this page`` is the page id. ``name of this book`` is the file name.
