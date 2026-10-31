@@ -11,7 +11,9 @@ file and the page, in the same sentence as the open:
 ``nida81.tbk was not found; P310 of that book does not open``. A click
 that hits no button, or a button with no ``buttonClick``, goes to the
 page's own ``buttonClick``. A quiz button on a page whose background
-calls ``handleQuizClick`` uses the stored page list. A page id matches
+calls ``handleQuizClick`` uses the stored page list. A letter button on
+that page, ``A`` through ``E``, is ``manageQuizButtons``: the letter is
+checked and every other letter on the page is unchecked. The page stays. A page id matches
 regardless of case. A ``request`` the click runs is returned with the
 result, and the window shows it. Field text a click writes stays on the
 page until the page changes.
@@ -45,6 +47,12 @@ class Clicked:
     beep: bool = False
     requests: tuple[str, ...] = ()
     changed: bool = False
+    checked: bool = False
+
+
+# ``initializeTest`` sets ``__quizMaxResponse`` to 5, and
+# ``manageQuizButtons`` walks ``ansiToChar(96 + i)`` up to it.
+LETTERS = ("a", "b", "c", "d", "e")
 
 
 class Navigator:
@@ -71,6 +79,7 @@ class Navigator:
         self._handlers: dict[Path | None, dict[str, str]] = {}
         # Field text a click wrote, by field name. Cleared when the page changes.
         self.fields: dict[str, str] = {}
+        self.letters: dict[tuple[str, str], str] = {}
 
     @property
     def book_name(self) -> str:
@@ -113,7 +122,11 @@ class Navigator:
         if acted is None:
             if not button or not quiz_background(self.data, self.page_id):
                 return Clicked(False)
-            result = quiz_click(self.pages, self.page_id, button)
+            name = button.strip().lower()
+            if name in LETTERS:
+                self.letters[self._key()] = name
+                return Clicked(False, checked=True)
+            result = quiz_click(self.pages, self.page_id, button, checked=self.letters.get(self._key()))
             asked = (result.request,) if result.request else ()
             if result.page_id == self.page_id:
                 return Clicked(False, result.beep, asked)
@@ -144,7 +157,17 @@ class Navigator:
         """The display list of the page on screen, after its ``enterPage``."""
         from opentoolbook.show import show_page
 
-        return show_page(self.data, self.page_id, view_width, view_height, props, fields=self.fields)
+        return show_page(self.data, self.page_id, view_width, view_height, props, fields=self.fields, checked=self.checked_buttons())
+
+    def checked_buttons(self) -> dict[str, bool]:
+        """The letter states a click set on this page, for ``show_page``."""
+        letter = self.letters.get(self._key())
+        if letter is None:
+            return {}
+        return {name: name == letter for name in LETTERS}
+
+    def _key(self) -> tuple[str, str]:
+        return (str(self.book or ""), self.page_id)
 
     def enter(self) -> None:
         """Run the ``enterPage`` of the page on screen and follow a quoted move."""
