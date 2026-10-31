@@ -26,6 +26,7 @@ class QuizClick:
 
     page_id: str
     beep: bool
+    request: str | None = None
     correct: bool | None = None
 
 
@@ -38,6 +39,7 @@ def quiz_click(
     checked: str | None = None,
     props=None,
     question_numbers: dict[str, int] | None = None,
+    script: str | None = None,
 ) -> QuizClick:
     """Apply one named button on ``page_id``.
 
@@ -45,6 +47,7 @@ def quiz_click(
     letter the script has checked, or empty when the reader has not.
     With ``props`` and ``question_numbers``, a running pass 1, 2, or 3
     goes to the page ``gotoNextQuestionEx`` names.
+    ``script`` is ``handleQuizClick``. The ``Skip`` request text comes from it.
     """
     name = button.strip().lower()
     choice = (checked or "").strip()
@@ -61,14 +64,14 @@ def quiz_click(
 
             found = goto_next_question_ex(props, pages, question_numbers)
             if found in pages and found in question_numbers:
-                return QuizClick(found, False, setup_quiz_page_correct(quiz_pass))
+                return QuizClick(found, False, correct=setup_quiz_page_correct(quiz_pass))
             return QuizClick(found if found in pages else page_id, False)
         return QuizClick(page_id, False)
     if quiz_pass == 8 and name in _NEXT | {"back"} and not (name == "skip" and choice):
         moved = _adjacent(pages, page_id, -1 if name == "back" else 1)
-        return QuizClick(moved, False, setup_quiz_page_correct(8) if moved != page_id else None)
+        return QuizClick(moved, False, correct=setup_quiz_page_correct(8) if moved != page_id else None)
     if quiz_pass == 8 and name == "skip" and choice:
-        return QuizClick(page_id, True)
+        return QuizClick(page_id, True, skip_request(script or ""))
     if quiz_pass not in (None, 8):
         return QuizClick(page_id, False)
     if name in _NEXT:
@@ -102,3 +105,30 @@ def _adjacent(pages: tuple[str, ...], page_id: str, step: int) -> str:
     if moved < 0 or moved >= len(pages):
         return page_id
     return pages[moved]
+
+
+def skip_request(script: str) -> str | None:
+    """The ``request`` text of the ``Skip`` branch when a letter is checked."""
+    from opentoolbook.walk import Flow, block_if, is_beep, norm, request_text, split_if, walk
+
+    lines = script.splitlines()
+    for index, line in enumerate(lines):
+        test = block_if(norm(line))
+        if test is None or test.replace(" ", "") != 'nameofvtargetis"skip"':
+            continue
+        taken, _skipped, _end = split_if(lines, index + 1)
+        asked: list[str] = []
+
+        def condition(text: str) -> bool | None:
+            return True if text.replace(" ", "") == 'response<>""' else None
+
+        def statement(raw: str, _low: str) -> None:
+            if is_beep(raw):
+                return
+            text = request_text(raw)
+            if text is not None:
+                asked.append(text)
+
+        walk(taken, Flow(), condition=condition, statement=statement)
+        return asked[0] if asked else None
+    return None
