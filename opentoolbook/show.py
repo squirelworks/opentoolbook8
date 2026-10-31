@@ -127,6 +127,7 @@ def open_page(
     book: str | None = None,
     home: str | None = None,
     lesson: str | None = None,
+    variables: dict[str, object] | None = None,
 ) -> None:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
@@ -140,6 +141,7 @@ def open_page(
     still uses OK, Next, and Skip for the next page and Back for the
     previous page. ``lesson`` is the path the user passed when the
     window opens on another book. A click still searches beside it.
+    ``variables`` are the system variables startup assigned.
     """
     import sys
     import tkinter as tk
@@ -161,7 +163,7 @@ def open_page(
             background="#ffffff",
         )
         canvas.pack()
-        nav = Navigator(data, page_id, book, home, lesson)
+        nav = Navigator(data, page_id, book, home, lesson, variables)
 
         def redraw() -> None:
             listed = show_page(nav.data, nav.page_id, view_w, view_h)

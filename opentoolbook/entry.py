@@ -42,6 +42,8 @@ class Entry:
     page_id: str
     book: Path
     data: bytes
+    # System variables the startup handlers assigned, by lower-case name.
+    variables: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass
@@ -62,7 +64,12 @@ class _State:
 
 
 def opening_page(path: Path, home: Path | None = None) -> Entry:
-    """The page ``path`` opens on, after the startup handlers and ``enterPage``."""
+    """The page ``path`` opens on, after the startup handlers and ``enterPage``.
+
+    The system variables those handlers assigned come back on the entry,
+    so a click in the window reads the same ``lastbook`` and ``nextpage``.
+    """
+    variables: dict[str, object] = {}
     try:
         data = path.read_bytes()
     except OSError as exc:
@@ -81,6 +88,7 @@ def opening_page(path: Path, home: Path | None = None) -> Entry:
         _page_scripts(data, pages),
         roots=roots,
         book_name=path.name,
+        variables=variables,
     )
     current_path = path
     current_data = data
@@ -109,8 +117,9 @@ def opening_page(path: Path, home: Path | None = None) -> Entry:
             book_name=found.name,
             startup=False,
             page_id=page,
+            variables=variables,
         )
-    return Entry(page, current_path, current_data)
+    return Entry(page, current_path, current_data, variables)
 
 
 def choose_opening(
@@ -122,14 +131,18 @@ def choose_opening(
     book_name: str = "book.tbk",
     startup: bool = True,
     page_id: str | None = None,
+    variables: dict[str, object] | None = None,
 ) -> tuple[str, str | None]:
     """``(page id, other book or None)`` after startup and this book's ``enterPage``.
 
     ``handlers`` maps a lower-case handler name to its source. ``page_scripts``
     maps a page id to that page's script. An other book is a file name, not
-    a path. The caller resolves it.
+    a path. The caller resolves it. ``variables`` is filled with the system
+    variables the handlers assign.
     """
     state = _State(pages, {key.lower(): value for key, value in handlers.items()}, roots, book_name)
+    if variables is not None:
+        state.variables = variables
     state.page_id = page_id
     if startup:
         _run_startup(state)
