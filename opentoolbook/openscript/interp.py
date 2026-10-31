@@ -211,7 +211,12 @@ class Engine:
             raise ScriptError(f"{message}: handlers nest too deep")
         frame = Frame(handler, message, kind, index, tuple(args), target=target if target is not None else self._target())
         for position, param in enumerate(handler.params):
-            frame.locals[param.name] = args[position] if position < len(args) else ""
+            value = args[position] if position < len(args) else ""
+            if isinstance(value, Array) and not param.by_ref:
+                copied = Array(value.dims)
+                copied.cells = dict(value.cells)
+                value = copied
+            frame.locals[param.name] = value
         if handler.value_param is not None and len(args) > len(handler.params):
             frame.locals[handler.value_param.name] = args[len(handler.params)]
         frame.locals.setdefault("it", "")

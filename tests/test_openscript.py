@@ -146,6 +146,16 @@ class EngineTests(unittest.TestCase):
         self.assertIn("nothere()", engine.skipped)
 
 
+class ReferenceTests(unittest.TestCase):
+    def test_an_array_by_reference_is_shared_and_otherwise_copied(self):
+        engine = _engine(
+            "to get fill int a[] by reference\n  a[1] = 7\n  return 0\nend\n"
+            "to get keep int a[]\n  a[1] = 9\n  return 0\nend\n"
+            "to get f\n  local int n[]\n  get fill(n)\n  get keep(n)\n  return n[1]\nend\n"
+        )
+        self.assertEqual(engine.get("f"), 7)
+
+
 class ChunkTests(unittest.TestCase):
     def test_get_and_put(self):
         self.assertEqual(get_chunk("a,b,c", "item", 2, 2), "b")

@@ -251,6 +251,8 @@ class Command:
 class Param:
     name: str
     type: str | None
+    # ``by reference``: an array argument is shared with the caller, not copied.
+    by_ref: bool = False
 
 
 @dataclass(frozen=True)

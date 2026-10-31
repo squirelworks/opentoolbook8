@@ -168,9 +168,15 @@ def _params(tokens: list[Token]) -> list[A.Param]:
     for token in tokens + [Token("op", ",", 0)]:
         if token.kind == "op" and token.text == ",":
             words = [item for item in group if item.kind == "word"]
+            by_ref = False
+            for at, item in enumerate(words):
+                if item.low == "by":
+                    by_ref = any(word.low == "reference" for word in words[at + 1:])
+                    words = words[:at]
+                    break
             if words:
                 kind = words[0].low if len(words) > 1 and words[0].low in TYPES else None
-                params.append(A.Param(words[-1].low, kind))
+                params.append(A.Param(words[-1].low, kind, by_ref))
             group = []
         elif not (token.kind == "op" and token.text in "[]"):
             group.append(token)

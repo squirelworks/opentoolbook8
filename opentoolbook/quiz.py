@@ -125,3 +125,25 @@ def _properties(trailer) -> dict[str, str]:
             continue
         found.setdefault(name, raw.decode("latin-1"))
     return found
+
+
+def page_properties(data: bytes) -> dict[str, dict[str, str]]:
+    """User properties of every page, by page id, read the way ``questions`` reads them.
+
+    Each page record is in its own segment, so the segment's trailer is
+    that page's. A page with no user properties maps to an empty dict.
+    """
+    segments = _segments(data)
+    by_key = {segment.key: segment for segment in segments}
+    book_segment, book_record = _book(data, segments)
+    found: dict[str, dict[str, str]] = {}
+    for handle in _page_handles(data, by_key, book_segment, book_record):
+        segment = by_key.get(handle >> 16)
+        if segment is None:
+            continue
+        record = segment.base + (handle & 0xFFFF)
+        if record < 2 or record + 8 > len(data) or _u16(data, record - 2) != PAGE:
+            continue
+        trailer = _trailer(data, segment)
+        found[_chars(data, record + 6, 32)] = _properties(trailer) if trailer is not None else {}
+    return found

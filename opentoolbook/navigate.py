@@ -12,13 +12,9 @@ file and the page, in the same sentence as the open:
 runs on the OpenScript interpreter (``clickrun.send_click``): the
 message goes to the object, the groups that hold it, the page, the
 background, the book and then each ``sysBooks`` book, until a handler
-takes it. On a page whose background calls ``handleQuizClick`` the path
-stops at the page for now, and a quiz button uses the stored page list. A letter button on
-that page, ``A`` through ``E``, is ``manageQuizButtons``: the letter is
-checked and every other letter on the page is unchecked. The page stays.
-With a ``props`` store, ``OK`` and ``Next`` there run the first block of
-``gotoNextQuestionEx`` before the page changes: the checked letter and its
-score go into ``__quizResponse`` and ``__quizScore`` at ``__quizIndex``.
+takes it. A quiz runs that way too: the quiz background's
+``buttonClick`` calls ``handleQuizClick`` in ``nc81test.sbk``. The
+``checked`` states a click sets are kept by page in ``letters``.
 A page id matches
 regardless of case. A ``request`` the click runs is returned with the
 result, and the window shows it. Field text a click writes, and objects
@@ -38,11 +34,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from opentoolbook.click import object_handler, quiz_background
+from opentoolbook.click import object_handler
 from opentoolbook.enter import _enter_page, page_source
 from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
-from opentoolbook.quiznav import quiz_click
 from opentoolbook.shelf import MissingBook, find_file, open_book, search_roots
 
 # A page whose enterPage moves to another page is followed this many times.
@@ -58,14 +53,6 @@ class Clicked:
     requests: tuple[str, ...] = ()
     changed: bool = False
     checked: bool = False
-
-
-# ``initializeTest`` sets ``__quizMaxResponse`` to 5, and
-# ``manageQuizButtons`` walks ``ansiToChar(96 + i)`` up to it.
-LETTERS = ("a", "b", "c", "d", "e")
-# ``handleQuizClick`` calls ``gotoNextQuestionEx`` for these. ``Skip`` with a
-# checked letter asks first, and without one stores nothing here.
-_NEXT_QUESTION = ("ok", "next")
 
 
 class Navigator:
@@ -103,7 +90,8 @@ class Navigator:
         self.fields: dict[str, str] = {}
         # Objects a click hid or showed, by (kind, name or id). Cleared when the page changes.
         self.visible: dict[tuple[str, str | int], bool] = {}
-        self.letters: dict[tuple[str, str], str] = {}
+        # checked of button a click set, by page, then lower-case button name.
+        self.letters: dict[tuple[str, str], dict[str, bool]] = {}
         # Buttons a buttonDown or buttonUp handler set the invert of, by lower-case name.
         self.inverted: dict[str, bool] = {}
 
@@ -168,23 +156,7 @@ class Navigator:
     def _click(self, button: str | None, shown: dict[str, str] | None) -> Clicked:
         acted = self._send(("button", button) if button else None, "buttonclick", shown)
         if acted is None:
-            if not button or not quiz_background(self.data, self.page_id):
-                return Clicked(False)
-            name = button.strip().lower()
-            if name in LETTERS:
-                self.letters[self._key()] = name
-                return Clicked(False, checked=True)
-            if name in _NEXT_QUESTION and self.props is not None and not self._ok_beeps(name):
-                self.record_answer()
-            result = self.quiz_click(button)
-            asked = (result.request,) if result.request else ()
-            if result.page_id == self.page_id:
-                return Clicked(False, result.beep, asked)
-            self.page_id = result.page_id
-            self.fields = {}
-            self.visible = {}
-            self.inverted = {}
-            return Clicked(True, result.beep, asked)
+            return Clicked(False)
         return self._apply(acted)
 
     def message(self, kind: str, name: str, message: str, shown: dict[str, str] | None = None) -> Clicked | None:
@@ -231,14 +203,16 @@ class Navigator:
             sysbooks=list(self.sysbooks),
             fields=shown,
             present=present,
+            checked=self.checked_buttons(),
             message=message,
             groups=groups,
-            # The quiz background's buttonClick still goes to the reader's quiz path.
-            beyond_page=not quiz_background(self.data, self.page_id),
         )
 
     def _apply(self, acted) -> Clicked:
         beep, asked = acted.beeps > 0, acted.requests
+        for page_id, name, on in acted.checks:
+            self.letters.setdefault((str(self.book or ""), page_id), {})[name] = on
+        checked = bool(acted.checks)
         for button, inverted in acted.inverts:
             self.inverted[button.lower()] = inverted
         changed = bool(acted.fields or acted.visible or acted.inverts)
@@ -253,9 +227,9 @@ class Navigator:
             pages = page_ids(data)
         page = _match(pages, acted.page_id)
         if page is None:
-            return Clicked(False, beep, asked, changed)
+            return Clicked(False, beep, asked, changed, checked)
         if book == self.book and page == self.page_id:
-            return Clicked(False, beep, asked, changed)
+            return Clicked(False, beep, asked, changed, checked)
         self.data, self.pages, self.book = data, pages, book
         self.page_id = page
         self.fields = {}
@@ -263,35 +237,6 @@ class Navigator:
         self.inverted = {}
         self.enter()
         return Clicked(True, beep, asked)
-
-    def quiz_click(self, button: str):
-        """``get handleQuizClick(target)``, the one line of shared script 103's ``buttonClick``.
-
-        ``__quizPass`` comes from the store. On a running pass the store and
-        each question page's ``QuestionNo`` go to ``gotoNextQuestionEx``.
-        """
-        from opentoolbook.quiz import questions
-
-        quiz_pass = self.props.get("__quizPass")
-        if not isinstance(quiz_pass, int) or isinstance(quiz_pass, bool):
-            quiz_pass = None
-        numbers = None
-        if quiz_pass in (1, 2, 3):
-            numbers = {
-                item.page_id: int(item.question_no)
-                for item in questions(self.data)
-                if item.question_no.strip().isdigit()
-            }
-        return quiz_click(
-            self.pages,
-            self.page_id,
-            button,
-            quiz_pass=quiz_pass,
-            checked=self.letters.get(self._key()),
-            props=self.props if numbers is not None else None,
-            question_numbers=numbers,
-            script=self.handlers().get("handlequizclick", ""),
-        )
 
     def call(self, name: str) -> str | None:
         """The page a ``get name()`` line in a click goes to, or None.
@@ -317,46 +262,8 @@ class Navigator:
         return listed
 
     def checked_buttons(self) -> dict[str, bool]:
-        """The letter states a click set on this page, for ``show_page``."""
-        letter = self.letters.get(self._key())
-        if letter is None:
-            return {}
-        return {name: name == letter for name in LETTERS}
-
-    def letter_states(self) -> dict[str, bool]:
-        """``checked of button`` for each letter: the click state, else the stored bit."""
-        from opentoolbook.show import show_page
-
-        listed = show_page(self.data, self.page_id, 1, 1, None, checked=self.checked_buttons())
-        return {
-            item.name.lower(): item.picture_role == "checked"
-            for item in listed.items
-            if item.kind == "button" and item.name.lower() in LETTERS
-        }
-
-    def record_answer(self) -> int | None:
-        """Store this page's checked letter and score. None when nothing is stored."""
-        from opentoolbook.quiz import questions
-        from opentoolbook.quizscore import record_answer
-
-        question = next((item for item in questions(self.data) if item.page_id == self.page_id), None)
-        if question is None:
-            return None
-        return record_answer(
-            self.props,
-            self.letter_states(),
-            question.answer,
-            question.test_no,
-            question.question_no,
-        )
-
-    def _ok_beeps(self, name: str) -> bool:
-        """``OK`` with ``__quizPass`` in ``1,2`` and no letter beeps and returns 0 first."""
-        from opentoolbook.quizscore import get_quiz_response
-
-        if name != "ok" or self.props.get("__quizPass") not in (1, 2):
-            return False
-        return get_quiz_response(self.letter_states()) == ""
+        """The ``checked`` states clicks set on this page, for ``show_page``."""
+        return dict(self.letters.get(self._key(), {}))
 
     def _key(self) -> tuple[str, str]:
         return (str(self.book or ""), self.page_id)

@@ -62,7 +62,19 @@ class LessonKeyTests(unittest.TestCase):
         path = _lesson()
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        nav = Navigator(path.read_bytes(), "P10210", path)
+        from unittest.mock import patch
+
+        from opentoolbook.entry import opening_page
+        from opentoolbook.openscript import interp
+
+        opened = opening_page(path)
+        nav = Navigator(path.read_bytes(), "P10002", path, props=opened.props, sysbooks=opened.sysbooks)
+        fixed = patch.object(interp._random, "randint", lambda low, high: low)
+        fixed.start()
+        self.addCleanup(fixed.stop)
+        # The pre-test opens question 110 on P10210; Next skips it to 111 on P10211.
+        nav.click("selection1")
+        self.assertEqual(nav.page_id, "P10210")
         listed = nav.display(624, 442)
         self.assertEqual(key_button(listed, "Right"), "Next")
         self.assertTrue(press_key(nav, listed, "Right").moved)

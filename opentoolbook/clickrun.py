@@ -16,7 +16,7 @@ from pathlib import Path
 from opentoolbook.click import Follow, background_script
 from opentoolbook.enter import page_source
 from opentoolbook.openscript.interp import Engine, Ref
-from opentoolbook.openscript.values import ScriptError, text
+from opentoolbook.openscript.values import ScriptError, as_number, number, text
 from opentoolbook.run import BookHost, parsed
 
 # Object script classes: a button is 9, a field 0xA, a group 0xB.
@@ -51,8 +51,15 @@ class ClickHost(BookHost):
     inverts: list = field(default_factory=list)
     beeps: int = 0
 
-    def __init__(self, pages, book_file, roots, page_id, fields, present):
+    def __init__(self, pages, book_file, roots, page_id, fields, present, data=b"", groups=(), checked=None):
         super().__init__(pages, book_file, roots)
+        self.data = data
+        # The groups that hold the clicked object, innermost first.
+        self.groups = tuple(groups)
+        # checked of button, by lower-case name, as clicks on this page set it.
+        self.checked = {name.lower(): on for name, on in (checked or {}).items()}
+        self.checks: list = []
+        self._page_props: dict | None = None
         self.page_id = page_id
         self.start_page = page_id
         self.fields = {name.lower(): value for name, value in (fields or {}).items()}
@@ -72,15 +79,86 @@ class ClickHost(BookHost):
         found = self._field_name(of)
         if name == "text" and found is not None:
             return True, self.fields.get(found.lower(), "")
-        if name == "name" and isinstance(of, Ref) and of.by == "name":
-            return True, text(of.value)
+        if isinstance(of, Ref):
+            if name == "object":
+                return True, of.kind
+            if name == "parent":
+                if of.kind != "page" and self.groups and of.of is None:
+                    return True, Ref("group", "name", self.groups[0], None)
+                return True, Ref("page", "this", None, None)
+            if of.kind == "page":
+                return self._page_property(name, of)
+            if of.kind == "book" and of.by == "this" and name == "pagecount":
+                return True, len(self.pages)
+            if name == "name" and of.by == "name":
+                return True, text(of.value)
+            if of.kind == "button" and of.by == "name" and name in {"checked", "enabled"}:
+                return True, self._button_bit(name, text(of.value))
         return super().property(name, of)
+
+    def _page_id(self, ref: Ref) -> str | None:
+        if ref.by == "this":
+            return self.page_id
+        value = ref.value
+        numbered = number(value) if not isinstance(value, str) or text(value).strip().isdigit() else None
+        if ref.by == "id" or numbered is not None:
+            index = int(numbered if numbered is not None else as_number(value))
+            return self.pages[index - 1] if 1 <= index <= len(self.pages) else None
+        wanted = text(value).lower()
+        return next((page for page in self.pages if page.lower() == wanted), None)
+
+    def _objects(self, page: str) -> set:
+        """``(kind, lower-case name)`` of the named objects on ``page``."""
+        if page.lower() == (self.page_id or "").lower() and self.present:
+            return self.present
+        from opentoolbook.show import show_page
+
+        listed = show_page(self.data, page, 1, 1, None)
+        return {(item.kind, item.name.lower()) for item in listed.items if item.name}
+
+    def _page_property(self, name: str, ref: Ref):
+        page = self._page_id(ref)
+        if page is None:
+            return False, None
+        if name == "name":
+            return True, page
+        if name == "pagenumber":
+            return True, [item.lower() for item in self.pages].index(page.lower()) + 1
+        if self._page_props is None:
+            from opentoolbook.quiz import page_properties
+
+            self._page_props = {key.lower(): {k.lower(): v for k, v in value.items()} for key, value in page_properties(self.data).items()}
+        values = self._page_props.get(page.lower(), {})
+        if name in values:
+            return True, values[name]
+        # A user property the page does not have is null.
+        return True, ""
+
+    def _button_bit(self, name: str, button: str) -> bool:
+        from opentoolbook.bitmap import button_checked, button_enabled
+
+        if name == "checked" and button.lower() in self.checked:
+            return self.checked[button.lower()]
+        read = button_checked if name == "checked" else button_enabled
+        try:
+            return bool(read(self.data, self.page_id, button))
+        except ValueError:
+            return name == "enabled"
 
     def set_property(self, name: str, of: object, value: object) -> bool:
         found = self._field_name(of)
         if name == "text" and found is not None:
             self.fields[found.lower()] = text(value)
             self.written.append((found, text(value)))
+            return True
+        if name == "checked" and isinstance(of, Ref) and of.kind == "button" and of.by == "name":
+            on = value is True or text(value).lower() == "true"
+            page = self._page_id(of.of) if isinstance(of.of, Ref) and of.of.kind == "page" else self.page_id
+            if page is None:
+                return False
+            if page.lower() == (self.page_id or "").lower():
+                self.checked[text(of.value).lower()] = on
+            self.checks.append((page, text(of.value).lower(), on))
             return True
         if name == "invert" and isinstance(of, Ref) and of.kind == "button" and of.by == "name":
             self.inverts.append((text(of.value), value is True or text(value).lower() == "true"))
@@ -114,6 +192,9 @@ class ClickHost(BookHost):
                 if ref.by == "id":
                     return True, False
                 return True, text(ref.value).lower() in {page.lower() for page in self.pages}
+            if isinstance(ref.of, Ref) and ref.of.kind == "page":
+                page = self._page_id(ref.of)
+                return True, page is not None and (ref.kind, text(ref.value).lower()) in self._objects(page)
             if ref.of is not None:
                 return True, False
             key = text(ref.value).lower()
@@ -145,6 +226,7 @@ def send_click(
     message: str = "buttonclick",
     groups: tuple[str, ...] = (),
     beyond_page: bool = True,
+    checked: dict | None = None,
 ) -> Follow | None:
     """Send ``message`` to ``button`` (kind, name), or to the page when None.
 
@@ -178,7 +260,7 @@ def send_click(
 
     if not lookup("handle", message):
         return None
-    host = ClickHost(pages, book_file, roots, page_id, fields, present or set())
+    host = ClickHost(pages, book_file, roots, page_id, fields, present or set(), data, groups, checked)
     engine = Engine(lookup, host, props=props, variables=variables, sysbooks=sysbooks)
     host.engine = engine
     target = Ref(button[0], "name", button[1], None) if button is not None else Ref("page", "this", None, None)
@@ -195,4 +277,5 @@ def send_click(
         tuple(host.written),
         tuple(host.visible),
         tuple(host.inverts),
+        tuple(host.checks),
     )

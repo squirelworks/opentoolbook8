@@ -58,6 +58,8 @@ class Follow:
     fields: tuple[tuple[str, str], ...] = ()
     visible: tuple[tuple[tuple[str, str | int], bool], ...] = ()
     inverts: tuple[tuple[str, bool], ...] = ()
+    # ``set checked of button`` lines: page id, lower-case button name, state, in order.
+    checks: tuple[tuple[str, str, bool], ...] = ()
 
 
 def follow_click(

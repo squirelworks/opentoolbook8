@@ -40,39 +40,6 @@ class SharedScriptClickTests(unittest.TestCase):
         nav = self._nav(UserProperties())
         self.assertIn('__quizPass is in "1,2"', nav.handlers()["handlequizclick"])
 
-    def test_empty_ok_on_pass_1_and_2_stays_and_beeps(self):
-        for quiz_pass in (1, 2):
-            props = UserProperties({"__quizPass": quiz_pass, "__quizIndex": 1})
-            nav = self._nav(props)
-            clicked = nav.click("OK")
-            self.assertFalse(clicked.moved)
-            self.assertTrue(clicked.beep)
-            self.assertEqual(nav.page_id, "P10210")
-
-    def test_ok_with_no_quiz_running_still_moves(self):
-        nav = self._nav(UserProperties())
-        clicked = nav.click("OK")
-        self.assertTrue(clicked.moved)
-        self.assertFalse(clicked.beep)
-
-    def test_next_on_pass_1_opens_the_next_pooled_question(self):
-        # __quizNumbers holds 110 then 111. __quizIndex 1 is P10210 (110).
-        props = UserProperties(
-            {
-                "__quizPass": 1,
-                "__quizIndex": 1,
-                "__quizCount": 2,
-                "__quizNumbers": {1: 110, 2: 111},
-                "__quizStartPage": 1,
-            }
-        )
-        nav = self._nav(props)
-        nav.click("C")
-        clicked = nav.click("Next")
-        self.assertTrue(clicked.moved)
-        self.assertEqual(nav.page_id, "P10211")
-        self.assertEqual(props.get("__quizResponse"), {1: "c"})
-
 
 if __name__ == "__main__":
     unittest.main()

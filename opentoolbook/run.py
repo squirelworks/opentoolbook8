@@ -82,7 +82,7 @@ class BookHost(Host):
         if isinstance(target, Ref):
             if target.kind == "page":
                 if target.by == "name" or target.by == "id":
-                    page = text(target.value)
+                    page = self._numbered(target.value)
                 elif target.by in {"next", "previous", "first", "last"}:
                     page = self._step(target.by)
                 if isinstance(target.of, Ref) and target.of.kind == "book":
@@ -100,6 +100,15 @@ class BookHost(Host):
             return
         self.page_id = page
         self.book_name = book if book and book.lower() != self.book_file.lower() else None
+
+    def _numbered(self, value: object) -> str:
+        """A page name, or the page at that position when ``value`` is a number."""
+        if isinstance(value, (int, float)) and not isinstance(value, bool) or text(value).strip().isdigit():
+            index = int(as_number(value))
+            if 1 <= index <= len(self.pages):
+                return self.pages[index - 1]
+            return ""
+        return text(value)
 
     def _step(self, by: str) -> str:
         if not self.pages:
