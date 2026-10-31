@@ -6,6 +6,8 @@ from pathlib import Path
 
 from opentoolbook.header import VersionFields, export_module_name, version_fields
 
+from lesson import companion
+
 FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
 
 
@@ -23,7 +25,7 @@ class ExportModuleTests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self.assertEqual(export_module_name(Path(path).read_bytes()), "MINSTB32.dll")
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         if not nida.is_file():
             self.skipTest("nida81.tbk is not beside the lesson")
         self.assertEqual(export_module_name(nida.read_bytes()), "MINSTB32.dll")
@@ -57,12 +59,12 @@ class VersionFieldTests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self.assertEqual(version_fields(Path(path).read_bytes()), _SHARED)
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         if not nida.is_file():
             self.skipTest("nida81.tbk is not beside the lesson")
         self.assertEqual(version_fields(nida.read_bytes()), _SHARED)
         for name in ("nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk"):
-            book = Path(path).with_name(name)
+            book = companion(path, name)
             if book.is_file():
                 self.assertEqual(version_fields(book.read_bytes()), _SHARED)
 

@@ -6,6 +6,8 @@ from pathlib import Path
 
 from opentoolbook.line import stored_line_colors
 
+from lesson import companion
+
 
 class LineColorTests(unittest.TestCase):
     def test_colors_are_not_the_endpoints(self):
@@ -13,7 +15,7 @@ class LineColorTests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self._logic(Path(path).read_bytes())
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         self._nida(nida.read_bytes())
 
