@@ -83,6 +83,7 @@ class NavigatorFieldTests(unittest.TestCase):
         nav.data, nav.pages, nav.page_id, nav.book, nav.home, nav.fields = b"", ("P1", "P2"), "P1", None, None, {}
         nav.lesson, nav.variables, nav._handlers = None, {}, {}
         nav.props, nav.letters = navigate.UserProperties(), {}
+        nav.history = []
         wrote = Follow("P1", None, fields=(("Stem", "new"),))
         # These two clicks are on no stored page, so no quiz group runs setupQuizEx.
         quiet = patch.object(navigate, "quiz_setup_click")

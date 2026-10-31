@@ -12,8 +12,9 @@ list. ``if``, ``break``, and ``return`` are the shared walker in
 ...`` write a field's text, and a later condition reads that text.
 ``hide`` and ``show`` of a field, button, rectangle, ellipse, line, or
 polygon, by name or by ``id``, and ``set visible of ... to``, change
-whether it is painted. A line that is not one of those is not a page
-change.
+whether it is painted. ``get gotoMenuPage()`` opens the page that
+system-book handler names. A line that is not one of those is not a
+page change.
 ``beep`` does nothing and returns. ``request "..."`` records its text and
 does not change the page.
 """
@@ -22,6 +23,7 @@ from __future__ import annotations
 
 import re
 import struct
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
@@ -42,6 +44,7 @@ _BARE_GO_TO = re.compile(
     re.IGNORECASE,
 )
 _ASSIGN = re.compile(r"^([a-z_][a-z0-9_]*)\s*=\s*(.+?)\s*$", re.IGNORECASE)
+_GET = re.compile(r"^get\s+([a-z_][a-z0-9_]*)\s*\(\s*\)$")
 
 
 @dataclass(frozen=True)
@@ -64,6 +67,8 @@ def follow_click(
     variables: dict[str, object] | None = None,
     book: str = "",
     fields: dict[str, str] | None = None,
+    *,
+    call: Callable[[str], str | None] | None = None,
 ) -> Follow | None:
     """The page this button's handler opens, or None when it has no handler.
 
@@ -74,7 +79,7 @@ def follow_click(
     source = _handler(data, page_id, button)
     if source is None:
         return None
-    return run_handler(source, pages, page_id, variables, book, fields)
+    return run_handler(source, pages, page_id, variables, book, fields, call=call)
 
 
 def page_click(
@@ -102,6 +107,8 @@ def run_handler(
     variables: dict[str, object] | None = None,
     book_name: str = "",
     fields: dict[str, str] | None = None,
+    *,
+    call: Callable[[str], str | None] | None = None,
 ) -> Follow:
     """Run the assignment, ``go to page``, ``send next``, ``send previous``, and field text lines.
 
@@ -109,7 +116,9 @@ def run_handler(
     handler this runner executed assigned it. This handler's assignments
     are written into it. ``book_name`` is ``name of this book``. ``fields``
     maps a field name to its text before the click. A write changes that
-    text for the lines after it.
+    text for the lines after it. ``call`` runs a ``get name()`` line and
+    returns the page that handler goes to, or None when it does not
+    change the page.
     """
     known = variables if variables is not None else {}
     landed = {"page": page_id, "book": None}
@@ -159,6 +168,12 @@ def run_handler(
             if named.group(2) and (not isinstance(book_value, str) or not book_value):
                 return
             landed["page"], landed["book"] = page_value, book_value
+            return
+        called = _GET.match(low)
+        if called is not None and call is not None:
+            moved = call(called.group(1))
+            if moved is not None:
+                landed["page"], landed["book"] = moved, None
             return
         if low in {"send next", "send previous"}:
             landed["page"] = _step(pages, page_id, 1 if low == "send next" else -1)
