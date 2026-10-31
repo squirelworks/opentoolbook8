@@ -6,8 +6,8 @@ The reader takes ``sysLevel = reader`` because a missing ``sysLevel`` is
 ``reader``. ``__studentRecords`` that has not been set is 0, so
 ``openSession`` returns 0 and ``gotoPageList`` does not run. The names in
 ``gotoPageList`` are not quoted. ``forward`` is not executed. A
-``linkDLL`` line is not called. ``fileExists32`` is not called; a quoted
-name in that check is looked up with the same search as the book report.
+``linkDLL`` line is not called. ``fileExists32`` is not a DLL call here:
+it is 1 when the book report's search finds the quoted name, else 0.
 
 When those handlers do not name a page, the page is the first one stored
 in the book's page list. That page's ``enterPage`` is read the same way.
@@ -25,14 +25,15 @@ from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
 from opentoolbook.script import book_handlers, quoted_go_to, resource_scripts
 from opentoolbook.send import calls_dll, handler_chain
-from opentoolbook.shelf import find_file, open_book, search_roots
+from opentoolbook.shelf import file_exists32, find_file, open_book, search_roots
 from opentoolbook.walk import norm, reader_condition, walk
 
 _SEND = re.compile(r"^send\s+([a-z_][a-z0-9_]*)$")
 _GET = re.compile(r"^get\s+([a-z_][a-z0-9_]*)\s*\((.*)\)\s*$")
 _ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$")
 _BOOK_CALL = re.compile(r"of\s+book\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", re.IGNORECASE)
-_FILE_EXISTS = re.compile(r'^fileexists32\("([^"]*)"\) = 1$')
+_FILE_EXISTS = re.compile(r'^fileexists32\(\s*"([^"]*)"\s*\)$')
+_FILE_EXISTS_IS = re.compile(r'^fileexists32\(\s*"([^"]*)"\s*\)\s*(=|<>)\s*(-?\d+)$')
 _IT_IS = re.compile(r"^it is (\d+)$")
 _COMPARE = re.compile(r"^([a-z_][a-z0-9_]*) = (false|true|\d+)$")
 _MESSAGES = ("entersystem", "enterapplication")
@@ -244,6 +245,10 @@ def _statement(raw: str, low: str, state: _State) -> None:
         state.page_id = page
         state.book_name = book
         return
+    exists = _FILE_EXISTS.fullmatch(low[4:].strip()) if low.startswith("get ") else None
+    if exists is not None:
+        state.it = file_exists32(state.roots, exists.group(1))
+        return
     call = _GET.match(low)
     if call is not None:
         state.it = _call(call.group(1), state)
@@ -307,9 +312,13 @@ def _condition(text: str, state: _State) -> bool | None:
     reader = reader_condition(low)
     if reader is not None:
         return reader
-    exists = _FILE_EXISTS.fullmatch(low)
+    exists = _FILE_EXISTS_IS.fullmatch(low)
     if exists is not None:
-        return find_file(state.roots, exists.group(1)) is not None
+        same = file_exists32(state.roots, exists.group(1)) == int(exists.group(3))
+        return same if exists.group(2) == "=" else not same
+    alone = _FILE_EXISTS.fullmatch(low)
+    if alone is not None:
+        return file_exists32(state.roots, alone.group(1)) == 1
     compared = _IT_IS.fullmatch(low)
     if compared is not None:
         return str(state.it) == compared.group(1)
@@ -357,6 +366,9 @@ def _value(expr: str, state: _State) -> object | None:
         return _literal(low)
     if low == "name of this book":
         return state.book_file
+    exists = _FILE_EXISTS.fullmatch(low)
+    if exists is not None:
+        return file_exists32(state.roots, exists.group(1))
     if len(expr) >= 2 and expr[0] == '"' and expr[-1] == '"':
         return expr[1:-1]
     return None
