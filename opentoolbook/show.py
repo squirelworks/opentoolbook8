@@ -141,7 +141,10 @@ def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
     ``book``, exact case, and nowhere else. A quiz page with no quiz
     running still uses OK, Next, and Skip for the next page and Back
     for the previous page. Resizing the window refits the page: the
-    scale is computed again from the page size and the new view.
+    scale is computed again from the page size and the new view. The
+    close button ends the Tk loop and this
+    function returns. A click that raises prints the error and the window
+    stays up.
     """
     import tkinter as tk
     from pathlib import Path
@@ -225,11 +228,30 @@ def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
 
         canvas.bind("<Button-1>", on_click)
         canvas.bind("<Configure>", on_configure)
+        root.protocol("WM_DELETE_WINDOW", root.quit)
+        root.report_callback_exception = _report_click_error
         redraw()
         root.mainloop()
     finally:
-        if root.winfo_exists():
+        try:
             root.destroy()
+        except tk.TclError:
+            pass
+
+
+def _report_click_error(kind, value, trace) -> None:
+    """A click that raises prints its message and leaves the window up.
+
+    A ``ValueError`` or ``OSError`` is the reader's own error, one line on
+    stderr. Anything else is a bug and keeps its traceback.
+    """
+    import sys
+    import traceback
+
+    if isinstance(value, (ValueError, OSError)):
+        print(value, file=sys.stderr)
+        return
+    traceback.print_exception(kind, value, trace, file=sys.stderr)
 
 
 def button_at(listed: DisplayList, x: float, y: float) -> str | None:
