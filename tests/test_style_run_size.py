@@ -5,7 +5,7 @@ import struct
 import unittest
 from pathlib import Path
 
-from opentoolbook.show import _span_heights, _spans, font_height, show_page
+from opentoolbook.show import _size_at, _spans_at, font_height, show_page
 
 LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 
@@ -34,10 +34,10 @@ class FontHeightTests(unittest.TestCase):
     def test_each_span_takes_the_height_of_the_run_it_starts_in(self):
         text = "Digital Logic\nFamilies"
         runs = ((0, "Arial"), (8, "MS Sans Serif"))
-        spans = _spans(text, runs)
-        heights = _span_heights(text, spans, ((0, 240), (8, 285)), 1)
+        sizes = ((0, 240), (8, 285))
+        heights = tuple(_size_at(sizes, start, 1) for start, _text, _face in _spans_at(text, runs))
         self.assertEqual(heights, (16, 19))
-        self.assertEqual(_span_heights(text, spans, (), 1), (None, None))
+        self.assertIsNone(_size_at((), 0, 1))
 
 
 @unittest.skipUnless(_lesson(), "set OPENTOOLBOOK_TBK to Logic Families")
@@ -53,8 +53,7 @@ class LessonSizeTests(unittest.TestCase):
         field = self._field("P100", "Objective1Title")
         self.assertEqual(field.runs, ((0, "Arial"), (18, "MS Sans Serif")))
         self.assertEqual(field.sizes, ((0, 240), (18, 280)))
-        spans = _spans(field.text, field.runs)
-        heights = _span_heights(field.text, spans, field.sizes, 1)
+        heights = tuple(_size_at(field.sizes, start, 1) for start, _text, _face in _spans_at(field.text, field.runs))
         self.assertEqual(heights, (16, 19))
 
     def test_a_run_word_of_1_is_the_field_font(self):
