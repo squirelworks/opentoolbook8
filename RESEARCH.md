@@ -1528,3 +1528,7 @@ Yup1.wav
 The four starred lines, `NC81IMVS.TBK`, `NIDA81S.TBK`, `NIDA81F.TBK`, and `LOGO81.TBK`, are not in the author install and were not found as files.
 
 Of the files that were actually in a directory, the only basename in both the author install and `/tmp/refs/guest` is `TB80BAS.DLL`. The ten guest names listed above are the ones present only beside those copied books.
+
+## `name of this book` in the system books
+
+Source: the type 10 scripts of `tb80.sbk`, `tb80a.sbk`, and `tb80r.sbk` as `resource_scripts` expands them. They call `pathOfFile(name of this book)`, `shortFileName(name of this book)`, and `ASYM_ShortFileName(name of this book)`. A script that needs the short name asks for it, so the engine's `name of this book` is likely a full path. The reader returns the file name, which is what those calls would return. `nc81test.sbk` compares `__translationSourceBook = name of this book`, and `nc81bank.sbk` stores `filename = name of this book`.
