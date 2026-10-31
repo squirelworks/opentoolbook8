@@ -55,6 +55,10 @@ A button bitmap is an 8-byte prefix followed by a `BM` file in the huge table. T
 
 `9e954d01.tbk` names four bitmaps in the huge table. Resource 148 is at `0x2577`, 581 by 157, 8 bits per pixel. Resource 150 is at `0x18ff7`, 580 by 387, 8 bits per pixel. Resource 155 stays at `0x50117`, 580 by 158, 8 bits per pixel. Resource 164 is at `0x1be627`, 580 by 158, 8 bits per pixel. That count is four.
 
+## 8-bit pictures
+
+An 8-bit picture's pixels are indexes into the color table that follows its info header. The table has the info header's color count, or 256 when that count is 0. The window draws the table color, in red, green, blue order, for each index, with rows turned top-down. It does not read index bytes as color triples. Resources 148, 150, 155, and 164 of `9e954d01.tbk` are 8 bits per pixel. The first stored byte of each is index 0. For 148, 150, and 155 that is 192, 192, 192, and for 164 it is 113, 217, 217. Resource 155 is 580 by 158, and the `textbox` button on `P450` draws it. Every type-1 picture the reader finds decodes: 49 at 8 bits and 18 at 24 bits in `9e954d01.tbk`, and 18 and 14 in `nida81.tbk`. Each of the 67 in `9e954d01.tbk` is the same RGB as the `Bitmap` file of that id in the TBKX export.
+
 ## Button picture
 
 A class `0x09` button is 43 bytes. The word at `+0x28` is a near pointer to a graphics block. When that word is not 0, the block starts with `0x0202` and the unaligned word at byte `0x15` of the block is the picture id. That id is a type-1 resource id plus one. The reader returns it. On `9e954d01.tbk` the four huge-table bitmaps are named there by their stored ids.
@@ -130,6 +134,10 @@ A class `0x0E` line is 53 bytes. The endpoints are the signed pairs at `+0x26`. 
 ## Style run name
 
 The word at byte 2 of a style run is 1, or a near pointer in the list at the book record's `+0x28`. The first word of that list is a count of the pointers. When the run word is one of those pointers, the bytes there are a C string and the reader returns it. When the word is 1, the reader returns no string. On `9e954d01.tbk` more than one of those strings occurs, the same pointer is the same string, and 1 is not in the list. The same shape holds on `nida81.tbk`.
+
+## No hatch for class 0x8
+
+The next class `0x8` pattern byte after 254 and 253 that occurs in both books does not exist. In `9e954d01.tbk` the bytes at `+0x25` are 254 on 143 records, 33 on 56, 253 on 41, and 4 on 3. In `nida81.tbk` they are 254 on 75, 253 on 9, and 81 on 2. Only 254 and 253 are in both. The export names 254 `solidFill` and 253 `none`, and it writes 33 and 4 as bare numbers, `Pattern="33"` and `Pattern="4"`. No byte and no Instructor note names a hatch for 33, 4, or 81. The window does not draw a hatch: such a rectangle is its fill color at `+0x1B` and its stroke at `+0x17`. On `P440` the first pattern-33 bar is `750,4830,825,5130`, filled 192, 192, 192 with a black stroke.
 
 ## Class `0x0B`
 
@@ -229,6 +237,10 @@ An inline type-1 picture stores a `BM` file eight bytes after `01 02 01 00`. On 
 
 Resizing the window refits the page. The canvas fills the window. A `Configure` event with a new canvas size computes the fit scale again from the stored page size and that view: 9360 by 6624 on the lesson, 9000 by 6000 on the fixtures. The paint list is unchanged and only the scale moves. A 600 by 400 view of `otb-line-rect.tbk` is scale 1, and a 300 by 400 view of the same page is scale 0.5. There are no scroll bars.
 
+## No enterButton or leaveButton
+
+`handler_sites` finds every `to handle NAME` line in a book's expanded scripts: inline object scripts, type 10 scripts, and type 19 shared scripts. Handler names are stored as keyword tokens, so a byte search of the file does not see them. On `9e954d01.tbk`, `nida81.tbk`, `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk` there is no `enterButton` handler and no `leaveButton` handler. The window dispatches neither message. The hover handlers the books do have are `mouseEnter` and `mouseLeave`, 19 of each on `9e954d01.tbk` and 3 of each on `nida81.tbk`, all in inline scripts of class `0xA` fields such as `Selection1` on `P300`, and none in the system books. Those are hover, and the window does not dispatch them either.
+
 ## Window close
 
 The window's close button ends the Tk loop. `open_page` returns, and `python3 -m opentoolbook --show PAGE book.tbk` exits 0. Before this, closing the window raised `TclError` from the destroyed root. A click whose handler raises `ValueError` or `OSError` prints that error's one line on stderr and the window stays up on the same page. Any other exception keeps its traceback and the window also stays up. The smoke test opens `otb-line-rect.tbk` and presses close. It is skipped with a message when `DISPLAY` is unset or the Python has no `tkinter`.
@@ -248,6 +260,22 @@ Opening a book and clicking a button raise the same error when the shelf search 
 ## A missing lesson names its disc
 
 When `--catalog ... --open` does not find the lesson file, the same shelf search looks for `CAILT.DAT`, regardless of case. When it finds the table, the error adds the disc codes the table maps for that lesson id, with the most specific pattern winning as in `--cailt`. Against a table whose lines are `9E954??* DIE??V03` and `9E954D0?* DIE-EXACT`, lesson `9E954D01` prints `9e954d01.tbk was not found; lesson 9E954D01 does not open; CAILT.DAT puts it on disc DIE-EXACT` and exits 2. Two codes print as `discs` with a comma. A table with no line for the lesson adds `CAILT.DAT names no disc for it`. With no table on the shelf the error is unchanged. No window opens, and no zip is fetched.
+
+## Arrow keys
+
+The Right key runs the click of the button named `Next` on the page, and the Left key the click of the button named `Back`. The name match ignores case and takes buttons from the page and from its background. It is the same path as clicking that button, including `enterPage` on the page it lands on. On `P300` of `9e954d01.tbk` Right opens `P400` and Left opens `P100`. On `P400` Left opens `P300`, the page its `Back` handler quotes. On the question page `P10210` Right is the `Test` background's `Next` and opens `P10211`. A page with neither button ignores the keys. Escape closes the window. The book's own key handlers are not run.
+
+## Keys the book script binds
+
+Search of the expanded scripts (inline object scripts, type 10, and type 19) of `9e954d01.tbk`, `nida81.tbk`, and the four system books for `keyDown`, `keyUp`, `keyChar`, and `__quizDisableMenuKey`:
+
+- `9e954d01.tbk` type 10 script 376 holds `enterSystem`, so it is the book script. Its `to handle keyup key` quotes `keyf1`, `keyf2`, `keyf4`, `keyf5` through `keyf9`, `keyf11`, `keyf12`, and `keyEnter` in a `conditions` block when `__quizHelp` is 0, and `keyEnter` and `keyF5` when it is not. `keyf10` is commented out. `keyF4` is guarded by `__quizDisableMenuKey = 0`.
+- Type 10 scripts 372, 373, and 374 each have an empty `to handle keyUp` and a `to handle keyDown key` that calls `handleQuizKey` for `keyF7`. A page record whose mode byte at `+0x30` has low bits 2 names its own type 10 script by the word at `+0x2A`: `P10301` is 373 and `P10302` is 374 on the lesson, and `P12000`, `P12001`, and `P12002` are 159, 160, and 161 on `nida81.tbk`. `P10303` names 375 and `P12003` names 162, and neither book stores that resource. No stored page or background names 372.
+- `nida81.tbk` type 10 script 165 holds `enterApplication` and a `to handle keyup key` with the same F-key and `keyEnter` branches. Its `keyf4` branch says `go to page "p900" of book lastbook`.
+- Type 19 shared script 100 has `to handle keyUp key` that sends `buttonClick` to button `Accept` on `keyEnter` when `getQuizMode()` is 0. Shared script 101 has `keyChar`. Shared script 103 has an empty `keyUp`, a `keyDown` for `keyF5` and `keyF7`, and a `keyChar`, all calling `handleQuizKey`.
+- `nc81base.sbk` sets `__quizDisableMenuKey` to 0 and to 1. None of the four system books has a key handler. Inline object scripts send `keyup keyF2` and `keyup keyF5` to the page, and define no key handler.
+
+The window binds one of those keys. Enter is `keyEnter` in the book's `keyUp`: on the lesson that branch is `send buttonClick to button "next"` inside `if isObject(button("Next"))`, so Enter runs the click of the page's `Next` button, and on `P300` it opens `P400`. On `nida81.tbk` the same branch adds `visible` and `enabled` checks that the reader does not evaluate. A page whose own type 10 script has a `keyUp` handles the key there: `P10301` and `P10302` have an empty one, so Enter does nothing on them. The other quoted keys are not bound, because their branches are `request`, `open viewer`, `send exit`, or `get` calls such as `specialFunctions` that the reader does not run. `keyDown`, `keyChar`, and the shared-script key handlers are not bound, because no stored object is known to own scripts 100, 101, or 103.
 
 ## Enter page greeting
 
@@ -363,6 +391,10 @@ A click handler line `name = "text"`, `name = name of this book`, or `name = nam
 The page a click lands on runs its `enterPage` the way the opening page does, in its own book and after a book switch. Its field writes are in the display list, and the book `enterPage` that sets background field `page#` runs for that page. On `P300` that field reads `P300`. `Next` from `P300` opens `P400`, and `page#` reads `P400`. `Back` from `P100` opens `P10`, and field `First` reads `Hello Student, this lesson is about:`. `Selection1` from `P300` opens `P310` of `nida81.tbk`, and `page#` reads `P310`.
 
 A quoted `go to page` in the landing page's `enterPage`, in a branch the reader takes, moves the window again, at most four times. The handlers it calls are the book's own and those of the books it names, found with the click search. Landing on `P0` of `9e954d01.tbk` runs `lastbook = name of this book`, `nextpage = "p10"`, and `go to page "P0" of book getLogoBook()`, so the window moves on to `P0` of `nida81.tbk`. `--show PAGE` still draws the page it is given and does not follow that page's `enterPage` move.
+
+## Background enter page
+
+The background's `enterBackground` and `enterPage` write fields with the same rules as the page's `enterPage`. The page's handler runs first, then the background's, then the book's, the order `forward` passes the message. A later write to the same field wins. Neither `9e954d01.tbk` nor `nida81.tbk` stores an `enterBackground`. The `Test` background of `P10210` through `P10229` has an `enterPage` that sets field `PageText` to the name of the page when `sysLevel` is `author`. A missing `sysLevel` is `reader`, so the window keeps the stored `Testing`. With `sysLevel` `author` the display list for `P10210` shows `P10210` in `PageText`, and `P10211` shows `P10211`. The other backgrounds' `enterPage` handlers call `clearPagelist` and `addToPageList` and write no field.
 
 ## Field text in a click
 

@@ -136,6 +136,8 @@ def show_page(
     props: UserProperties | None = None,
     fields: dict[str, str] | None = None,
     visible: dict[tuple[str, str | int], bool] | None = None,
+    *,
+    sys_level: str | None = None,
 ) -> DisplayList:
     """The display list for one page. It does not open a window.
 
@@ -143,10 +145,11 @@ def show_page(
     ``fields`` is field text a handler wrote after ``enterPage``.
     ``visible`` maps ``(kind, name or id)`` to whether a handler shows it.
     An object a handler hid is not on the list.
+    ``sys_level`` ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
     """
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
-    items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props)
+    items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props, sys_level)
     if fields:
         items = _written(items, fields)
     if visible:
@@ -181,7 +184,9 @@ def open_page(
     book that search does not find is reported on stderr with the file
     and the page, and the window stays. A quiz page with no quiz running
     still uses OK, Next, and Skip for the next page and Back for the
-    previous page. ``props`` is the ``__`` store every page in
+    previous page. The Right key runs the page's ``Next`` button and the
+    Left key its ``Back`` button. Enter runs the branch the book's
+    ``keyUp`` handler quotes for ``keyEnter``. Escape closes the window. ``props`` is the ``__`` store every page in
     this window reads. Resizing the window refits the page: the
     scale is computed again from the page size and the new view. The
     close button ends the Tk loop and this
@@ -260,7 +265,32 @@ def open_page(
             if result.moved or result.changed:
                 redraw()
 
+        def on_key(event) -> None:
+            listed = getattr(canvas, "listed", None)
+            if listed is None:
+                return
+            try:
+                result = press_key(nav, listed, event.keysym)
+            except ValueError as exc:
+                import sys
+
+                print(exc, file=sys.stderr)
+                errors.append(str(exc))
+                root.bell()
+                return
+            if result is None:
+                return
+            if result.beep:
+                root.bell()
+            if result.moved:
+                redraw()
+
         canvas.bind("<Button-1>", on_click)
+        root.bind("<Right>", on_key)
+        root.bind("<Left>", on_key)
+        root.bind("<Return>", on_key)
+        root.bind("<KP_Enter>", on_key)
+        root.bind("<Escape>", lambda _event: root.quit())
         canvas.bind("<Configure>", on_configure)
         root.protocol("WM_DELETE_WINDOW", root.quit)
         root.report_callback_exception = _report_click_error
@@ -307,6 +337,49 @@ def click_reported(nav, name: str | None, errors: list[str], stream=None, shown=
         return None
 
 
+# Right is the button named Next. Left is the button named Back.
+KEY_BUTTONS = {"Right": "next", "Left": "back"}
+
+
+def key_button(listed: DisplayList, key: str) -> str | None:
+    """The button a key presses on this page, as the page names it, or None."""
+    wanted = KEY_BUTTONS.get(key)
+    if wanted is None:
+        return None
+    for item in listed.items:
+        if item.kind == "button" and item.name.lower() == wanted:
+            return item.name
+    return None
+
+
+def press_key(nav, listed: DisplayList, key: str):
+    """Run the click of the button ``key`` presses. None when the page has no such button.
+
+    Right and Left are the viewer's keys. Another key runs only when the
+    book's ``keyUp`` handler quotes it and that branch sends ``buttonClick``
+    to a button this page has.
+    """
+    name = key_button(listed, key)
+    if name is None:
+        name = _book_key_button(nav, listed, key)
+    if name is None:
+        return None
+    return nav.click(name)
+
+
+def _book_key_button(nav, listed: DisplayList, key: str) -> str | None:
+    from opentoolbook.keys import key_handler
+
+    handler = key_handler(nav.data, nav.page_id, key)
+    if handler is None or handler.button is None:
+        return None
+    wanted = handler.button.lower()
+    for item in listed.items:
+        if item.kind == "button" and item.name.lower() == wanted:
+            return item.name
+    return None
+
+
 def button_at(listed: DisplayList, x: float, y: float) -> str | None:
     """The topmost button whose device bounds contain the point."""
     for item in reversed(listed.items):
@@ -335,13 +408,14 @@ def _entered(
     page_id: str,
     items: tuple[Paint, ...],
     props: UserProperties | None = None,
+    sys_level: str | None = None,
 ) -> tuple[Paint, ...]:
     """Run the page's enterPage text. A missing sysLevel is reader."""
     from opentoolbook.enter import enter_fields
 
     indexes = [index for index, item in enumerate(items) if item.kind == "field"]
     packed = tuple((items[index].name, items[index].text or "", items[index].runs) for index in indexes)
-    changed = enter_fields(data, page_id, packed, props=props)
+    changed = enter_fields(data, page_id, packed, props=props, sys_level=sys_level)
     if changed == packed:
         return items
     out = list(items)
