@@ -8,6 +8,7 @@ set in its own bytes: system books, the shell, and ``initialize*`` calls.
 from __future__ import annotations
 
 import re
+import struct
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -29,6 +30,25 @@ CALL_BOOKS = {
     "gotopagelist": "nida81.tbk",
     "opensession": "nida81.tbk",
 }
+
+
+class MissingBook(ValueError):
+    """A book a handler names that the shelf search does not find.
+
+    Opening a book and clicking a button raise this same error, so the
+    sentence is the same: the file, then the page of that book.
+    """
+
+    def __init__(self, name: str, page_id: str, roots: tuple[Path, ...] = ()) -> None:
+        self.name = name
+        self.page_id = page_id
+        self.roots = roots
+        super().__init__(missing_sentence(name, page_id))
+
+
+def missing_sentence(name: str, page_id: str) -> str:
+    """``nida81.tbk was not found; P310 of that book does not open``."""
+    return f"{name} was not found; {page_id} of that book does not open"
 
 
 @dataclass(frozen=True)
@@ -183,6 +203,26 @@ def _file_report(name: str, roots: tuple[Path, ...], shipped: dict[str, bool] | 
     if shipped[name.lower()]:
         return FileReport(name, None, "listed, not shipped")
     return FileReport(name, None, "not found")
+
+
+def unshipped_dll(path: Path, home: Path | None = None) -> str | None:
+    """``MINSTB32.dll named, not shipped`` when the book's export DLL is not on the shelf.
+
+    The name is the C string the book's PE export directory names. The
+    shelf search is the one the open uses. ``None`` means the DLL was
+    found or the book names no DLL. Nothing is loaded either way.
+    """
+    from opentoolbook.header import export_module_name
+
+    try:
+        name = export_module_name(path.read_bytes())
+    except (OSError, ValueError, IndexError, struct.error):
+        return None
+    if not name.lower().endswith(".dll"):
+        return None
+    if find_file(search_roots(path, home), name) is not None:
+        return None
+    return f"{name} named, not shipped"
 
 
 def on_disk(folder: Path, names: tuple[str, ...]) -> tuple[tuple[str, ...], tuple[str, ...]]:
