@@ -19,6 +19,7 @@ from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
 from opentoolbook.script import book_handlers
 from opentoolbook.shelf import MissingBook, find_file, open_book, search_roots
+from opentoolbook.tb80ini import read_tb80_ini
 
 _MESSAGES = ("entersystem", "enterapplication", "enterbook")
 # After those three, the window and the opening page, in the order a TB80RTM trace shows.
@@ -64,13 +65,22 @@ class _State:
     objects: dict = field(default_factory=dict)
 
 
-def opening_page(path: Path, home: Path | None = None, props: UserProperties | None = None) -> Entry:
+def opening_page(
+    path: Path,
+    home: Path | None = None,
+    props: UserProperties | None = None,
+    *,
+    windows: Path | None = None,
+    ini: Path | None = None,
+) -> Entry:
     """The page ``path`` opens on, after the startup handlers and ``enterPage``.
 
     The ``__`` names those handlers assign are kept in ``props`` and
     returned on the entry, so the window reads the same values. The
     system variables those handlers assigned come back on the entry too,
     so a click in the window reads the same ``lastbook`` and ``nextpage``.
+    ``windows`` is the Windows directory for the ``TB80.INI`` search.
+    ``ini`` is an explicit ``TB80.INI`` path that skips that search.
     """
     if props is None:
         props = UserProperties()
@@ -86,7 +96,9 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
     pages = _pages(data)
     roots = search_roots(path, home)
     handlers = _handler_map(data)
-    sysbooks = add_bound_sysbooks([], data, roots)
+    settings = read_tb80_ini(path, windows=windows, override=ini)
+    sysbooks = list(settings.startup_sysbooks)
+    sysbooks = add_bound_sysbooks(sysbooks, data, roots)
     objects: dict = {}
     page, other = choose_opening(
         pages,

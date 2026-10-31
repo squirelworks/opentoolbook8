@@ -1572,3 +1572,7 @@ Source: OpenScript system properties (keyword list) and the handoff M5 note. `sy
 ## Preventing_Fraud.tbk (M3)
 
 Source: handoff M3. This environment has no `Preventing_Fraud.tbk` and no Instructor 8.1 sample folder (workspace search and Google Drive exact-name search returned nothing). Diagnosis of its format vs TB80 waits on that file.
+
+## TB80.INI startup keys
+
+Source: handoff M4 and the TB80RTM startup note in that handoff. Search order is the book's folder, then `<windows>\asym\runtime`, then `<windows>`. With no INI every key is its default and no system book is named for the reader. `startupSysBooks` seeds `sysBooks` before the class-table bound books and before the book's own `push` lines. `startupBook` / `startupWidth` / `startupHeight` are parsed for later window sizing; they do not yet change the opening page or the window size in this push.

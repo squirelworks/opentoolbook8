@@ -49,11 +49,22 @@ def main(argv: list[str]) -> int:
         help="a ToolBook install directory. With a book, also search it for named files",
     )
     parser.add_argument(
+        "--windows",
+        help="a Windows directory for the TB80.INI search (book folder, then asym\\runtime, then this)",
+    )
+    parser.add_argument(
+        "--ini",
+        help="an explicit TB80.INI path. Skips the folder search",
+    )
+    parser.add_argument(
         "--show",
         metavar="PAGE",
         help="open a Tk window on this page id. Does not follow startup handlers",
     )
     args = parser.parse_args(argv[1:])
+    home = Path(args.home) if args.home else None
+    windows = Path(args.windows) if args.windows else None
+    ini = Path(args.ini) if args.ini else None
     if args.show:
         if not args.book:
             parser.print_usage(sys.stderr)
@@ -64,14 +75,13 @@ def main(argv: list[str]) -> int:
         except OSError:
             print(missing_sentence(opened.name, args.show), file=sys.stderr)
             return 2
-        home = Path(args.home) if args.home else None
         try:
             errors = open_page(
                 data,
                 args.show,
                 str(opened),
                 args.home,
-                sysbooks=_startup_sysbooks(opened, home),
+                sysbooks=_startup_sysbooks(opened, home, windows=windows, ini=ini),
                 enter=True,
             )
         except ValueError as exc:
@@ -79,9 +89,8 @@ def main(argv: list[str]) -> int:
             return 2
         return 1 if errors else 0
     if args.book and not args.report:
-        home = Path(args.home) if args.home else None
         try:
-            entry = opening_page(Path(args.book), home)
+            entry = opening_page(Path(args.book), home, windows=windows, ini=ini)
         except ValueError as exc:
             print(exc, file=sys.stderr)
             return 2
@@ -102,9 +111,9 @@ def main(argv: list[str]) -> int:
         return 2
 
     if args.home:
-        _print_home(Path(args.home), Path(args.book) if args.book else None)
+        _print_home(Path(args.home), Path(args.book) if args.book else None, windows=windows, ini=ini)
     elif args.book:
-        _print_book(Path(args.book), None)
+        _print_book(Path(args.book), None, windows=windows, ini=ini)
     return 0
 
 
@@ -112,7 +121,13 @@ def main(argv: list[str]) -> int:
 
 
 
-def _print_book(path: Path, home: Path | None) -> None:
+def _print_book(
+    path: Path,
+    home: Path | None,
+    *,
+    windows: Path | None = None,
+    ini: Path | None = None,
+) -> None:
     opened = open_book(path, home)
     book = opened.book
     follow = [item for item in book.records if item.wants_follow_up]
@@ -133,7 +148,7 @@ def _print_book(path: Path, home: Path | None) -> None:
             print(f"  {item.name}")
     if missing is not None and not any(item.name.lower() == missing_name for item in opened.files):
         print(f"  {missing}")
-    sysbooks = _startup_sysbooks(path, home)
+    sysbooks = _startup_sysbooks(path, home, windows=windows, ini=ini)
     print(f"sysBooks {len(sysbooks)}")
     for name in sysbooks:
         print(f"  {name}")
@@ -147,10 +162,16 @@ def _print_book(path: Path, home: Path | None) -> None:
         _print_shipped(home, roots)
 
 
-def _startup_sysbooks(path: Path, home: Path | None) -> tuple[str, ...]:
+def _startup_sysbooks(
+    path: Path,
+    home: Path | None,
+    *,
+    windows: Path | None = None,
+    ini: Path | None = None,
+) -> tuple[str, ...]:
     """``sysBooks`` after the book's own startup handlers, or none when startup fails."""
     try:
-        return opening_page(path, home).sysbooks
+        return opening_page(path, home, windows=windows, ini=ini).sysbooks
     except ValueError:
         return ()
 
@@ -163,7 +184,13 @@ def _startup_sysbooks(path: Path, home: Path | None) -> tuple[str, ...]:
 
 
 
-def _print_home(folder: Path, book: Path | None) -> None:
+def _print_home(
+    folder: Path,
+    book: Path | None,
+    *,
+    windows: Path | None = None,
+    ini: Path | None = None,
+) -> None:
     if not folder.is_dir():
         raise ValueError(f"{folder} is not a directory")
     version_file = _find(folder, "version.ini")
@@ -176,7 +203,7 @@ def _print_home(folder: Path, book: Path | None) -> None:
         print(f"stdapps.lst {len(data)} bytes")
         print("  " + " ".join(f"{byte:02x}" for byte in data[:32]))
     if book is not None:
-        _print_book(book, folder)
+        _print_book(book, folder, windows=windows, ini=ini)
     else:
         _print_shipped(folder, search_roots(None, folder))
 
