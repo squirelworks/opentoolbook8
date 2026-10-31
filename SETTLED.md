@@ -443,6 +443,10 @@ The `Menu` button on `P450`, `P1001`, `P2001`, `P10003`, `P10004`, and `P10410` 
 
 On that `P900`, button `selectiont` (caption Selection T) runs `get setSection(text of field "selection T")` then `get gotoQuizPage()`. With the props startup leaves, that opens `P10004`, the Quiz menu. `selection1` there is Begin: it runs the same `setupQuizEx` / pool / `gotoNextQuestionEx` path as on `P10002`, and with `random` at its lowest value opens `P10210` with `__quizPass` 1 and `__quizType` 3.
 
+## Menu to Assessment Begin
+
+With `__lessonMode` 0 and `__quizAssessment` 0, `Menu` on `P450` opens `P10001` and sets `__quizDisableMenuKey` to 1. `selection1` on that page is Begin for Assessment: with `random` at its lowest value it opens `P10210` with `__quizPass` 1 and `__quizType` 0. The window title follows to `9e954d01.tbk - P10210`.
+
 ## Quiz setup from the menu groups
 
 Group `selection1` on `P10001`, `P10002`, `P10003`, and `P10004` of `9e954d01.tbk` runs on the interpreter. When `__quizHelp` is 1 it asks `You are already in the quiz review!` and breaks. Otherwise it runs `error = setupQuizEx(type, 2, "P10301", "P10302", "P10303")`, where type is `Assessment`, `Pre-Test`, `Post-Test`, or `Quiz`, so `__quizType` is 0, 1, 2, or 3. `__quizPages` holds `P10301`, `P10302`, and `P10303`, `__quizObjectiveCount` is 2, `__quizIndex` is 1, `__quizStartPage` is the page number, `__quizAttempts` goes up by one, and `__quizPass` is 1. When `__quizMaxAttempts` is not 0 and the attempts pass it, `setupQuizEx` returns 1, the group asks `You have already attempted the quiz the maximum number of times!  Contact your instructor.` and the page stays. Otherwise the group builds the pool and runs `gotoNextQuestionEx`, which opens the first question, `P10210` with `random` at its lowest value.
