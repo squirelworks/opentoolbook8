@@ -4,7 +4,8 @@ A quoted ``go to page`` opens that page. ``of book`` names the other
 file when the line quotes one. ``send next`` and ``send previous`` are
 the next and previous pages in the stored page list. ``if``, ``break``,
 and ``return`` are the shared walker in ``walk.py``. A line that is not
-one of those is not a page change.
+one of those is not a page change. ``beep`` does nothing and returns.
+``request "..."`` records its text and does not change the page.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ from dataclasses import dataclass
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
 from opentoolbook.script import _script, button_clicks, quoted_go_to
-from opentoolbook.walk import Flow, reader_condition, walk
+from opentoolbook.walk import Flow, is_beep, reader_condition, request_text, walk
 
 _PAGE = 5
 _BACKGROUND = 4
@@ -26,6 +27,8 @@ class Follow:
 
     page_id: str
     book: str | None
+    requests: tuple[str, ...] = ()
+    beeps: int = 0
 
 
 def follow_click(
@@ -44,8 +47,17 @@ def follow_click(
 def run_handler(source: str, pages: tuple[str, ...], page_id: str) -> Follow:
     """Run the ``go to page``, ``send next``, and ``send previous`` lines."""
     landed = {"page": page_id, "book": None}
+    asked: list[str] = []
+    beeps = [0]
 
     def statement(raw: str, low: str) -> None:
+        if is_beep(raw):
+            beeps[0] += 1
+            return
+        text = request_text(raw)
+        if text is not None:
+            asked.append(text)
+            return
         found = quoted_go_to(raw)
         if found is not None:
             landed["page"], landed["book"] = found
@@ -55,7 +67,7 @@ def run_handler(source: str, pages: tuple[str, ...], page_id: str) -> Follow:
             landed["book"] = None
 
     walk(source.splitlines(), Flow(), condition=reader_condition, statement=statement)
-    return Follow(landed["page"], landed["book"])
+    return Follow(landed["page"], landed["book"], tuple(asked), beeps[0])
 
 
 def quiz_background(data: bytes, page_id: str) -> bool:
