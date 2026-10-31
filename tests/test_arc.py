@@ -8,6 +8,8 @@ from pathlib import Path
 from opentoolbook.arc import ARC_BYTES, Arc, _arc_record, arc_points, stored_arcs
 from opentoolbook.show import show_page
 
+from lesson import companion
+
 LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 
 
@@ -62,7 +64,7 @@ class ArcTests(unittest.TestCase):
         for x, y in object_80.points:
             self.assertFalse(left <= x <= right and top <= y <= bottom)
 
-        nida = stored_arcs(path.with_name("nida81.tbk").read_bytes())
+        nida = stored_arcs(companion(path, "nida81.tbk").read_bytes())
         self.assertEqual(len(nida), 2)
         self.assertEqual({arc.points for arc in nida}, {((3465, 4126), (3316, 4320), (3465, 4320))})
 

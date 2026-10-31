@@ -9,6 +9,8 @@ from opentoolbook.field import _Segment, page_ids
 from opentoolbook.polyline import POLYLINE_BYTES, stored_polylines
 from opentoolbook.show import _paint, show_page
 
+from lesson import companion
+
 LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 
 
@@ -72,7 +74,7 @@ class LessonAngledLineTests(unittest.TestCase):
     def test_every_class_0x13_record_is_painted(self):
         if not LESSON or not os.path.isfile(LESSON):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        for name, count in ((Path(LESSON), 66), (Path(LESSON).with_name("nida81.tbk"), 14)):
+        for name, count in ((Path(LESSON), 66), (companion(LESSON, "nida81.tbk"), 14)):
             data = name.read_bytes()
             stored = stored_polylines(data)
             self.assertEqual(len(stored), count)
