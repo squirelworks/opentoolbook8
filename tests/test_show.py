@@ -73,13 +73,13 @@ class SceneTests(unittest.TestCase):
             [
                 ("background", None, ""),
                 ("field", 5, "Page#"),
-                ("button", 16, "selection1"),
-                ("button", 1, "Next"),
                 ("button", 19, "MenuFrame"),
-                ("field", 17, "Selection1"),
                 ("button", 21, ""),
                 ("field", 22, ""),
                 ("field", 23, ""),
+                ("button", 16, "selection1"),
+                ("field", 17, "Selection1"),
+                ("button", 1, "Next"),
                 ("button", 5, "Back"),
             ],
         )
