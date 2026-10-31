@@ -62,7 +62,7 @@ class LessonLogoTests(unittest.TestCase):
         needed = {}
         for name in ("nida81.tbk", "nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk"):
             found = None
-            for root in search_roots(lesson, None):
+            for root in search_roots(path, None):
                 for item in root.iterdir() if root.is_dir() else ():
                     if item.name.lower() == name:
                         found = item
@@ -72,7 +72,7 @@ class LessonLogoTests(unittest.TestCase):
             if found is None:
                 self.skipTest(f"{name} is not beside the lesson")
             needed[name] = found
-        return lesson, needed
+        return path, needed
 
     def test_mrj81_without_logo81_opens_mrj81_and_neither_opens_nida81(self):
         from opentoolbook.entry import opening_page

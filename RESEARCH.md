@@ -1571,7 +1571,7 @@ Source: OpenScript system properties (keyword list) and the handoff M5 note. `sy
 
 ## Preventing_Fraud.tbk (M3)
 
-Source: handoff M3. This environment still has no `Preventing_Fraud.tbk` and no Instructor 8.1 sample folder (workspace search; Google Drive exact-name search again returned nothing on 2026-10-31). Diagnosis of its format vs TB80 waits on that file.
+Source: handoff M3. Google Drive has many `.tbk` course files (readable via download) including `9e954d01.tbk`, `nida81.tbk`, and the `nc81*.sbk` / `tb80r.sbk` / `tb80anm.sbk` companions, but no `Preventing_Fraud.tbk` and no Instructor `Walkthrough.tbk` (exact-name and title searches). Diagnosis of Preventing_Fraud vs TB80 still waits on that file.
 
 ## Viewer back leave/enter (M5)
 
