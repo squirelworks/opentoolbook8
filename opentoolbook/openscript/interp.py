@@ -186,10 +186,18 @@ class Engine:
 
     # entry points ---------------------------------------------------------
 
+    def _handlers(self, kind: str, name: str, target: object = None) -> list:
+        """The handlers for a message, first first. A host with ``route`` decides the
+        object path from the target; otherwise ``lookup`` is the whole chain."""
+        route = getattr(self.host, "route", None)
+        if route is None:
+            return self.lookup(kind, name)
+        return route(kind, name, target if target is not None else self._target(), self.lookup)
+
     def send(self, name: str, args: tuple = (), target: object = None) -> object:
         """Send message ``name``. Returns the handler's return value, or None."""
         key = name.lower()
-        handlers = self.lookup("handle", key)
+        handlers = self._handlers("handle", key, target)
         if handlers:
             return self._run(handlers[0], key, "handle", 0, args, target)
         handled, value = self._builtin_command(key, args)
@@ -198,13 +206,13 @@ class Engine:
     def get(self, name: str, args: tuple = (), target: object = None) -> object:
         """``name(args)``: a ``to get`` handler, a built-in, or a DLL function."""
         key = name.lower()
-        handlers = self.lookup("get", key)
+        handlers = self._handlers("get", key, target)
         if handlers:
             return self._run(handlers[0], key, "get", 0, args, target)
         return self._builtin_function(key, args)
 
-    def handles(self, name: str) -> bool:
-        return bool(self.lookup("handle", name.lower()))
+    def handles(self, name: str, target: object = None) -> bool:
+        return bool(self._handlers("handle", name.lower(), target))
 
     # running --------------------------------------------------------------
 
@@ -319,7 +327,7 @@ class Engine:
         frame = self.frame
         if frame.handler is None:
             return
-        handlers = self.lookup(frame.kind, frame.message)
+        handlers = self._handlers(frame.kind, frame.message, frame.target)
         index = frame.chain_index + 1
         if index < len(handlers):
             value = self._run(handlers[index], frame.message, frame.kind, index, frame.args, frame.target)
@@ -458,7 +466,7 @@ class Engine:
             self.beeps += 1
             self.host.beep()
             return
-        handlers = self.lookup("handle", node.name)
+        handlers = self._handlers("handle", node.name)
         if handlers:
             self._run(handlers[0], node.name, "handle", 0, args, None)
             return

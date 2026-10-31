@@ -108,7 +108,9 @@ class BookHost(Host):
             if 1 <= index <= len(self.pages):
                 return self.pages[index - 1]
             return ""
-        return text(value)
+        wanted = text(value)
+        # A page name matches regardless of case; the stored spelling is kept.
+        return next((page for page in self.pages if page.lower() == wanted.lower()), wanted)
 
     def _step(self, by: str) -> str:
         if not self.pages:

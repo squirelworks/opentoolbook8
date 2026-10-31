@@ -185,7 +185,7 @@ class Navigator:
             self.history.append(before)
         return result
 
-    def _send(self, target: tuple[str, str] | None, message: str, shown: dict[str, str] | None):
+    def _send(self, target: tuple[str, str] | None, message: str, shown: dict[str, str] | None, to=None):
         """Send ``message`` along the object path on the interpreter. None when nothing takes it."""
         from opentoolbook.clickrun import send_click
         from opentoolbook.show import show_page
@@ -211,6 +211,7 @@ class Navigator:
             fields=shown,
             state=self._book_state(),
             ask=getattr(self, "ask", None),
+            to=to,
             message=message,
             groups=groups,
         )
@@ -233,6 +234,7 @@ class Navigator:
         for key, shown_now in acted.visible:
             self.visible[key] = shown_now
         data, pages, book = self.data, self.pages, self.book
+        before_book = book
         if acted.book and acted.book.lower() != self.book_name.lower():
             book = self.find_book(acted.book, acted.page_id)
             data = book.read_bytes()
@@ -247,8 +249,33 @@ class Navigator:
         self.fields = {}
         self.visible = {}
         self.inverted = {}
-        self.enter()
+        if book != before_book:
+            # A go within the book sent leavePage and enterPage while the handler ran.
+            self._enter_book()
         return Clicked(True, beep, asked)
+
+    def _enter_book(self) -> None:
+        """``enterBook``, ``enterBackground``, then ``enterPage``, after the window opens another book."""
+        from opentoolbook.openscript.interp import Ref
+
+        depth = getattr(self, "_entering", 0)
+        if depth >= _HOPS:
+            return
+        self._entering = depth + 1
+        try:
+            for message, to in (
+                ("enterbook", Ref("book", "this", None, None)),
+                ("enterbackground", Ref("background", "page", self.page_id, None)),
+                ("enterpage", Ref("page", "this", None, None)),
+            ):
+                where = (self.book, self.page_id)
+                acted = self._send(None, message, None, to=to)
+                if acted is not None:
+                    self._apply(acted)
+                if (self.book, self.page_id) != where:
+                    return
+        finally:
+            self._entering = depth
 
     def display(self, view_width: int, view_height: int, props: UserProperties | None = None):
         """The display list of the page on screen, after its ``enterPage``."""

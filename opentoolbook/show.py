@@ -815,6 +815,34 @@ def _enabled(data: bytes, items: tuple[Paint, ...], enabled: Mapping[str, bool])
     return tuple(out)
 
 
+def background_name(data: bytes, page_id: str) -> str:
+    """The name of the background ``page_id`` uses, or the empty string."""
+    try:
+        segments = _segments(data)
+    except ValueError:
+        return ""
+    by_key = {segment.key: segment for segment in segments}
+    book_segment, book_record = _book(data, segments)
+    for handle in _page_handles(data, by_key, book_segment, book_record):
+        segment = by_key.get(handle >> 16)
+        if segment is None:
+            continue
+        record = segment.base + (handle & 0xFFFF)
+        if record < 2 or record + 0x4B > len(data) or _u16(data, record - 2) != 5:
+            continue
+        if _chars(data, record + 6, 32) != page_id:
+            continue
+        far = struct.unpack_from("<I", data, record + 0x47)[0]
+        owner = by_key.get(far >> 16)
+        if owner is None:
+            return ""
+        found = owner.base + (far & 0xFFFF)
+        if found < 2 or found + 38 > len(data) or _u16(data, found - 2) != 4:
+            return ""
+        return _chars(data, found + 6, 32)
+    return ""
+
+
 def background_key(data: bytes, page_id: str) -> str:
     """A name for the background ``page_id`` uses, the same for every page that shares it."""
     try:

@@ -23,6 +23,7 @@ _KIND = {9: "button", 0xA: "field", 0xB: "group", 0x17: "hotword"}
 
 
 def _object_source(data: bytes, page_id: str, kind: str, name: str) -> str:
+    """The inline script of the named object whose owner (page or background name) is ``page_id``."""
     from opentoolbook.script import object_scripts
 
     folded = name.lower()
@@ -71,6 +72,96 @@ class ClickHost(BookHost):
         self.ask = None
         self._page_props: dict | None = None
         self._listed: dict = {}
+        self._maps: dict = {}
+        # The clicked object, its kind and name, while the page it is on is on screen.
+        self.clicked: tuple[str, str] | None = None
+        # Page changes this run made, to stop an enterPage that goes back and forth.
+        self.moves = 0
+
+    # message paths ----------------------------------------------------------
+
+    def _scripts(self, owner: str, kind: str, name: str) -> dict:
+        key = (owner, kind, name.lower())
+        if key not in self._maps:
+            self._maps[key] = parsed(_object_source(self.data, owner, kind, name)).handlers
+        return self._maps[key]
+
+    def _page_path(self, page: str, background_only: bool = False) -> list:
+        from opentoolbook.show import background_name
+
+        key = ("page path", page, background_only)
+        if key not in self._maps:
+            found = [] if background_only else [parsed(page_source(self.data, page)).handlers]
+            found.append(parsed(background_script(self.data, page)).handlers)
+            self._maps[key] = found
+            self._maps[("background name", page)] = background_name(self.data, page)
+        return self._maps[key]
+
+    def _path(self, target: object) -> list:
+        """Handler maps from the target up to the background."""
+        page = self.page_id
+        if not page:
+            return []
+        if not isinstance(target, Ref):
+            return self._page_path(page)
+        if target.kind == "book":
+            return []
+        if target.kind == "background":
+            return self._page_path(text(target.value) or page, background_only=True)
+        if target.kind == "page":
+            return self._page_path(self._page_id(target) or page)
+        found = self._locate(target)
+        if found is None:
+            return self._page_path(page)
+        _owner, on_page, kind, name, item = found
+        path = []
+        layer_owner = on_page
+        if item is not None and item.layer == "background":
+            self._page_path(on_page)
+            layer_owner = self._maps[("background name", on_page)]
+        path.append(self._scripts(layer_owner, kind, name))
+        if kind == "button" and item is None:
+            # A hotword is clicked by its name; it is not a listed object.
+            path.append(self._scripts(layer_owner, "hotword", name))
+        groups = item.groups if item is not None else ()
+        path.extend(self._scripts(layer_owner, "group", group) for group in groups)
+        if item is not None and item.layer == "background":
+            return path + self._page_path(on_page, background_only=True)
+        return path + self._page_path(on_page)
+
+    def route(self, kind: str, name: str, target: object, chain) -> list:
+        key = f"{kind} {name}"
+        found = [handlers[key] for handlers in self._path(target) if key in handlers]
+        return found + list(chain(kind, name))
+
+    def go(self, target: object) -> None:
+        """``go to``: within this book, leave the old page and enter the new one."""
+        old = self.page_id
+        super().go(target)
+        new = self.page_id
+        engine = getattr(self, "engine", None)
+        if self.book_name or not old or not new or new.lower() == old.lower() or engine is None:
+            return
+        if self.moves >= 16:
+            return
+        self.moves += 1
+        from opentoolbook.show import background_key
+
+        changed = background_key(self.data, old) != background_key(self.data, new)
+        self.page_id = old
+        self._message(engine, "leavepage", Ref("page", "this", None, None))
+        if changed:
+            self._message(engine, "leavebackground", Ref("background", "page", old, None))
+        self.page_id = new
+        if changed:
+            self._message(engine, "enterbackground", Ref("background", "page", new, None))
+        self._message(engine, "enterpage", Ref("page", "this", None, None))
+
+    def _message(self, engine: Engine, name: str, target: Ref) -> None:
+        try:
+            engine.send(name, (), target)
+        except ScriptError as exc:
+            engine.errors.append(f"{name}: {exc}")
 
     # objects --------------------------------------------------------------
 
@@ -279,6 +370,7 @@ def send_click(
     beyond_page: bool = True,
     state: dict | None = None,
     ask=None,
+    to: Ref | None = None,
 ) -> Follow | None:
     """Send ``message`` to ``button`` (kind, name), or to the page when None.
 
@@ -286,23 +378,16 @@ def send_click(
     book's, then each ``sysBooks`` book's. ``beyond_page`` False stops the
     path at the page. ``state`` is the properties earlier clicks set in
     this book, as ``ClickHost`` keeps them; it is not changed here. The
-    result's ``writes`` are this click's. Returns None when no handler on
-    the path takes the message.
+    result's ``writes`` are this click's. ``to`` sends the message to that
+    reference instead, such as the book or a page's background. Returns
+    None when no handler on the path takes the message.
     """
-    path_scripts = []
-    if button is not None:
-        path_scripts.append(_object_source(data, page_id, button[0], button[1]))
-        path_scripts.extend(_object_source(data, page_id, "group", name) for name in groups)
-    path_scripts.append(page_source(data, page_id))
-    if beyond_page:
-        path_scripts.append(background_script(data, page_id))
-    else:
+    if not beyond_page:
         chain_books = []
-    path = [parsed(source).handlers for source in path_scripts if source]
 
     def lookup(kind: str, name: str) -> list:
         key = f"{kind} {name}"
-        found = [handlers[key] for handlers in path if key in handlers]
+        found = []
         for handlers in chain_books:
             source = handlers.get(name)
             if source is None:
@@ -312,14 +397,19 @@ def send_click(
                 found.append(handler)
         return found
 
-    if not lookup("handle", message):
-        return None
     working = {owner: {key: dict(values) for key, values in objects.items()} for owner, objects in (state or {}).items()}
     host = ClickHost(pages, book_file, roots, page_id, fields, present or set(), data, groups, working)
     host.ask = ask
+    if to is not None:
+        target = to
+    elif button is not None:
+        target = Ref(button[0], "name", button[1], None)
+    else:
+        target = Ref("page", "this", None, None)
+    if not host.route("handle", message, target, lookup):
+        return None
     engine = Engine(lookup, host, props=props, variables=variables, sysbooks=sysbooks)
     host.engine = engine
-    target = Ref(button[0], "name", button[1], None) if button is not None else Ref("page", "this", None, None)
     try:
         engine.send(message, (), target)
     except ScriptError as exc:

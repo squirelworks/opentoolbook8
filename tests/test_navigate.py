@@ -206,7 +206,12 @@ class LessonTests(unittest.TestCase):
         self.assertTrue(nav.click("Next").moved)
         self.assertEqual(nav.page_id, "P400")
         self.assertEqual(page_number(nav), ["P400"])
-        back = Navigator(path.read_bytes(), "P100", path)
+        from opentoolbook.entry import opening_page
+
+        # getFirst is in nc81base.sbk; startup reads NIDAREC.INI, and with none
+        # GetPrivateProfileStringA leaves its default "Student" in __studentFirst.
+        opened = opening_page(path)
+        back = Navigator(path.read_bytes(), "P100", path, props=opened.props, sysbooks=opened.sysbooks)
         self.assertTrue(back.click("Back").moved)
         self.assertEqual(back.page_id, "P10")
         first = [item.text for item in back.display(400, 300).items if item.kind == "field" and item.name.lower() == "first"]
@@ -215,6 +220,34 @@ class LessonTests(unittest.TestCase):
         switched.click("Selection1")
         self.assertEqual((switched.book.name, switched.page_id), ("nida81.tbk", "P310"))
         self.assertEqual(page_number(switched), ["P310"])
+
+    def test_a_go_sends_leave_page_and_enter_page_on_the_interpreter(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from unittest.mock import patch
+
+        from opentoolbook.openscript import interp
+        from opentoolbook.show import background_key
+
+        sent = []
+        original = interp.Engine.send
+
+        def record(engine, name, args=(), target=None):
+            sent.append(name.lower())
+            return original(engine, name, args, target)
+
+        nav = Navigator(path.read_bytes(), "P300", path)
+        with patch.object(interp.Engine, "send", record):
+            self.assertTrue(nav.click("Next").moved)
+        # P300 is on background Solid and P400 on Text, so the background messages go too.
+        self.assertEqual(
+            [name for name in sent if name.startswith(("leave", "enter"))],
+            ["leavepage", "leavebackground", "enterbackground", "enterpage"],
+        )
+        # The book enterPage writes field page# of the background, and the window keeps it.
+        owner = background_key(nav.data, "P400")
+        self.assertEqual(nav.state[str(path)][owner][("field", "page#")], {"text": "P400"})
 
     def test_click_handlers_are_the_book_then_its_sysbooks(self):
         path = _lesson()
