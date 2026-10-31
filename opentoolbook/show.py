@@ -162,7 +162,7 @@ def open_page(
         nav = Navigator(data, page_id, book, home)
 
         def redraw() -> None:
-            listed = show_page(nav.data, nav.page_id, view_w, view_h)
+            listed = nav.display(view_w, view_h)
             canvas.delete("all")
             draw_page(canvas, listed)
             canvas.listed = listed

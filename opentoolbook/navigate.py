@@ -7,6 +7,10 @@ parent, ``--home``, ``--home/courses``, and ``--home/Nida98/Lessons``,
 regardless of case. A file that search does not find is an error that
 names the file and the page. A quiz button on a page whose background
 calls ``handleQuizClick`` uses the stored page list.
+
+The page a click lands on runs its ``enterPage`` the way the opening
+page does. A quoted ``go to page`` there moves the window again, to
+another book when it names one. Its field writes are in the display list.
 """
 
 from __future__ import annotations
@@ -15,9 +19,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from opentoolbook.click import follow_click, quiz_background
+from opentoolbook.enter import _enter_page, page_source
 from opentoolbook.field import page_ids
 from opentoolbook.quiznav import quiz_click
-from opentoolbook.shelf import find_file, search_roots
+from opentoolbook.shelf import find_file, open_book, search_roots
+
+# A page whose enterPage moves to another page is followed this many times.
+_HOPS = 4
 
 
 class MissingBook(ValueError):
@@ -47,12 +55,16 @@ class Navigator:
         page_id: str,
         book: Path | str | None = None,
         home: Path | str | None = None,
+        variables: dict[str, object] | None = None,
     ) -> None:
         self.data = data
         self.pages = page_ids(data)
         self.page_id = page_id
         self.book = Path(book) if book else None
         self.home = Path(home) if home else None
+        # System variables a handler this runner executed assigned, by lower-case name.
+        self.variables: dict[str, object] = {key.lower(): value for key, value in (variables or {}).items()}
+        self._handlers: dict[Path | None, dict[str, str]] = {}
 
     @property
     def book_name(self) -> str:
@@ -92,4 +104,54 @@ class Navigator:
             return Clicked(False)
         self.data, self.pages, self.book = data, pages, book
         self.page_id = acted.page_id
+        self.enter()
         return Clicked(True)
+
+    def display(self, view_width: int, view_height: int):
+        """The display list of the page on screen, after its ``enterPage``."""
+        from opentoolbook.show import show_page
+
+        return show_page(self.data, self.page_id, view_width, view_height)
+
+    def enter(self) -> None:
+        """Run the ``enterPage`` of the page on screen and follow a quoted move."""
+        from opentoolbook.entry import choose_opening
+
+        for _hop in range(_HOPS):
+            source = page_source(self.data, self.page_id)
+            if not _enter_page(source):
+                return
+            page, other = choose_opening(
+                self.pages,
+                self.handlers(),
+                {self.page_id: source},
+                roots=self.roots(),
+                book_name=self.book_name,
+                startup=False,
+                page_id=self.page_id,
+                variables=self.variables,
+            )
+            data, pages, book = self.data, self.pages, self.book
+            if other and other.lower() != self.book_name.lower():
+                book = self.find_book(other, page)
+                data = book.read_bytes()
+                pages = page_ids(data)
+            matched = next((item for item in pages if item.lower() == page.lower()), None)
+            if matched is None:
+                raise ValueError(f"{page} is not a page of {book.name if book else 'this book'}")
+            if book == self.book and matched == self.page_id:
+                return
+            self.data, self.pages, self.book, self.page_id = data, pages, book, matched
+
+    def handlers(self) -> dict[str, str]:
+        """Handler bodies this book and the books it names define, by lower-case name."""
+        from opentoolbook.entry import _companion_handlers, _handler_map
+
+        key = self.book
+        if key not in self._handlers:
+            found: dict[str, str] = {}
+            if self.book is not None:
+                found.update(_companion_handlers(open_book(self.book, self.home)))
+            found.update(_handler_map(self.data))
+            self._handlers[key] = found
+        return self._handlers[key]

@@ -122,14 +122,18 @@ def choose_opening(
     book_name: str = "book.tbk",
     startup: bool = True,
     page_id: str | None = None,
+    variables: dict[str, object] | None = None,
 ) -> tuple[str, str | None]:
     """``(page id, other book or None)`` after startup and this book's ``enterPage``.
 
     ``handlers`` maps a lower-case handler name to its source. ``page_scripts``
     maps a page id to that page's script. An other book is a file name, not
-    a path. The caller resolves it.
+    a path. The caller resolves it. ``variables`` is filled with the system
+    variables the handlers assign.
     """
     state = _State(pages, {key.lower(): value for key, value in handlers.items()}, roots, book_name)
+    if variables is not None:
+        state.variables = variables
     state.page_id = page_id
     if startup:
         _run_startup(state)
