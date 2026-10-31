@@ -1560,3 +1560,7 @@ Source: handler_sites on Logic Families and nida81 (SETTLED hover counts) and th
 ## invert persists in object state
 
 Source: the handoff M5 note that invert from buttonDown/buttonUp must persist (SETTLED previously cleared it on page change). ToolBook keeps object properties for the open book; invert is one of them. The on-screen invert map is rebuilt from that state for the page on screen.
+
+## buttonDoubleClick
+
+Source: OpenScript message list (DENNY-OBJECTS.md draw-object chart) and the handoff M5 note. The window binds Tk Double-Button-1, cancels the delayed single buttonClick, and sends buttonDoubleClick to the named button or field under the pointer.

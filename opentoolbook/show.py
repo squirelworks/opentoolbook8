@@ -393,6 +393,19 @@ def open_page(
                 canvas.delete("all")
                 draw_page(canvas, held)
 
+        def apply_result(result) -> None:
+            if result is None:
+                root.bell()
+                return
+            if result.beep:
+                root.bell()
+            for text in result.requests:
+                from tkinter import messagebox
+
+                messagebox.showinfo(nav.book_name or "ToolBook", text, parent=root)
+            if result.moved or result.changed or result.checked:
+                redraw()
+
         def on_click(event) -> None:
             listed = getattr(canvas, "listed", None)
             if listed is None:
@@ -413,18 +426,32 @@ def open_page(
                 draw_page(canvas, listed)
             if (hotword_hit(canvas, event.x, event.y) or button_at(listed, event.x, event.y)) != name:
                 return
-            result = click_reported(nav, name, errors, shown=field_texts(listed))
-            if result is None:
-                root.bell()
-                return
-            if result.beep:
-                root.bell()
-            for text in result.requests:
-                from tkinter import messagebox
+            # Delay the single click so a double-click can cancel it and send buttonDoubleClick.
+            pending = state.pop("click_after", None)
+            if pending is not None:
+                root.after_cancel(pending)
 
-                messagebox.showinfo(nav.book_name or "ToolBook", text, parent=root)
-            if result.moved or result.changed or result.checked:
-                redraw()
+            def later() -> None:
+                state.pop("click_after", None)
+                apply_result(click_reported(nav, name, errors, shown=field_texts(getattr(canvas, "listed", listed))))
+
+            state["click_after"] = root.after(200, later)
+
+        def on_double(event) -> None:
+            listed = getattr(canvas, "listed", None)
+            if listed is None:
+                return
+            pending = state.pop("click_after", None)
+            if pending is not None:
+                root.after_cancel(pending)
+            state.pop("pressed", None)
+            target = object_at(listed, event.x, event.y)
+            if target is None:
+                return
+            result = nav.message(*target, "buttonDoubleClick", field_texts(listed))
+            if result is None:
+                return
+            apply_result(result)
 
         def on_key(event) -> None:
             listed = getattr(canvas, "listed", None)
@@ -450,6 +477,7 @@ def open_page(
         canvas.bind("<Leave>", on_leave)
         canvas.bind("<ButtonPress-1>", on_press)
         canvas.bind("<ButtonRelease-1>", on_click)
+        canvas.bind("<Double-Button-1>", on_double)
         root.bind("<Right>", on_key)
         root.bind("<Left>", on_key)
         root.bind("<Return>", on_key)
