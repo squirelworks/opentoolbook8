@@ -305,7 +305,9 @@ Search of the expanded scripts (inline object scripts, type 10, and type 19) of 
 
 The window binds one of those keys. Enter is `keyEnter` in the book's `keyUp`: on the lesson that branch is `send buttonClick to button "next"` inside `if isObject(button("Next"))`, so Enter runs the click of the page's `Next` button, and on `P300` it opens `P400`. On `nida81.tbk` the same branch adds `visible` and `enabled` checks that the reader does not evaluate. A page whose own type 10 script has a `keyUp` handles the key there: `P10301` and `P10302` have an empty one, so Enter does nothing on them. The other quoted keys are not bound through that static `keyUp` branch walker, because their branches are `request`, `open viewer`, `send exit`, or `get` calls such as `specialFunctions` that the walker does not run. Shared-script key handlers on resources 100, 101, and 103 are still not bound, because no stored object is known to own those scripts.
 
-PageUp (`keyPrior`), PageDown (`keyNext`), Up, Down, and F1–F12 send `keyDown` to the page with that OpenScript key constant as the argument, then up the page, background, book, `sysBooks` path, when a handler answers. A synthetic `keyDown` that goes to another page when the key is `keyNext` opens that page for PageDown and stays for PageUp. Right, Left, and Enter still prefer the Next/Back/`keyUp` button paths before `keyDown`.
+PageUp (`keyPrior`), PageDown (`keyNext`), Up, Down, and F1–F12 send `keyDown` to the page with that OpenScript key constant as the argument, then up the page, background, book, `sysBooks` path, when a handler answers. A synthetic `keyDown` that goes to another page when the key is `keyNext` opens that page for PageDown and stays for PageUp.
+
+The window then sends `keyUp` the same way with the same key constant. A synthetic `keyUp` that goes to another page when the key is `keyF2` opens that page for F2 and stays for F1. Right, Left, and Enter still fall through to the Next/Back/`keyUp` button walker when neither live `keyDown` nor live `keyUp` moves the page.
 
 ## Report stays headless
 

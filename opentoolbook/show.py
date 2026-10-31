@@ -487,23 +487,31 @@ def open_page(
                 return
             apply_result(result)
 
+        def apply_key(result) -> bool:
+            """Show beep/request and redraw when ``result`` changed the page. True when handled."""
+            if result is None:
+                return False
+            if result.beep:
+                root.bell()
+            for text in result.requests:
+                from tkinter import messagebox
+
+                messagebox.showinfo(nav.book_name or "ToolBook", text, parent=root)
+            if result.moved or result.changed or result.checked:
+                redraw()
+            return True
+
         def on_key(event) -> None:
             listed = getattr(canvas, "listed", None)
             if listed is None:
                 return
-            # PageUp/PageDown, arrows, and F-keys send keyDown when a handler answers.
-            if event.keysym not in {"Right", "Left", "Return", "KP_Enter"}:
-                down = nav.key_down(event.keysym)
-                if down is not None:
-                    if down.beep:
-                        root.bell()
-                    for text in down.requests:
-                        from tkinter import messagebox
-
-                        messagebox.showinfo(nav.book_name or "ToolBook", text, parent=root)
-                    if down.moved or down.changed or down.checked:
-                        redraw()
-                    return
+            # Live keyDown then keyUp on the interpreter before the static Next/Back walker.
+            down = nav.key_down(event.keysym)
+            if apply_key(down) and down.moved:
+                return
+            up = nav.key_up(event.keysym)
+            if apply_key(up):
+                return
             try:
                 result = press_key(nav, listed, event.keysym)
             except ValueError as exc:
@@ -513,12 +521,7 @@ def open_page(
                 errors.append(str(exc))
                 root.bell()
                 return
-            if result is None:
-                return
-            if result.beep:
-                root.bell()
-            if result.moved or result.changed or result.checked:
-                redraw()
+            apply_key(result)
 
         def on_char(event) -> None:
             """A printable key sends ``keyChar`` with that character."""

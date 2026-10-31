@@ -410,6 +410,14 @@ class Navigator:
 
     def key_down(self, keysym: str) -> Clicked | None:
         """Send ``keyDown`` with the OpenScript key constant for ``keysym``."""
+        return self._key_message("keydown", keysym)
+
+    def key_up(self, keysym: str) -> Clicked | None:
+        """Send ``keyUp`` with the OpenScript key constant for ``keysym``."""
+        return self._key_message("keyup", keysym)
+
+    def _key_message(self, message: str, keysym: str) -> Clicked | None:
+        """Send ``keyDown`` or ``keyUp`` with the OpenScript key constant for ``keysym``."""
         from opentoolbook.keys import KEYSYMS
         from opentoolbook.openscript.interp import Ref
 
@@ -419,7 +427,7 @@ class Navigator:
         where = (self.book, self.page_id)
         acted = self._send(
             None,
-            "keydown",
+            message,
             None,
             to=Ref("page", "this", None, None),
             args=(key,),
