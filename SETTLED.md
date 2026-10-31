@@ -105,7 +105,7 @@ A class `0x13` record is 55 bytes. The count is the word at `+0x2D` and the near
 
 ## Arc
 
-Class `0x11` object 80 on page P1140 of `9e954d01.tbk` stores two points, the signed pairs at `+0x25` and `+0x29`: (1866, 5065) and (1815, 4620). Those are the points in the record. The arc is not filled.
+Class `0x11` object 80 on page P1140 of `9e954d01.tbk` stores two points, the signed pairs at `+0x25` and `+0x29`: (1866, 5065) and (1815, 4620). Those are the points in the record. The arc is not filled. A third signed pair is at `+0x2D`. The reader returns the object id, the rectangle at `+0x0F`, and the three pairs. On `9e954d01.tbk` 43 of the 62 arcs store (5433, 3955), (5428, 3544), (5385, 3750) and 19 store (1866, 5065), (1815, 4620), (1815, 4845), each group across more than one rectangle. On `nida81.tbk` both arcs store (3465, 4126), (3316, 4320), (3465, 4320). On P1140 objects 17, 65, and 80 store the same three pairs with three different rectangles, and none of object 80's pairs is inside its rectangle (5010, 3675, 5550, 4230). The pairs are not page positions, so the window does not paint an arc. The mapping onto the rectangle is in `FINDINGS.md`.
 
 ## Missing files are reported, not fatal
 
