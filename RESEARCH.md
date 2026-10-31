@@ -1580,3 +1580,7 @@ Source: handoff M4 and the TB80RTM startup note in that handoff. Search order is
 ## enterSystemBook / leaveSystemBook
 
 Source: handoff M4. ToolBook sends those messages to a system book when it enters or leaves `sysBooks`. This reader runs the handler from that book's own script only (not the open book first). INI-seeded and class-table bound names that are present before startup handlers run do not get `enterSystemBook` in this push; only a script change of `sysBooks` does.
+
+## Startup message order
+
+Source: handoff M4 section 2 and the TB80RTM trace already cited in SETTLED. The seven-name log test pins the reader order on a synthetic handler set over `otb-line-rect.tbk`.
