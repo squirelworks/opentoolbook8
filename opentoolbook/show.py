@@ -6,7 +6,7 @@ solid fill and pattern 253 is no fill. Another pattern byte is not drawn
 as a hatch. A draw object's fill is the color at ``+0x1B`` and its stroke
 is the color at ``+0x17``. A button draws the picture at byte ``0x15`` of
 its graphics block, or the picture at byte ``0x4B`` when the button is
-checked. The invert and disabled pictures are not drawn. A field that
+checked. The invert and disabled pictures are not drawn. A click on a field's hotword run is a click on that hotword. A field that
 contains a shape is painted under that shape. A label that contains no
 shape is painted in front of a shape that contains the label.
 
@@ -45,7 +45,7 @@ from opentoolbook.field import (
     _trailer,
     _u16,
 )
-from opentoolbook.page import _child_nears, _object_name, _objects
+from opentoolbook.page import HOTWORD, _child_nears, _object_name, _objects
 from opentoolbook.paintobject import paint_object_rgb
 from opentoolbook.picture import picture_pixels
 from opentoolbook.props import UserProperties
@@ -61,6 +61,7 @@ NO_FILL = 253
 
 _RECTANGLE = 0x8
 _BUTTON = 0x9
+HOTWORD_BYTES = 17
 _FIELD = 0xA
 _GROUP = 0xB
 _ELLIPSE = 0xC
@@ -99,6 +100,7 @@ class Paint:
     picture_role: str | None = None
     picture: tuple[int, int, bytes] | None = None
     mask: bytes | None = None
+    hotwords: tuple[tuple[int, int, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -242,7 +244,7 @@ def open_page(
             listed = getattr(canvas, "listed", None)
             if listed is None:
                 return
-            name = button_at(listed, event.x, event.y)
+            name = hotword_hit(canvas, event.x, event.y) or button_at(listed, event.x, event.y)
             result = click_reported(nav, name, errors)
             if result is None:
                 root.bell()
@@ -385,6 +387,7 @@ def draw_page(canvas, listed: DisplayList) -> None:
     """Paint a display list onto a Tk canvas. Photos stay referenced by the canvas."""
     photos: list = []
     canvas.photos = photos
+    canvas.spans = {}
     for item in listed.items:
         _draw_item(canvas, listed.scale, item, photos)
 
@@ -523,7 +526,8 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
         return Paint("angled line", object_id, name, bounds, None, stroke, None, points)
     if kind == _FIELD:
         text, runs = _runs(data, trailer, base, known, at)
-        return Paint("field", object_id, name, bounds, text=text, runs=runs)
+        hotwords = _hotwords(data, segment, trailer, at, len(text))
+        return Paint("field", object_id, name, bounds, text=text, runs=runs, hotwords=hotwords)
     if kind == _BUTTON:
         return _button(data, segment, at, object_id, name, bounds)
     if kind == _PAINT_OBJECT:
@@ -587,6 +591,52 @@ def _runs(data, trailer, base: int, known: set[int], at: int):
         face = None if word == 1 or word not in known else _cstring(data, base + word)
         runs.append((offset, face))
     return text, tuple(runs)
+
+
+def _hotwords(data, segment, trailer, at: int, length: int) -> tuple[tuple[int, int, str], ...]:
+    """Each hotword's character range in the field, and its name.
+
+    A style run whose word at byte 4 is the near of a class ``0x17``
+    record that names this field starts the hotword. The range runs to
+    the next run's offset, or to the end of the text.
+    """
+    if trailer is None:
+        return ()
+    near = at - segment.base
+    end = segment.file_at + segment.size
+    runs = sorted((_u16(raw, 0), _u16(raw, 4)) for raw in _style_runs(trailer, _u16(data, at + 0x24)))
+    found = []
+    for index, (offset, word) in enumerate(runs):
+        hot = segment.base + word
+        if word == 0 or hot < 4 or hot + HOTWORD_BYTES > end:
+            continue
+        if _u16(data, hot - 2) != HOTWORD or _u16(data, hot - 4) - word != HOTWORD_BYTES:
+            continue
+        if _u16(data, hot + 4) != near:
+            continue
+        stop = runs[index + 1][0] if index + 1 < len(runs) else length
+        found.append((offset, max(offset, stop), _object_name(data, trailer, hot)))
+    return tuple(found)
+
+
+def hotword_at(item: Paint, offset: int) -> str | None:
+    """The name of the field's hotword whose range holds ``offset``."""
+    for start, stop, name in item.hotwords:
+        if start <= offset < stop:
+            return name or None
+    return None
+
+
+def hotword_hit(canvas, x: float, y: float) -> str | None:
+    """The hotword drawn under a window point, from the spans ``draw_page`` drew."""
+    spans = getattr(canvas, "spans", {})
+    for found in reversed(canvas.find_overlapping(x, y, x, y)):
+        hit = spans.get(found)
+        if hit is not None:
+            name = hotword_at(*hit)
+            if name:
+                return name
+    return None
 
 
 def _colors(data: bytes, at: int):
@@ -760,7 +810,6 @@ def _draw_text(canvas, scale: float, item: Paint) -> None:
     import tkinter.font as tkfont
 
     shown = item.text.replace("\r\n", "\n").replace("\r", "\n")
-    spans = _spans(shown, item.runs)
     left = unit_to_px(item.bounds[0], scale)
     top = unit_to_px(item.bounds[1], scale)
     width = max(1, unit_to_px(item.bounds[2] - item.bounds[0], scale))
@@ -774,8 +823,10 @@ def _draw_text(canvas, scale: float, item: Paint) -> None:
         size -= 1
         font.configure(size=-size)
     y = top
-    for text, span_face in spans:
-        canvas.create_text(
+    drawn = getattr(canvas, "spans", None)
+    for start, stored, span_face in _spans_at(item.text, item.runs):
+        text = stored.replace("\r\n", "\n").replace("\r", "\n")
+        made = canvas.create_text(
             left,
             y,
             text=text,
@@ -784,20 +835,27 @@ def _draw_text(canvas, scale: float, item: Paint) -> None:
             fill="#000000",
             font=(span_face or "TkDefaultFont", -size),
         )
+        if drawn is not None and item.hotwords:
+            drawn[made] = (item, start)
         y += size * max(1, text.count("\n") + 1)
 
 
 def _spans(text: str, runs: tuple[tuple[int, str | None], ...]) -> tuple[tuple[str, str | None], ...]:
+    return tuple((piece, face) for _start, piece, face in _spans_at(text, runs))
+
+
+def _spans_at(text: str, runs) -> tuple[tuple[int, str, str | None], ...]:
+    """Each run's start offset, its text, and its face."""
     if not runs:
-        return ((text, None),)
+        return ((0, text, None),)
     ordered = tuple(sorted(runs))
     found = []
     for index, (offset, face) in enumerate(ordered):
         end = ordered[index + 1][0] if index + 1 < len(ordered) else len(text)
         if offset < 0 or offset > len(text):
             continue
-        found.append((text[offset:max(offset, end)], face))
-    return tuple(found) or ((text, None),)
+        found.append((offset, text[offset:max(offset, end)], face))
+    return tuple(found) or ((0, text, None),)
 
 
 def _device_box(bounds, scale: float) -> tuple[float, float, float, float]:

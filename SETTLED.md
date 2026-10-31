@@ -131,6 +131,10 @@ A class `0x0E` line is 53 bytes. The endpoints are the signed pairs at `+0x26`. 
 
 The word at byte 2 of a style run is 1, or a near pointer in the list at the book record's `+0x28`. The first word of that list is a count of the pointers. When the run word is one of those pointers, the bytes there are a C string and the reader returns it. When the word is 1, the reader returns no string. On `9e954d01.tbk` more than one of those strings occurs, the same pointer is the same string, and 1 is not in the list. The same shape holds on `nida81.tbk`.
 
+## Hotword click
+
+A field's hotword character range is stored. A field style run whose word at byte 4 is the near of a class `0x17` hotword that names the field starts the hotword, and the range runs to the next run's offset or the end of the text. On `9e954d01.tbk` that range is the hotword's name in all five: `tolerance` at 87 to 96 on `P1080` and `P1082`, `propagation delay` at 31 to 48 on `P1200` and `P1207`, and `impedance` at 90 to 99 on `P2070`. The display list keeps each field's ranges and names. The window draws each style run from the stored text at its stored offset, with line breaks shown as breaks, so the hotword's run is the hotword's characters. A click on the text the window drew for that run is a click on the hotword, before buttons are tested. The click runs the hotword's `buttonClick` on the same path as a button. Each of the five assigns `lastpage = name of this page` and runs `go to page "p1085"`, `"p1205"`, or `"p2075"`. A page name in a quoted `go to page` matches regardless of case, so they open `P1085`, `P1205`, and `P2075`.
+
 ## Class `0x0B`
 
 A class `0x0B` record is 49 bytes. The four signed words at `+0x0F` are a rectangle. It is the union of the rectangles at `+0x0F` of the objects whose word at `+0x04` names the record. The reader returns that rectangle. On `9e954d01.tbk` the two records in `FINDINGS.md` are (2557, 105, 6322, 1005) and (3202, 360, 6142, 765). The same read holds for every such record in `nida81.tbk`.
