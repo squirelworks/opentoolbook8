@@ -19,6 +19,20 @@ class RequestTests(unittest.TestCase):
         self.assertEqual(follow.requests, ("You are already in the quiz review!",))
         self.assertEqual(follow.beeps, 1)
 
+    def test_ask_with_buttons_sets_it_like_request(self):
+        source = (
+            "to handle buttonClick\n"
+            '  ask "Leave?" with "Yes" or "No"\n'
+            '  if it is "Yes" then\n'
+            '    go to page "P2"\n'
+            "  end if\n"
+            "end\n"
+        )
+        yes = run(source, ("P1", "P2"), "P1", ask=lambda prompt, buttons: "Yes")
+        self.assertEqual(yes.page_id, "P2")
+        no = run(source, ("P1", "P2"), "P1", ask=lambda prompt, buttons: "No")
+        self.assertEqual(no.page_id, "P1")
+
 
 class NavigatorRequestTests(unittest.TestCase):
     def test_the_window_gets_the_request_and_stays(self):

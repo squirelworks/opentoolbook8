@@ -390,7 +390,7 @@ def _simple(tokens: list[Token], number: int):
         return A.Increment(target, by, first == "decrement", number)
     if first == "clear" and rest:
         return A.Clear(_lvalue(rest), number)
-    if first == "request" and rest:
+    if first in {"request", "ask"} and rest:
         return _request(rest, number)
     if first == "unlinkdll" or first == "unlinkdll32":
         return A.LinkDLL(_parse(rest) if rest else A.Lit(""), (), True, number)

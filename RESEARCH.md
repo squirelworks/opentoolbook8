@@ -1596,3 +1596,11 @@ Source: handoff M5 and the OpenScript message list. ToolBook repeats `buttonStil
 ## keyChar
 
 Source: handoff M5. ToolBook sends `keyChar` with the typed character. The window binds Tk `<Key>` for a single printable character and calls `Navigator.key_char`, which sends `keyChar` with that character on the page path.
+
+## DLL shim table
+
+Source: handoff M5. Windows/ToolBook `linkDLL32` names are answered from `opentoolbook/dllshims.py` plus the existing profile/fileExists answers on `BookHost`. Optional per-book `dlls/` shim folders are not wired yet.
+
+## ask vs request
+
+Source: handoff M5 ask edge. OpenScript keyword list has both `ask` and `request`. The parser had only `request` as a Request node; `ask … with …` fell through as a raw Command. Both now parse as Request.
