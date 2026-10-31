@@ -109,7 +109,6 @@ class StartupVariableTests(unittest.TestCase):
         self.assertEqual(variables["nextpage"], "p10")
 
 
-
 class TitleTests(unittest.TestCase):
     def test_the_title_is_the_book_file_and_the_page_id(self):
         nav = Navigator(FIXTURE.read_bytes(), "", FIXTURE)

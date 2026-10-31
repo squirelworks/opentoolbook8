@@ -187,10 +187,9 @@ def open_page(
     ``MINSTB32.dll named, not shipped``. It does not stop the paint.
     ``lesson`` is the path the user passed when the window opens on
     another book. A click still searches beside it.
-    ``variables`` are the system variables startup assigned. The title
-    is the book file and the page id, and it changes on every navigation,
-    including a book switch.
-    previous page. The return is every click error the window printed,
+    ``variables`` are the system variables startup assigned.
+    The title is the book file and the page id, and it changes on every
+    navigation, including a book switch. The return is every click error the window printed,
     in order, so the caller can exit non-zero.
     """
     import tkinter as tk
