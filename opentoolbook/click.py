@@ -5,8 +5,8 @@ file when the line quotes one. ``go to page (name) of book(name)`` reads
 those two system variables when a handler this runner executed assigned
 them a string; otherwise the page stays. ``send next`` and
 ``send previous`` are the next and previous pages in the stored page
-list. ``break`` stops the handler. A line that is not one of those is
-not a page change.
+list. ``if``, ``break``, and ``return`` are the shared walker in
+``walk.py``. A line that is not one of those is not a page change.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from dataclasses import dataclass
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
 from opentoolbook.script import _button_click, _script, button_clicks, quoted_go_to
+from opentoolbook.walk import Flow, reader_condition, walk
 
 _PAGE = 5
 _BACKGROUND = 4
@@ -72,40 +73,29 @@ def run_handler(
     handler this runner executed assigned it.
     """
     known = variables or {}
-    target = page_id
-    book = None
-    for line in source.splitlines():
-        text = line.strip()
-        if not text or text.startswith("--"):
-            continue
-        low = " ".join(text.lower().split())
-        if low.startswith("to handle") or low.startswith("end"):
-            continue
-        if low == "break":
-            break
-        found = quoted_go_to(text)
+    landed = {"page": page_id, "book": None}
+
+    def statement(raw: str, low: str) -> None:
+        found = quoted_go_to(raw)
         if found is not None:
-            target, book = found
-            continue
-        named = _NAMED_GO_TO.match(text)
+            landed["page"], landed["book"] = found
+            return
+        named = _NAMED_GO_TO.match(raw.strip())
         if named is not None:
             page_value = known.get(named.group(1).lower())
             book_value = known.get(named.group(2).lower()) if named.group(2) else None
             if not isinstance(page_value, str) or not page_value:
-                continue
+                return
             if named.group(2) and (not isinstance(book_value, str) or not book_value):
-                continue
-            target, book = page_value, book_value
-            continue
-        if low == "send next":
-            target = _step(pages, page_id, 1)
-            book = None
-            continue
-        if low == "send previous":
-            target = _step(pages, page_id, -1)
-            book = None
-            continue
-    return Follow(target, book)
+                return
+            landed["page"], landed["book"] = page_value, book_value
+            return
+        if low in {"send next", "send previous"}:
+            landed["page"] = _step(pages, page_id, 1 if low == "send next" else -1)
+            landed["book"] = None
+
+    walk(source.splitlines(), Flow(), condition=reader_condition, statement=statement)
+    return Follow(landed["page"], landed["book"])
 
 
 def quiz_background(data: bytes, page_id: str) -> bool:
