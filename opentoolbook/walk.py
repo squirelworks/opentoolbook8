@@ -152,13 +152,15 @@ def walk(
     statement: Statement,
     returns: Returns | None = None,
     skipped: Callable[[str], None] | None = None,
+    block: Callable[[str, list[str]], bool] | None = None,
 ) -> object:
     """Run ``lines``. Returns the ``return`` value, or None.
 
     ``statement(raw, low)`` sees every line the walker does not own.
     ``returns(expression)`` is the value of ``return expression``.
     When ``skipped`` is given, a ``conditions``, ``step``, or ``while``
-    block is not run. ``skipped`` gets its first line.
+    block is not run. ``skipped`` gets its first line. ``block(first
+    line, body)`` may run that block instead, and returns True when it did.
     """
     index = 0
     while index < len(lines):
@@ -184,8 +186,12 @@ def walk(
             index += 1
             continue
         if skipped is not None and (low == "conditions" or low.startswith(("step ", "while "))):
-            skipped(raw.strip())
-            index = skip_block(lines, index)
+            after = skip_block(lines, index)
+            if block is None or not block(raw.strip(), lines[index + 1:after - 1]):
+                skipped(raw.strip())
+            index = after
+            if flow.returning or flow.breaking:
+                return flow.return_value
             continue
         if low == "break":
             flow.breaking = True
@@ -196,9 +202,11 @@ def walk(
             taken, other, index = split_if(lines, index)
             known = condition(test)
             if known is True:
-                walk(taken, flow, condition=condition, statement=statement, returns=returns, skipped=skipped)
+                walk(taken, flow, condition=condition, statement=statement, returns=returns,
+                     skipped=skipped, block=block)
             elif known is False:
-                walk(other, flow, condition=condition, statement=statement, returns=returns, skipped=skipped)
+                walk(other, flow, condition=condition, statement=statement, returns=returns,
+                     skipped=skipped, block=block)
             if flow.returning or flow.breaking:
                 return flow.return_value
             continue

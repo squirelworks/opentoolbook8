@@ -411,7 +411,7 @@ A page whose byte at `+0x30` has low bits 0 stores its script inline. The word a
 
 ## Send to the system books
 
-`send name` looks for that handler in the open book, then in `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk`, in that order. The first book that has the name wins. The system books are found with the same search as the book report. On `9e954d01.tbk` no handler name is in more than one of the four system books. The lesson and `nida81.tbk` share `enterPage`, `keyUp`, `enterApplication`, `author`, and `enterBook`, and the open book's copy wins. A handler whose body has a `linkDLL` or `linkDLL32` line returns without running, so no DLL is called. 75 handlers in the lesson, `nida81.tbk`, and the four system books link a DLL this way, among them `initializeBase`, `openSession`, `setSection`, `setupQuizEx`, `initializeTest`, and `initializeTrnr`. Every other handler runs with the same statement walker as startup. `send getLogoBook` runs the handler in `nc81base.sbk` and returns `nida81.tbk`, or `logo81.tbk` / `mrj81.tbk` when the search finds that file, the same book the window opens. Startup builds its handler map in this order too. `get name()` is unchanged and still runs a handler that links a DLL without calling the DLL.
+`send name` looks for that handler in the open book, then in `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk`, in that order. The first book that has the name wins. The system books are found with the same search as the book report. On `9e954d01.tbk` no handler name is in more than one of the four system books. The lesson and `nida81.tbk` share `enterPage`, `keyUp`, `enterApplication`, `author`, and `enterBook`, and the open book's copy wins. A handler whose body has a `linkDLL`, `linkDLL32`, or `unlinkDLL` line returns without running, so no DLL is called. 76 handlers in the lesson, `nida81.tbk`, and the four system books link or unlink a DLL this way, among them `initializeBase`, `openSession`, `setSection`, `setupQuizEx`, `initializeTest`, and `initializeTrnr`. Every other handler runs with the same statement walker as startup. `send getLogoBook` runs the handler in `nc81base.sbk` and returns `nida81.tbk`, or `logo81.tbk` / `mrj81.tbk` when the search finds that file, the same book the window opens. Startup builds its handler map in this order too. `get name()` is unchanged and still runs a handler that links a DLL without calling the DLL.
 
 
 ## fileExists32
@@ -457,3 +457,20 @@ A book stores its user properties in one run of tagged blocks. Each block starts
 ## initializeTest literals
 
 `initializeTest` in `nc81test.sbk` runs the same way as `initializeBase`. The store gets `__embeddedTries`, `__quizAssessment`, `__quizPreTest`, `__quizAttempts`, `__quizTimerId`, `__experimentNumber`, `__quizHelp`, and `__quizCheckTestAndQuestion` as 0, and `__quizObjectiveCount` and `__quizMaxResponse` as 5. The skipped lines, in order, are `linkDLL32 kernel32.dll`, `sysTime`, `format time seedNum as "seconds"`, `get seedNum mod 32768`, `seed It`, and eleven `GetPrivateProfileIntA` calls. The eleven names those calls would set stay unset, and the run lists them: `__quizMode`, `__quizMaxAttempts`, `__quizReview`, `__quizCritique`, `__quizObjectiveLevel`, `__quizTimed`, `__quizTimeType`, `__quizTimeLimit`, `__quizShowPageNumbers`, `__quizMarkers`, and `__showSpecial`. `initializeTest` does not call `timerNotify`, `clearRandomSetX`, or the pool functions, and the run does not touch them.
+
+## initializeTrnr literals
+
+`initializeTrnr` in `nc81trnr.sbk` runs the same way as `initializeBase`. The store gets `__experimentActive`, `__trainerAddress`, `__trainerAc1`, `__trainerDc1`, `__trainerAc2`, `__trainerDc2`, `__trainerSp3`, `__trainerDc3`, and `__trainerFilament` as 0, and `__trainerNlv` and `__trainerPlv` as 0.0. It skips `linkDLL32 kernel32.dll` and six `GetPrivateProfileIntA` calls, so `__trainerType`, `__trainerPort`, `__plcType`, `__plcPort`, `__205Type`, and `__205Port` stay unset.
+
+A handler outside the four `initialize*` handlers runs only when it reaches no DLL and its body is only assignments. A handler reaches a DLL when it links or unlinks one, or calls a handler in the send chain that does. The skipped names are:
+
+- `linkMemFunctions32` links `kernel32.dll`.
+- `unlinkMemFunctions32` runs `unlinkDLL "kernel32.dll"`.
+- `sendFaults130(string faults)` calls `sendFaultsTd2000`, which links a DLL.
+- `getExternalValue(string exname)` in `nc81base.sbk` links `kernel32.dll` and calls `GetPrivateProfileStringA`. Its body starts on the blank line after the header, and that body is not only assignments.
+
+`unlinkDLL` now counts as a DLL line for `send` too.
+
+## initializeRecs and GetVar
+
+`initializeRecs` in `nc81recs.sbk` runs the same way as `initializeBase`. `error = getStudentInfo()` is skipped by name, because `getStudentInfo` links `kernel32.dll` and reads `NIDAREC.INI`, so `__studentFirst` stays unset and `getFirst` still gives `Student`. `step i from 1 to 100` has known bounds, so its body runs. `__lessonVars[i] = "1"` stores `1` at elements 1 through 100 of the one stored name `__lessonVars`. An array is one name whose value is a table by index, the same shape `setupQuizEx` uses for `__quizPages`. `initializeRecs` returns 0. `GetVar vNumber` links no DLL. It runs with the same rules, decides `(vNumber > 0) and (vNumber <= 100)`, and returns `__lessonVars[vNumber]`, so `GetVar(42)` is `1`. `GetVar(0)` and `GetVar(101)` are empty. A parameter's type word, such as `int` in `to get GetVar int vNumber`, is not a parameter name. A `step` whose bounds are not known is skipped by its first line.
