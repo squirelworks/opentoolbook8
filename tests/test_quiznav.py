@@ -9,6 +9,8 @@ from opentoolbook.quiznav import quiz_click
 from opentoolbook.script import book_handlers, resource_scripts, shared_scripts
 from opentoolbook.show import DisplayList, Paint, button_at, show_page, unit_to_px
 
+from lesson import companion
+
 LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 PAGES = ("P10004", "P10210", "P10211", "P10212")
 
@@ -102,7 +104,7 @@ class QuizPageTests(unittest.TestCase):
         self.assertEqual(button_at(shown, point_x, point_y), "OK")
         shared = next(item.source for item in shared_scripts(data) if item.resource_id == 103)
         self.assertIn("get handleQuizClick(target)", shared)
-        quiz = resource_scripts(path.with_name("nc81test.sbk").read_bytes())[0].source
+        quiz = resource_scripts(companion(path, "nc81test.sbk").read_bytes())[0].source
         click = _body(quiz, "handleQuizClick")
         self.assertIn('__quizPass is in "1,2"', click)
         self.assertIn("beep(1)", click)
