@@ -54,7 +54,7 @@ class SceneTests(unittest.TestCase):
         self.assertEqual(rectangle.stroke, (0, 0, 0))
         width_px = unit_to_px(rectangle.bounds[2] - rectangle.bounds[0], fitted.scale)
         self.assertNotEqual(width_px, unit_to_px(rectangle.bounds[2] - rectangle.bounds[0], fitted.scale * fitted.scale))
-        self.assertEqual([item.kind for item in fitted.items], ["background", "rectangle"])
+        self.assertEqual([item.kind for item in fitted.items], ["background", "rectangle", "angled line"])
         pie = show_page(PIE.read_bytes(), "", 200, 100)
         ellipse = next(item for item in pie.items if item.kind == "ellipse")
         self.assertEqual(ellipse.bounds, (700, 700, 2200, 1800))
