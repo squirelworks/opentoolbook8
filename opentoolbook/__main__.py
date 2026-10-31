@@ -67,7 +67,7 @@ def main(argv: list[str]) -> int:
             parser.print_usage(sys.stderr)
             return 2
         opened = Path(args.book)
-        open_page(opened.read_bytes(), args.show, str(opened))
+        open_page(opened.read_bytes(), args.show, str(opened), args.home)
         return 0
     if args.book and not args.report:
         if any((args.catalog, args.cailt, args.keydisk)):
@@ -79,7 +79,7 @@ def main(argv: list[str]) -> int:
         except ValueError as exc:
             print(exc, file=sys.stderr)
             return 2
-        open_page(entry.data, entry.page_id, str(entry.book))
+        open_page(entry.data, entry.page_id, str(entry.book), args.home)
         return 0
     if not any((args.book, args.catalog, args.cailt, args.keydisk, args.home)):
         parser.print_usage(sys.stderr)
