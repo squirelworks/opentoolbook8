@@ -6,7 +6,17 @@ solid fill and pattern 253 is no fill. Another pattern byte is not drawn
 as a hatch. A draw object's fill is the color at ``+0x1B`` and its stroke
 is the color at ``+0x17``. A button draws the picture at byte ``0x15`` of
 its graphics block, or the picture at byte ``0x4B`` when the button is
-checked. The invert and disabled pictures are not drawn. A click on a field's hotword run is a click on that hotword. A field that
+checked. A button whose enabled bit, bit 0 of ``+0x26``, is 0 draws the
+picture at byte ``0x39`` when that word is not 0. The border byte at
+``+0x27`` is a frame in the stroke color at ``+0x17``: ``pushButton`` (7)
+frames the bounds, ``radioButton3d`` (9) frames a box one pixel inside
+them, and ``none`` (1) draws no frame. A letter click on a quiz page
+checks that letter and unchecks the other letters, and the page is drawn
+again with those states. A click on a field's hotword run is a click on
+that hotword. While a button is held down it draws the
+picture at byte ``0x27`` of its graphics block when that word is not 0,
+and letting go draws the up picture again.
+A field that
 contains a shape is painted under that shape. A label that contains no
 shape is painted in front of a shape that contains the label.
 
@@ -21,13 +31,15 @@ where class ``0x8`` does, and the window paints it as those bounds. A
 paint object is its stored bitmap drawn at the left and top of its
 bounds. A picture is its packed metafile drawn into its bounds, clear
 where the metafile leaves the page showing. It does not paint arcs
-(``0x11``). A group is not a paint; its children are. Class ``0x12`` pies
+(``0x11``). A page's and a background's objects paint in the order of their
+class ``0x06`` layer list. A group is not a paint; its children are. Class ``0x12`` pies
 and class ``0x17`` records are outside that walk, and they are not painted.
 """
 
 from __future__ import annotations
 
 import struct
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 
 from opentoolbook.background import background
@@ -45,7 +57,7 @@ from opentoolbook.field import (
     _trailer,
     _u16,
 )
-from opentoolbook.page import HOTWORD, _child_nears, _object_name, _objects
+from opentoolbook.page import HOTWORD, _child_nears, _object_name, _objects, layer_nears
 from opentoolbook.paintobject import paint_object_rgb
 from opentoolbook.picture import picture_pixels
 from opentoolbook.props import UserProperties
@@ -62,6 +74,12 @@ NO_FILL = 253
 _RECTANGLE = 0x8
 _BUTTON = 0x9
 HOTWORD_BYTES = 17
+# Button border byte +0x27.
+PUSH_BUTTON = 7
+RADIO_BUTTON_3D = 9
+# One pixel at 96 dpi is 15 page units. The radioButton3d frame is that
+# far inside the bounds. No byte stores the inset.
+_RADIO_INSET = 15
 _FIELD = 0xA
 _GROUP = 0xB
 _ELLIPSE = 0xC
@@ -100,6 +118,10 @@ class Paint:
     picture_role: str | None = None
     picture: tuple[int, int, bytes] | None = None
     mask: bytes | None = None
+    frame: tuple[int, int, int, int] | None = None
+    up_id: int | None = None
+    checked_id: int | None = None
+    invert_id: int | None = None
     hotwords: tuple[tuple[int, int, str], ...] = ()
 
 
@@ -136,17 +158,31 @@ def show_page(
     view_width: int,
     view_height: int,
     props: UserProperties | None = None,
+    fields: dict[str, str] | None = None,
+    visible: dict[tuple[str, str | int], bool] | None = None,
     *,
     sys_level: str | None = None,
+    checked: Mapping[str, bool] | None = None,
 ) -> DisplayList:
     """The display list for one page. It does not open a window.
 
     ``props`` holds the ``__`` names the page's ``enterPage`` reads.
+    ``fields`` is field text a handler wrote after ``enterPage``.
+    ``visible`` maps ``(kind, name or id)`` to whether a handler shows it.
+    An object a handler hid is not on the list.
     ``sys_level`` ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
+    ``checked`` maps a button name, in any case, to the checked state a
+    click gave it. It wins over bit 4 of that button's ``+0x26``.
     """
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
     items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props, sys_level)
+    if fields:
+        items = _written(items, fields)
+    if checked:
+        items = _checked(data, items, checked)
+    if visible:
+        items = tuple(item for item in items if _shown(item, visible))
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
 
 
@@ -240,12 +276,30 @@ def open_page(
                 return
             paint(refit(listed, *view))
 
-        def on_click(event) -> None:
+        def on_press(event) -> None:
             listed = getattr(canvas, "listed", None)
             if listed is None:
                 return
             name = hotword_hit(canvas, event.x, event.y) or button_at(listed, event.x, event.y)
-            result = click_reported(nav, name, errors)
+            state["pressed"] = name
+            if not name:
+                return
+            held = pressed(nav.data, listed, name)
+            if held != listed:
+                canvas.delete("all")
+                draw_page(canvas, held)
+
+        def on_click(event) -> None:
+            listed = getattr(canvas, "listed", None)
+            if listed is None:
+                return
+            name = state.pop("pressed", None)
+            if name:
+                canvas.delete("all")
+                draw_page(canvas, listed)
+            if (hotword_hit(canvas, event.x, event.y) or button_at(listed, event.x, event.y)) != name:
+                return
+            result = click_reported(nav, name, errors, shown=field_texts(listed))
             if result is None:
                 root.bell()
                 return
@@ -255,7 +309,7 @@ def open_page(
                 from tkinter import messagebox
 
                 messagebox.showinfo(nav.book_name or "ToolBook", text, parent=root)
-            if result.moved:
+            if result.moved or result.changed or result.checked:
                 redraw()
 
         def on_key(event) -> None:
@@ -275,10 +329,11 @@ def open_page(
                 return
             if result.beep:
                 root.bell()
-            if result.moved:
+            if result.moved or result.changed or result.checked:
                 redraw()
 
-        canvas.bind("<Button-1>", on_click)
+        canvas.bind("<ButtonPress-1>", on_press)
+        canvas.bind("<ButtonRelease-1>", on_click)
         root.bind("<Right>", on_key)
         root.bind("<Left>", on_key)
         root.bind("<Return>", on_key)
@@ -312,17 +367,18 @@ def _report_click_error(kind, value, trace) -> None:
     traceback.print_exception(kind, value, trace, file=sys.stderr)
 
 
-def click_reported(nav, name: str, errors: list[str], stream=None):
+def click_reported(nav, name: str | None, errors: list[str], stream=None, shown=None):
     """Run one click. A reader error prints its one line and returns None.
 
     The line is the same sentence the open prints, for example
     ``nida81.tbk was not found; P310 of that book does not open``. The
-    page and book stay where they were.
+    page and book stay where they were. ``shown`` is the field text the
+    page shows now.
     """
     import sys
 
     try:
-        return nav.click(name)
+        return nav.click(name, shown)
     except ValueError as exc:
         print(exc, file=stream if stream is not None else sys.stderr)
         errors.append(str(exc))
@@ -383,13 +439,57 @@ def button_at(listed: DisplayList, x: float, y: float) -> str | None:
     return None
 
 
-def draw_page(canvas, listed: DisplayList) -> None:
-    """Paint a display list onto a Tk canvas. Photos stay referenced by the canvas."""
+def pressed(data: bytes, listed: DisplayList, name: str) -> DisplayList:
+    """The display list while the named button is held down.
+
+    A button with an invert picture draws it. A button without one, and
+    every other item, is unchanged. Letting go is the list without this
+    call, so the up picture comes back.
+    """
+    items = []
+    for item in listed.items:
+        if item.kind == "button" and item.name == name and item.invert_id:
+            try:
+                picture = picture_rgb(data, item.invert_id)
+            except ValueError:
+                picture = None
+            if picture is not None:
+                item = replace(item, picture_id=item.invert_id, picture_role="invert", picture=picture)
+        items.append(item)
+    return replace(listed, items=tuple(items))
+
+
+def draw_page(canvas, listed: DisplayList, make_photo=None) -> None:
+    """Paint a display list onto a Tk canvas. Photos stay referenced by the canvas.
+
+    The photos of the page drawn before are deleted first, so a window
+    holds the images of one page at a time. ``make_photo`` builds one
+    image from PPM bytes; it is ``tkinter.PhotoImage`` when not given.
+    """
+    release_photos(canvas)
     photos: list = []
     canvas.photos = photos
     canvas.spans = {}
     for item in listed.items:
-        _draw_item(canvas, listed.scale, item, photos)
+        _draw_item(canvas, listed.scale, item, photos, make_photo)
+
+
+def release_photos(canvas) -> int:
+    """Delete the images the canvas holds from its last page. Returns how many."""
+    old = getattr(canvas, "photos", None) or []
+    for photo in old:
+        delete = getattr(photo, "delete", None)
+        if delete is not None:
+            delete()
+            continue
+        try:
+            photo.tk.call("image", "delete", photo.name)
+        except Exception:
+            # Already gone with its interpreter.
+            pass
+    count = len(old)
+    canvas.photos = []
+    return count
 
 
 def _pixels(units: int) -> int:
@@ -415,6 +515,33 @@ def _entered(
     for index, (_name, text, runs) in zip(indexes, changed):
         if text != (out[index].text or "") or runs != out[index].runs:
             out[index] = replace(out[index], text=text, runs=runs)
+    return tuple(out)
+
+
+def field_texts(listed: DisplayList) -> dict[str, str]:
+    """Each field name on the display list and the text it shows."""
+    return {item.name: item.text or "" for item in listed.items if item.kind == "field" and item.name}
+
+
+def _shown(item: Paint, visible: dict[tuple[str, str | int], bool]) -> bool:
+    for key in ((item.kind, item.name.lower()), (item.kind, item.object_id)):
+        if key[1] in ("", None):
+            continue
+        if visible.get(key) is False:
+            return False
+    return True
+
+
+def _written(items: tuple[Paint, ...], fields: dict[str, str]) -> tuple[Paint, ...]:
+    from opentoolbook.enter import cover_style
+
+    wanted = {name.lower(): text for name, text in fields.items()}
+    out = list(items)
+    for index, item in enumerate(out):
+        if item.kind != "field" or item.name.lower() not in wanted:
+            continue
+        text = wanted[item.name.lower()]
+        out[index] = replace(item, text=text, runs=cover_style(item.text or "", text, item.runs))
     return tuple(out)
 
 
@@ -472,9 +599,7 @@ def _walk(data, segment, trailer, base: int, known: set[int], parent: int) -> li
     found = _objects(data, segment)
     by_near = {at - segment.base: (at, kind) for at, kind in found}
     items: list[Paint] = []
-    for at, kind in found:
-        if _u16(data, at + 4) != parent:
-            continue
+    for at, kind in _layered(data, segment, trailer, found, parent):
         near = at - segment.base
         if kind == _GROUP:
             for child in _child_nears(data, segment, at):
@@ -484,6 +609,17 @@ def _walk(data, segment, trailer, base: int, known: set[int], parent: int) -> li
         if painted is not None:
             items.append(painted)
     return items
+
+
+def _layered(data, segment, trailer, found, parent: int):
+    """The parent's objects in the order of its layer list, else stored order."""
+    children = [(at, kind) for at, kind in found if _u16(data, at + 4) == parent]
+    layers = layer_nears(data, segment, trailer, parent)
+    nears = {at - segment.base for at, _kind in children}
+    if not layers or set(layers) != nears:
+        return children
+    place = {near: index for index, near in enumerate(layers)}
+    return sorted(children, key=lambda child: place[child[0] - segment.base])
 
 
 def _child(data, segment, trailer, base, known, by_near, near: int) -> list[Paint]:
@@ -552,31 +688,77 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
     return None
 
 
+def _checked(data: bytes, items: tuple[Paint, ...], checked: Mapping[str, bool]) -> tuple[Paint, ...]:
+    """Buttons drawn with the checked state a click set, not the stored bit."""
+    wanted = {name.lower(): on for name, on in checked.items()}
+    out = list(items)
+    for index, item in enumerate(out):
+        on = wanted.get(item.name.lower()) if item.kind == "button" else None
+        if on is None or item.picture_role == "disabled":
+            continue
+        if on and item.checked_id:
+            picture_id, role = item.checked_id, "checked"
+        else:
+            picture_id, role = item.up_id, "up" if item.up_id else None
+        if picture_id == item.picture_id:
+            continue
+        out[index] = replace(item, picture_id=picture_id, picture_role=role, picture=_picture(data, picture_id))
+    return tuple(out)
+
+
+def _picture(data: bytes, picture_id: int | None):
+    if not picture_id:
+        return None
+    try:
+        return picture_rgb(data, picture_id)
+    except ValueError:
+        return None
+
+
 def _button(data, segment, at: int, object_id: int, name: str, bounds) -> Paint:
     up = _graphic_word(data, segment, at, 0x15)
     checked_id = _graphic_word(data, segment, at, 0x4B)
+    disabled_id = _graphic_word(data, segment, at, 0x39)
     checked = (data[at + 0x26] >> 4) & 1
-    if checked and checked_id:
+    enabled = data[at + 0x26] & 1
+    if not enabled and disabled_id:
+        picture_id = disabled_id
+        role = "disabled"
+    elif checked and checked_id:
         picture_id = checked_id
         role = "checked"
     else:
         picture_id = up
         role = "up" if up else None
-    picture = None
-    if picture_id:
-        try:
-            picture = picture_rgb(data, picture_id)
-        except ValueError:
-            picture = None
+    picture = _picture(data, picture_id)
+    _fill, stroke = _colors(data, at)
     return Paint(
         "button",
         object_id,
         name,
         bounds,
+        stroke=stroke,
         picture_id=picture_id,
         picture_role=role,
         picture=picture,
+        frame=_frame(data[at + 0x27], bounds),
+        up_id=up or None,
+        checked_id=checked_id or None,
+        invert_id=_graphic_word(data, segment, at, 0x27) or None,
     )
+
+
+def _frame(border: int, bounds) -> tuple[int, int, int, int] | None:
+    """The box a button border draws: the bounds, a smaller box, or none."""
+    if bounds is None:
+        return None
+    left, top, right, bottom = bounds
+    if border == PUSH_BUTTON:
+        return bounds
+    if border == RADIO_BUTTON_3D:
+        inset = min(_RADIO_INSET, (right - left) // 2, (bottom - top) // 2)
+        return (left + inset, top + inset, right - inset, bottom - inset)
+    return None
 
 
 def _runs(data, trailer, base: int, known: set[int], at: int):
@@ -750,9 +932,11 @@ def _contains(outer, inner) -> bool:
     )
 
 
-def _draw_item(canvas, scale: float, item: Paint, photos: list) -> None:
-    import tkinter as tk
+def _draw_item(canvas, scale: float, item: Paint, photos: list, make_photo=None) -> None:
+    if make_photo is None and item.picture is not None:
+        import tkinter as tk
 
+        make_photo = tk.PhotoImage
     if item.kind == "background" and item.fill is not None and item.bounds is not None:
         canvas.create_rectangle(*_device_box(item.bounds, scale), fill=_rgb(item.fill), outline="")
         return
@@ -788,17 +972,25 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list) -> None:
         return
     if item.kind in ("button", "paint object") and item.picture is not None and item.bounds is not None:
         width, height, rgb = _scale_rgb(item.picture[0], item.picture[1], item.picture[2], scale)
-        photo = tk.PhotoImage(data=_ppm(width, height, rgb))
+        photo = make_photo(data=_ppm(width, height, rgb))
         photos.append(photo)
         x = unit_to_px(item.bounds[0], scale)
         y = unit_to_px(item.bounds[1], scale)
         canvas.create_image(x, y, image=photo, anchor="nw")
+    if item.kind == "button" and item.frame is not None:
+        canvas.create_rectangle(
+            *_device_box(item.frame, scale),
+            fill="",
+            outline=_rgb(item.stroke) if item.stroke is not None else "#000000",
+        )
+        return
+    if item.kind in ("button", "paint object"):
         return
     if item.kind == "picture" and item.picture is not None and item.bounds is not None:
         left, top, right, bottom = _device_box(item.bounds, scale)
         width = max(1, round(right - left))
         height = max(1, round(bottom - top))
-        photo = tk.PhotoImage(data=_png(*_stretch(item.picture, item.mask, width, height)))
+        photo = make_photo(data=_png(*_stretch(item.picture, item.mask, width, height)))
         photos.append(photo)
         canvas.create_image(left, top, image=photo, anchor="nw")
         return
