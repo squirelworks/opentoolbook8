@@ -46,7 +46,8 @@ class HandlerSiteTests(unittest.TestCase):
         path = _lesson()
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        self.assertEqual(len(button_clicks(path.read_bytes())), 249)
+        # 249 inline scripts, and 3 more in the type 10 page scripts of P10301 to P10303.
+        self.assertEqual(len(button_clicks(path.read_bytes())), 252)
         self.assertEqual(len(button_clicks(path.with_name("nida81.tbk").read_bytes())), 119)
 
 

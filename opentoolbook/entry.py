@@ -564,14 +564,12 @@ def _script_for(scripts: dict[str, str], page_id: str) -> str:
 
 
 def _handler_map(data: bytes) -> dict[str, str]:
+    """The book script's handlers by lower-case name. Page scripts are not in it."""
+    from opentoolbook.script import book_script
+
     found: dict[str, str] = {}
-    try:
-        scripts = resource_scripts(data)
-    except (ValueError, IndexError, KeyError, struct.error):
-        return found
-    for item in scripts:
-        for name, body in _bodies(item.source):
-            found.setdefault(name.lower(), body)
+    for name, body in _bodies(book_script(data)):
+        found.setdefault(name.lower(), body)
     return found
 
 

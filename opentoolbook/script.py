@@ -174,6 +174,9 @@ def _script(data: bytes, heap: bytes, record: int, kind: int, size: int) -> str:
             return ""
         mode = data[record + 0x0A]
         word = _u16(data, record + 0x0B)
+    if kind in (_PAGE, _BACKGROUND) and (mode & 3) == 2 and word:
+        # The script is the type 10 resource whose id is the word minus 1.
+        return _resource_source(data, word - 1)
     if (mode & 3) != 0 or word == 0 or word + 4 > len(heap):
         return ""
     skip = _u16(heap, word)
@@ -259,6 +262,43 @@ class ResourceScript:
 _SCRIPT_TYPE = 10
 _SCRIPT_BYTES = 15
 _SCRIPT_CLASS = 0x2A
+
+
+_RESOURCES: dict[int, tuple[bytes, dict[int, str]]] = {}
+
+
+def _resource_source(data: bytes, resource_id: int) -> str:
+    """The source of one type 10 handler, or the empty string."""
+    cached = _RESOURCES.get(id(data))
+    if cached is None or cached[0] is not data:
+        try:
+            table = {item.resource_id: item.source for item in resource_scripts(data)}
+        except (ValueError, IndexError, KeyError, struct.error):
+            table = {}
+        cached = (data, table)
+        _RESOURCES[id(data)] = cached
+    return cached[1].get(resource_id, "")
+
+
+def book_script(data: bytes) -> str:
+    """The book's own script.
+
+    The low two bits of the byte at ``+0x26`` of the book record are 2 when
+    the script is a type 10 resource; the word at ``+0x24`` is that id plus 1.
+    A book whose word is 0 has no book script.
+    """
+    from opentoolbook.field import _book
+
+    try:
+        _segment, record = _book(data, _segments(data))
+    except (ValueError, IndexError, KeyError, struct.error):
+        return ""
+    if record + 0x27 > len(data):
+        return ""
+    word = _u16(data, record + 0x24)
+    if word == 0 or data[record + 0x26] & 3 != 2:
+        return ""
+    return _resource_source(data, word - 1)
 
 
 def resource_scripts(data: bytes) -> tuple[ResourceScript, ...]:
