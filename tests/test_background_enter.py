@@ -29,9 +29,10 @@ class HandlerTests(unittest.TestCase):
         self.assertEqual(_handler(SCRIPT, "leavepage"), "")
 
     def test_author_is_the_branch_a_reader_skips(self):
-        self.assertEqual(_branch("syslevel = author", True, (), ["t"], ["s"]), ["s"])
-        self.assertEqual(_branch("syslevel = author", False, (), ["t"], ["s"]), ["t"])
-        self.assertEqual(_branch('syslevel = "reader"', True, (), ["t"], ["s"]), ["t"])
+        # main's _branch answers True (take the branch), False (skip it), or None.
+        self.assertIs(_branch("syslevel = author", True, ()), False)
+        self.assertIs(_branch("syslevel = author", False, ()), True)
+        self.assertIs(_branch('syslevel = "reader"', True, ()), True)
 
 
 class LessonTests(unittest.TestCase):

@@ -6,6 +6,8 @@ from pathlib import Path
 
 from opentoolbook.polyline import stored_polylines
 
+from lesson import companion
+
 
 class PolylineTests(unittest.TestCase):
     def test_stored_points_are_their_bounds(self):
@@ -13,7 +15,7 @@ class PolylineTests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self._bounds_are_the_points(Path(path).read_bytes())
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         self._bounds_are_the_points(nida.read_bytes())
 
