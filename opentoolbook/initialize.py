@@ -152,6 +152,36 @@ def initialize(chain, name: str, props: UserProperties, args: tuple[object, ...]
     return run_literals(source, props, args, book_name=book)
 
 
+def assignments_only(source: str) -> bool:
+    """True when every statement of the handler is an assignment of a literal or a name."""
+    lines = source.splitlines()
+    for raw in lines[1:]:
+        low = norm(raw)
+        if not low or low.startswith("--") or low.startswith(_DECLARE):
+            continue
+        if low == "end" or low.startswith("end "):
+            continue
+        if low.startswith("return"):
+            continue
+        assigned = _ASSIGN.match(raw.strip())
+        if assigned is None or _CALL.search(assigned.group(2)):
+            return False
+    return True
+
+
+def run_if_assignments(chain, name: str, props: UserProperties, args: tuple[object, ...] = ()) -> Initialized | None:
+    """Run ``name`` when it reaches no DLL and its body is only assignments. None when it is skipped."""
+    from opentoolbook.send import reaches_dll
+
+    found = chain.find(name)
+    if found is None:
+        raise ValueError(f"{name} is not in {', '.join(book for book, _ in chain.books) or 'any book'}")
+    book, source = found
+    if reaches_dll(chain, name) is not None or not assignments_only(source):
+        return None
+    return run_literals(source, props, args, book_name=book)
+
+
 def _parameters(lines: list[str]) -> list[str]:
     for line in lines:
         low = norm(line)
@@ -174,4 +204,4 @@ def _compare(left: object, operator: str, right: object) -> bool | None:
     return {">": a > b, "<": a < b, ">=": a >= b, "<=": a <= b}[operator]
 
 
-__all__ = ["Initialized", "initialize", "run_literals"]
+__all__ = ["Initialized", "assignments_only", "initialize", "run_if_assignments", "run_literals"]
