@@ -384,12 +384,36 @@ def button_at(listed: DisplayList, x: float, y: float) -> str | None:
     return None
 
 
-def draw_page(canvas, listed: DisplayList) -> None:
-    """Paint a display list onto a Tk canvas. Photos stay referenced by the canvas."""
+def draw_page(canvas, listed: DisplayList, make_photo=None) -> None:
+    """Paint a display list onto a Tk canvas. Photos stay referenced by the canvas.
+
+    The photos of the page drawn before are deleted first, so a window
+    holds the images of one page at a time. ``make_photo`` builds one
+    image from PPM bytes; it is ``tkinter.PhotoImage`` when not given.
+    """
+    release_photos(canvas)
     photos: list = []
     canvas.photos = photos
     for item in listed.items:
-        _draw_item(canvas, listed.scale, item, photos)
+        _draw_item(canvas, listed.scale, item, photos, make_photo)
+
+
+def release_photos(canvas) -> int:
+    """Delete the images the canvas holds from its last page. Returns how many."""
+    old = getattr(canvas, "photos", None) or []
+    for photo in old:
+        delete = getattr(photo, "delete", None)
+        if delete is not None:
+            delete()
+            continue
+        try:
+            photo.tk.call("image", "delete", photo.name)
+        except Exception:
+            # Already gone with its interpreter.
+            pass
+    count = len(old)
+    canvas.photos = []
+    return count
 
 
 def _pixels(units: int) -> int:
@@ -717,9 +741,11 @@ def _contains(outer, inner) -> bool:
     )
 
 
-def _draw_item(canvas, scale: float, item: Paint, photos: list) -> None:
-    import tkinter as tk
+def _draw_item(canvas, scale: float, item: Paint, photos: list, make_photo=None) -> None:
+    if make_photo is None and item.picture is not None:
+        import tkinter as tk
 
+        make_photo = tk.PhotoImage
     if item.kind == "background" and item.fill is not None and item.bounds is not None:
         canvas.create_rectangle(*_device_box(item.bounds, scale), fill=_rgb(item.fill), outline="")
         return
@@ -755,7 +781,7 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list) -> None:
         return
     if item.kind in ("button", "paint object") and item.picture is not None and item.bounds is not None:
         width, height, rgb = _scale_rgb(item.picture[0], item.picture[1], item.picture[2], scale)
-        photo = tk.PhotoImage(data=_ppm(width, height, rgb))
+        photo = make_photo(data=_ppm(width, height, rgb))
         photos.append(photo)
         x = unit_to_px(item.bounds[0], scale)
         y = unit_to_px(item.bounds[1], scale)
@@ -765,7 +791,7 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list) -> None:
         left, top, right, bottom = _device_box(item.bounds, scale)
         width = max(1, round(right - left))
         height = max(1, round(bottom - top))
-        photo = tk.PhotoImage(data=_png(*_stretch(item.picture, item.mask, width, height)))
+        photo = make_photo(data=_png(*_stretch(item.picture, item.mask, width, height)))
         photos.append(photo)
         canvas.create_image(left, top, image=photo, anchor="nw")
         return
