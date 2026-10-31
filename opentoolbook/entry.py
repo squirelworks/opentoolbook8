@@ -3,8 +3,8 @@
 ToolBook sends ``enterSystem``, then ``enterApplication``, then shows a
 page. A quoted ``go to page`` in a branch this reader takes is that page.
 The reader takes ``sysLevel = reader`` because a missing ``sysLevel`` is
-``reader``. ``__studentRecords`` that has not been set is 0, so
-``openSession`` returns 0 and ``gotoPageList`` does not run. The names in
+``reader``. ``it`` is the value of the last ``get``. ``__studentRecords``
+that has not been set is 0, so ``openSession`` returns 0 and ``gotoPageList`` does not run. The names in
 ``gotoPageList`` are not quoted. ``forward`` is not executed. A
 ``linkDLL`` line is not called. ``fileExists32`` is not called; a quoted
 name in that check is looked up with the same search as the book report.
@@ -31,7 +31,8 @@ _GET = re.compile(r"^get\s+([a-z_][a-z0-9_]*)\s*\((.*)\)\s*$")
 _ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$")
 _BOOK_CALL = re.compile(r"of\s+book\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", re.IGNORECASE)
 _FILE_EXISTS = re.compile(r'^fileexists32\("([^"]*)"\) = 1$')
-_IT_IS = re.compile(r"^it is (\d+)$")
+_GET_VALUE = re.compile(r"^get\s+(.+)$")
+_IT_IS = re.compile(r'^it (?:is|=) (-?\d+|true|false|"[^"]*")$')
 _COMPARE = re.compile(r"^([a-z_][a-z0-9_]*) = (false|true|\d+)$")
 _MESSAGES = ("entersystem", "enterapplication")
 _OTHER_STARTUP = ("opensession", "gotopagelist", "entersystem", "enterapplication")
@@ -244,6 +245,10 @@ def _statement(raw: str, low: str, state: _State) -> None:
     if call is not None:
         state.it = _call(call.group(1), state)
         return
+    got = _GET_VALUE.match(raw.strip())
+    if got is not None:
+        state.it = _get_value(got.group(1).strip(), state)
+        return
     if low in {"send next", "send previous"}:
         step = 1 if low == "send next" else -1
         current = state.page_id or (state.pages[0] if state.pages else "")
@@ -293,7 +298,10 @@ def _condition(text: str, state: _State) -> bool | None:
         return find_file(state.roots, exists.group(1)) is not None
     compared = _IT_IS.fullmatch(low)
     if compared is not None:
-        return str(state.it) == compared.group(1)
+        expected = compared.group(1)
+        if expected.startswith('"'):
+            return str(state.it if state.it is not None else "").lower() == expected[1:-1]
+        return _same(state.it, _literal(expected))
     named = _COMPARE.fullmatch(low)
     if named is not None:
         expected = _literal(named.group(2))
@@ -320,6 +328,24 @@ def _lookup(state: _State, name: str) -> object:
     if UserProperties.owns(name):
         return state.props.get(name)
     return state.variables.get(name.lower())
+
+
+def _get_value(expr: str, state: _State) -> object:
+    """The value ``get expr`` stores in ``it``: a literal, a name, or nothing."""
+    value = _value(expr, state)
+    if value is not None:
+        return value
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", expr) and _known(state, expr):
+        return _lookup(state, expr)
+    return None
+
+
+def _same(found: object, expected: object) -> bool:
+    if found is None:
+        return expected in (False, 0)
+    if isinstance(expected, bool) or isinstance(found, bool):
+        return str(found).lower() == str(expected).lower()
+    return str(found) == str(expected)
 
 
 def _literal(text: str) -> object:
