@@ -6,7 +6,9 @@ solid fill and pattern 253 is no fill. Another pattern byte is not drawn
 as a hatch. A draw object's fill is the color at ``+0x1B`` and its stroke
 is the color at ``+0x17``. A button draws the picture at byte ``0x15`` of
 its graphics block, or the picture at byte ``0x4B`` when the button is
-checked. The invert and disabled pictures are not drawn. A field that
+checked. The invert and disabled pictures are not drawn. A field's text is
+drawn at the character height of each style run's font-table entry.
+A field that
 contains a shape is painted under that shape. A label that contains no
 shape is painted in front of a shape that contains the label.
 
@@ -99,6 +101,7 @@ class Paint:
     picture_role: str | None = None
     picture: tuple[int, int, bytes] | None = None
     mask: bytes | None = None
+    sizes: tuple[tuple[int, int | None], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -305,7 +308,7 @@ def _entered(
     props: UserProperties | None = None,
 ) -> tuple[Paint, ...]:
     """Run the page's enterPage text. A missing sysLevel is reader."""
-    from opentoolbook.enter import enter_fields
+    from opentoolbook.enter import cover_style, enter_fields
 
     indexes = [index for index, item in enumerate(items) if item.kind == "field"]
     packed = tuple((items[index].name, items[index].text or "", items[index].runs) for index in indexes)
@@ -315,7 +318,8 @@ def _entered(
     out = list(items)
     for index, (_name, text, runs) in zip(indexes, changed):
         if text != (out[index].text or "") or runs != out[index].runs:
-            out[index] = replace(out[index], text=text, runs=runs)
+            sizes = cover_style(out[index].text or "", text, out[index].sizes)
+            out[index] = replace(out[index], text=text, runs=runs, sizes=sizes)
     return tuple(out)
 
 
@@ -427,7 +431,8 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
         return Paint("angled line", object_id, name, bounds, None, stroke, None, points)
     if kind == _FIELD:
         text, runs = _runs(data, trailer, base, known, at)
-        return Paint("field", object_id, name, bounds, text=text, runs=runs)
+        sizes = _sizes(data, trailer, base, known, at)
+        return Paint("field", object_id, name, bounds, text=text, runs=runs, sizes=sizes)
     if kind == _BUTTON:
         return _button(data, segment, at, object_id, name, bounds)
     if kind == _PAINT_OBJECT:
@@ -491,6 +496,33 @@ def _runs(data, trailer, base: int, known: set[int], at: int):
         face = None if word == 1 or word not in known else _cstring(data, base + word)
         runs.append((offset, face))
     return text, tuple(runs)
+
+
+def font_height(data: bytes, base: int, known: set[int], word: int) -> int | None:
+    """The character height, in page units, of a font-table entry.
+
+    ``word`` is a near pointer in the list at the book record's ``+0x28``.
+    The entry is the face name, then at ``+0x20`` a signed word that is
+    minus the character height. None when the word is not in that list.
+    """
+    if word not in known or base + word + 0x22 > len(data):
+        return None
+    height = -struct.unpack_from("<h", data, base + word + 0x20)[0]
+    return height if height > 0 else None
+
+
+def _sizes(data, trailer, base: int, known: set[int], at: int) -> tuple[tuple[int, int | None], ...]:
+    """Each style run's offset and character height. A run word of 1 is the field's font at ``+0x22``."""
+    field = font_height(data, base, known, _u16(data, at + 0x22))
+    if trailer is None:
+        return ()
+    found = []
+    for raw in _style_runs(trailer, _u16(data, at + 0x24)):
+        word = _u16(raw, 2)
+        found.append((_u16(raw, 0), field if word == 1 else font_height(data, base, known, word)))
+    if not found:
+        return ((0, field),)
+    return tuple(found)
 
 
 def _colors(data: bytes, at: int):
@@ -665,6 +697,7 @@ def _draw_text(canvas, scale: float, item: Paint) -> None:
 
     shown = item.text.replace("\r\n", "\n").replace("\r", "\n")
     spans = _spans(shown, item.runs)
+    heights = _span_heights(shown, spans, item.sizes, scale)
     left = unit_to_px(item.bounds[0], scale)
     top = unit_to_px(item.bounds[1], scale)
     width = max(1, unit_to_px(item.bounds[2] - item.bounds[0], scale))
@@ -678,7 +711,8 @@ def _draw_text(canvas, scale: float, item: Paint) -> None:
         size -= 1
         font.configure(size=-size)
     y = top
-    for text, span_face in spans:
+    for (text, span_face), stored in zip(spans, heights):
+        span_size = stored or size
         canvas.create_text(
             left,
             y,
@@ -686,9 +720,24 @@ def _draw_text(canvas, scale: float, item: Paint) -> None:
             anchor="nw",
             width=width,
             fill="#000000",
-            font=(span_face or "TkDefaultFont", -size),
+            font=(span_face or "TkDefaultFont", -span_size),
         )
-        y += size * max(1, text.count("\n") + 1)
+        y += span_size * max(1, text.count("\n") + 1)
+
+
+def _span_heights(text: str, spans, sizes, scale: float) -> tuple[int | None, ...]:
+    """The pixel height of each span: the stored height of the run it starts in."""
+    ordered = tuple(sorted(sizes))
+    found = []
+    start = 0
+    for span, _face in spans:
+        height = None
+        for offset, stored in ordered:
+            if offset <= start:
+                height = stored
+        found.append(max(1, round(unit_to_px(height, scale))) if height else None)
+        start += len(span)
+    return tuple(found)
 
 
 def _spans(text: str, runs: tuple[tuple[int, str | None], ...]) -> tuple[tuple[str, str | None], ...]:
