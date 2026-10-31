@@ -12,6 +12,7 @@ from __future__ import annotations
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
 from opentoolbook.props import UserProperties
 from opentoolbook.script import _script, resource_scripts
+from opentoolbook.walk import Flow, reader_condition, walk
 
 _PAGE = 5
 
@@ -149,59 +150,32 @@ def _assignments(
     student_first: str | None,
     page_id: str,
     names: tuple[str, ...],
-):
-    index = 0
-    while index < len(lines):
-        low = _norm(lines[index])
-        if low.startswith("if ") and low.endswith(" then"):
-            condition = low[3:-5].strip()
-            index += 1
-            taken, skipped, index = _split_if(lines, index)
-            chosen = _branch(condition, reader, names, taken, skipped)
-            if chosen is not None:
-                yield from _assignments(chosen, reader, student_first, page_id, names)
-            continue
-        found = _set_text(lines[index])
-        if found is not None:
-            name, expression = found
-            yield name, concatenate(expression, student_first=student_first, page_id=page_id)
-        index += 1
+) -> list[tuple[str, str]]:
+    found: list[tuple[str, str]] = []
+
+    def statement(raw: str, _low: str) -> None:
+        written = _set_text(raw)
+        if written is not None:
+            name, expression = written
+            found.append((name, concatenate(expression, student_first=student_first, page_id=page_id)))
+
+    walk(
+        lines,
+        Flow(),
+        condition=lambda text: _branch(text, reader, names),
+        statement=statement,
+    )
+    return found
 
 
-def _branch(condition: str, reader: bool, names: tuple[str, ...], taken: list[str], skipped: list[str]):
-    if condition == "syslevel = reader":
-        return taken if reader else skipped
+def _branch(condition: str, reader: bool, names: tuple[str, ...]) -> bool | None:
+    known = reader_condition(condition, reader)
+    if known is not None:
+        return known
     folded = condition.replace(" ", "")
     if folded == 'isobject(field"page#"ofparentofthispage)':
-        if any(name.lower() == "page#" for name in names):
-            return taken
-        return skipped
+        return any(name.lower() == "page#" for name in names)
     return None
-
-
-def _split_if(lines: list[str], index: int):
-    taken: list[str] = []
-    skipped: list[str] = []
-    branch = taken
-    depth = 0
-    while index < len(lines):
-        low = _norm(lines[index])
-        if low.startswith("if ") and low.endswith(" then"):
-            depth += 1
-            branch.append(lines[index])
-            index += 1
-            continue
-        if low == "else" and depth == 0:
-            branch = skipped
-            index += 1
-            continue
-        if low == "end if" and depth == 0:
-            return taken, skipped, index + 1
-        if low == "end if":
-            depth -= 1
-        branch.append(lines[index])
-        index += 1
-    return taken, skipped, index
 
 
 def _set_text(line: str) -> tuple[str, str] | None:
@@ -333,6 +307,3 @@ def _tokens(expression: str):
         word = expression[start:index]
         yield "word", word, word
 
-
-def _norm(line: str) -> str:
-    return " ".join(line.strip().lower().split())
