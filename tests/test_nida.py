@@ -181,6 +181,118 @@ class FixtureTests(unittest.TestCase):
         self.assertIn("93950199", text)
 
 
+ONE_LESSON = """<?xml version="1.0"?>
+<Document type="nida:m3search" version="1.0">
+  <Menu courseid="LF" title="Logic Families">
+    <Menu title="Mod 01">
+      <Item title="Logic Families" lessonid="9E954D01" />
+    </Menu>
+  </Menu>
+</Document>
+"""
+
+FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
+
+
+def _main(argv):
+    import contextlib
+    import io
+    from unittest import mock
+
+    import opentoolbook.__main__ as entry
+
+    calls = []
+    out, err = io.StringIO(), io.StringIO()
+    window = mock.patch.object(entry, "open_page", lambda *a, **k: calls.append(a))
+    with window, contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        code = entry.main(["opentoolbook", *argv])
+    return code, calls, out.getvalue(), err.getvalue()
+
+
+class CatalogOpenTests(unittest.TestCase):
+    def test_open_resolves_the_lesson_id_under_the_catalog_folder(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "courses"
+            root.mkdir()
+            catalog = root / "courses.xml"
+            catalog.write_text(ONE_LESSON, encoding="latin1")
+            lesson = root / "9E954D01.TBK"
+            lesson.write_bytes(FIXTURE.read_bytes())
+            for target in (str(catalog), str(root)):
+                code, calls, out, err = _main(["--catalog", target, "--open", "9E954D01"])
+                self.assertEqual((code, out, err), (0, "", ""))
+                self.assertEqual(len(calls), 1)
+                data, page_id, book = calls[0][:3]
+                self.assertEqual((data, page_id, book), (FIXTURE.read_bytes(), "", str(lesson)))
+            code, calls, _out, _err = _main(["--catalog", str(catalog), "--open", "9e954d01"])
+            self.assertEqual(code, 0)
+            self.assertEqual(calls[0][2], str(lesson))
+            # The lesson in the parent of the catalog folder is the shelf's second root.
+            lesson.rename(Path(tmp) / "9e954d01.tbk")
+            code, calls, _out, _err = _main(["--catalog", str(catalog), "--open", "9E954D01"])
+            self.assertEqual((code, calls[0][2]), (0, str(Path(tmp) / "9e954d01.tbk")))
+            # --home/Nida98/Lessons is searched too.
+            home = Path(tmp) / "home"
+            (home / "Nida98" / "Lessons").mkdir(parents=True)
+            (Path(tmp) / "9e954d01.tbk").rename(home / "Nida98" / "Lessons" / "9e954d01.tbk")
+            code, calls, _out, err = _main(["--catalog", str(catalog), "--open", "9E954D01"])
+            self.assertEqual((code, calls), (2, []))
+            self.assertEqual(err, "9e954d01.tbk was not found; lesson 9E954D01 does not open\n")
+            code, calls, _out, _err = _main(
+                ["--catalog", str(catalog), "--open", "9E954D01", "--home", str(home)]
+            )
+            self.assertEqual(calls[0][2], str(home / "Nida98" / "Lessons" / "9e954d01.tbk"))
+            self.assertEqual(calls[0][3], str(home))
+
+    def test_an_id_the_catalog_does_not_list_is_an_error(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            catalog = Path(tmp) / "courses.xml"
+            catalog.write_text(ONE_LESSON, encoding="latin1")
+            (Path(tmp) / "10001001.tbk").write_bytes(FIXTURE.read_bytes())
+            code, calls, out, err = _main(["--catalog", str(catalog), "--open", "10001001"])
+        self.assertEqual((code, calls, out), (2, [], ""))
+        self.assertEqual(err, "10001001 is not a lesson in the catalog\n")
+
+    def test_without_open_the_catalog_printout_is_unchanged(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            catalog = Path(tmp) / "courses.xml"
+            catalog.write_text(ONE_LESSON, encoding="latin1")
+            (Path(tmp) / "9e954d01.tbk").write_bytes(FIXTURE.read_bytes())
+            code, calls, out, err = _main(["--catalog", str(catalog)])
+        self.assertEqual((code, calls, err), (0, [], ""))
+        self.assertEqual(
+            out,
+            "courses 1\nlessons 1\ncourses.xml unique lesson ids 1\nLF\tLogic Families\t1\n",
+        )
+
+    def test_open_needs_a_catalog(self):
+        code, calls, _out, _err = _main(["--open", "9E954D01"])
+        self.assertEqual((code, calls), (2, []))
+
+    def test_open_the_real_lesson_from_a_catalog(self):
+        import tempfile
+
+        path = os.environ.get("OPENTOOLBOOK_TBK")
+        if not path or not os.path.isfile(path):
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        catalog_dir = Path(path).parent
+        with tempfile.TemporaryDirectory() as tmp:
+            catalog = Path(tmp) / "courses.xml"
+            catalog.write_text(ONE_LESSON, encoding="latin1")
+            code, calls, _out, err = _main(
+                ["--catalog", str(catalog), "--open", "9E954D01", "--home", str(catalog_dir)]
+            )
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual(calls[0][1], "P0")
+        self.assertEqual(Path(calls[0][2]).name.lower(), "nida81.tbk")
+
+
 class SpecimenNidaTests(unittest.TestCase):
     def test_lesson_names_the_shell(self):
         path = os.environ.get("OPENTOOLBOOK_TBK")

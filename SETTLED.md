@@ -213,6 +213,10 @@ The book record stores the page width at `+0x20` and the page height at `+0x1E`.
 
 An inline type-1 picture stores a `BM` file eight bytes after `01 02 01 00`. On `9e954d01.tbk` that marker is at byte 18 of all 63 inline pictures. On `nida81.tbk` it is at byte 18 of 21 pictures and at byte 36 of the other 2. A huge-table picture keeps the `BM` file after the 8-byte prefix.
 
+## Opening a catalog lesson
+
+`python3 -m opentoolbook --catalog path/to/courses.xml --open 9E954D01` opens one lesson the catalog lists. `--catalog` may also be the folder that holds `courses.xml`. The lesson file is the id in lower case plus `.tbk`, `9e954d01.tbk`. It is found with the shelf rules: the catalog's folder, its parent, `--home`, `--home/courses`, and `--home/Nida98/Lessons`, regardless of case. That file then opens the way the bare command opens a book, on its opening page. The id match ignores case. An id the catalog does not list prints `9E954D01 is not a lesson in the catalog` and exits 2. A lesson file the search does not find prints `9e954d01.tbk was not found; lesson 9E954D01 does not open` and exits 2, and no window opens. `--open` without `--catalog`, or with a book, `--show`, or `--report`, prints the usage and exits 2. Without `--open` the catalog printout is unchanged.
+
 ## Enter page greeting
 
 On `P10` of `9e954d01.tbk` the `enterPage` handler sets the text of field `First` to `"Hello" && getFirst() & ", this lesson is about:"` when `sysLevel` is `reader`, and to `"Hello, this lesson is about:"` otherwise. The field's stored name is `first`. A missing `sysLevel` is `reader`. `getFirst` in `nc81recs.sbk` returns `__studentFirst`. The reader strips the ends of that variable, and returns `Student` when it is empty. `&&` is one operator and is recognized before `&`. `&&` concatenates with a space. `&` concatenates. The display list for `P10` shows `Hello Student, this lesson is about:`. The one style run at offset 0, face `Arial`, covered the stored string and covers the new string. The field `Text` stays `LOGIC FAMILIES`.
