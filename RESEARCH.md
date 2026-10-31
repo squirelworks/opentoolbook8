@@ -1621,3 +1621,7 @@ Source: handoff M6 (MENU → Begin starts the quiz); driver on `9e954d01.tbk` wi
 
 Source: handoff M6 Exit (`send keyUp keyF2 to this page` on the `Exit` button; book's `keyUp` then `send exit`). No book in the Logic Families chain defines `to handle exit`. The reader treats an unanswered `exit` message as close-the-window, matching Escape and the title-bar close.
 
+## Logic Families intro page chain
+
+Source: handoff M6 (open → logo → click → `P10` → Next/Back through the intro); in-process driver on `9e954d01.tbk` with companions under `/tmp/otb-books`. After the logo click, `Next` walks `P10`→`P100`→`P300`→`P400`→`P410`→`P420`→`P430`→`P440`→`P450`; `Back` from `P450` returns to `P440`. The facts the driver pins are in `SETTLED.md`.
+

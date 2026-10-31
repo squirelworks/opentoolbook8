@@ -365,6 +365,52 @@ class LessonTests(unittest.TestCase):
             self.assertEqual((nav.page_id, nav.book), ("P10", lesson))
             self.assertIn("P10", nav.pages)
 
+    def test_opening_then_next_and_back_through_the_intro(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from opentoolbook.entry import opening_page
+
+        entry = opening_page(path)
+        self.assertEqual((entry.book.name, entry.page_id), ("nida81.tbk", "P0"))
+        nav = Navigator(
+            entry.data,
+            entry.page_id,
+            entry.book,
+            lesson=path,
+            variables=dict(entry.variables),
+            props=entry.props,
+            sysbooks=entry.sysbooks,
+        )
+        self.assertEqual(nav.title(), "nida81.tbk - P0")
+        self.assertTrue(nav.click(None).moved)
+        self.assertEqual((nav.book.name, nav.page_id), ("9e954d01.tbk", "P10"))
+        self.assertEqual(nav.title(), "9e954d01.tbk - P10")
+        first = [
+            item.text
+            for item in nav.display(800, 600).items
+            if item.kind == "field" and item.name.lower() == "first"
+        ]
+        self.assertEqual(first, ["Hello Student, this lesson is about:"])
+        intro = ("P10", "P100", "P300", "P400", "P410", "P420", "P430", "P440", "P450")
+        seen = [nav.page_id]
+        for expect in intro[1:]:
+            self.assertTrue(nav.click("Next").moved, msg=f"Next from {seen[-1]}")
+            self.assertEqual((nav.book.name, nav.page_id), ("9e954d01.tbk", expect))
+            self.assertEqual(nav.title(), f"9e954d01.tbk - {expect}")
+            seen.append(nav.page_id)
+        self.assertEqual(tuple(seen), intro)
+        page_number = [
+            item.text
+            for item in nav.display(800, 600).items
+            if item.kind == "field" and item.name.lower() == "page#"
+        ]
+        self.assertEqual(page_number, ["P450"])
+        self.assertFalse(nav.click("Next").moved)
+        self.assertEqual(nav.page_id, "P450")
+        self.assertTrue(nav.click("Back").moved)
+        self.assertEqual((nav.page_id, nav.title()), ("P440", "9e954d01.tbk - P440"))
+
 
 if __name__ == "__main__":
     unittest.main()
