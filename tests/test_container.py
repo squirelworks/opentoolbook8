@@ -6,6 +6,8 @@ from pathlib import Path
 
 from opentoolbook.container import stored_containers
 
+from lesson import companion
+
 
 class ContainerTests(unittest.TestCase):
     def test_bounds_are_the_union_of_the_named_objects(self):
@@ -13,7 +15,7 @@ class ContainerTests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self._union(Path(path).read_bytes())
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         self._union(nida.read_bytes())
 

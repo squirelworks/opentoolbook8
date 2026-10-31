@@ -7,6 +7,8 @@ from pathlib import Path
 from opentoolbook.keywords import KEYWORDS
 from opentoolbook.script import button_clicks, quoted_go_to
 
+from lesson import companion
+
 GO_P310 = 'go to page "P310" of book "nida81.tbk"'
 GO_NEXT = "go to page nextpage of book lastbook"
 
@@ -17,7 +19,7 @@ class ButtonClickTests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         logic = Path(path).read_bytes()
-        nida_path = Path(path).with_name("nida81.tbk")
+        nida_path = companion(path, "nida81.tbk")
         self.assertTrue(nida_path.is_file())
         nida = nida_path.read_bytes()
 
@@ -54,7 +56,7 @@ class QuotedGoToTests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         logic = Path(path).read_bytes()
-        nida = Path(path).with_name("nida81.tbk").read_bytes()
+        nida = companion(path, "nida81.tbk").read_bytes()
         self.assertIsNone(quoted_go_to("send next"))
         self.assertIsNone(quoted_go_to("go to page nextpage of book lastbook"))
         self.assertIsNone(quoted_go_to("go to page (nextpage) of book(lastbook)"))
