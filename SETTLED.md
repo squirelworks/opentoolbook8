@@ -103,6 +103,10 @@ A quiz question page has fields named `Stem`, `A`, `B`, `C`, and `D`. The traile
 
 A class `0x13` record is 55 bytes. The count is the word at `+0x2D` and the near pointer at `+0x2F` names the stored points, four bytes each. The four signed words at `+0x25` are the minimum x, the minimum y, the maximum x, and the maximum y of those points. The reader returns the stored points. The same read holds for every such record in `9e954d01.tbk` and in `nida81.tbk`.
 
+## Angled line
+
+The window paints a class `0x13` record as an angled line. The line is the stored points the polyline reader returns, in stored order, stroked in the color at `+0x17`. It is not filled. The byte at `+0x1A` and the byte at `+0x1E` are 0 on all 66 records in `9e954d01.tbk` and all 14 in `nida81.tbk`. The TBKX export of `9e954d01.tbk` names `+0x17` `RgbStroke` and `+0x1B` `RgbFill` on all 66 angled lines. Every one of the 66 point lists in `9e954d01.tbk` and the 14 in `nida81.tbk` is on the display list of the page or background that holds it. The line Instructor drew on `otb-line-rect.tbk` is that book's one class `0x13` record, object 1, from (2040, 2955) to (240, 5295) in 0, 0, 0, and it is on that page's display list after the rectangle. The window does not change the field-under-shape order for an angled line.
+
 ## Arc
 
 Class `0x11` object 80 on page P1140 of `9e954d01.tbk` stores two points, the signed pairs at `+0x25` and `+0x29`: (1866, 5065) and (1815, 4620). Those are the points in the record. The arc is not filled.
@@ -249,4 +253,4 @@ A book with no startup page and no stored page is an error. The error names the 
 
 `python3 -m opentoolbook path/to/book.tbk --report` prints the record count, the follow-up reads, the files the book names, and the startup call names. It does not open a window. `--report path/to/book.tbk` prints the same report. `--home` with a book and without `--report` opens the book and searches that install. It does not print the install list. `--home` without a book still prints the install folder.
 
-`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds classes `0xD`, `0x11`, `0x13`, `0x15`, and `0x19`, and the window does not paint those. Class `0x12` pies and class `0x17` records are outside that walk and are not painted.
+`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds classes `0xD`, `0x11`, `0x15`, and `0x19`, and the window does not paint those. It paints class `0x13` as an angled line. Class `0x12` pies and class `0x17` records are outside that walk and are not painted.
