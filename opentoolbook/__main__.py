@@ -69,7 +69,7 @@ def main(argv: list[str]) -> int:
             return 2
         opened = Path(args.book)
         home = Path(args.home) if args.home else None
-        open_page(opened.read_bytes(), args.show, str(opened), status=unshipped_dll(opened, home))
+        open_page(opened.read_bytes(), args.show, str(opened), args.home, status=unshipped_dll(opened, home))
         return 0
     if args.book and not args.report:
         if any((args.catalog, args.cailt, args.keydisk)):
@@ -86,6 +86,7 @@ def main(argv: list[str]) -> int:
             entry.data,
             entry.page_id,
             str(entry.book),
+            args.home,
             entry.props,
             status=unshipped_dll(entry.book, home),
         )
