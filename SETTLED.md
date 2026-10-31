@@ -55,6 +55,10 @@ A button bitmap is an 8-byte prefix followed by a `BM` file in the huge table. T
 
 `9e954d01.tbk` names four bitmaps in the huge table. Resource 148 is at `0x2577`, 581 by 157, 8 bits per pixel. Resource 150 is at `0x18ff7`, 580 by 387, 8 bits per pixel. Resource 155 stays at `0x50117`, 580 by 158, 8 bits per pixel. Resource 164 is at `0x1be627`, 580 by 158, 8 bits per pixel. That count is four.
 
+## 8-bit pictures
+
+An 8-bit picture's pixels are indexes into the color table that follows its info header. The table has the info header's color count, or 256 when that count is 0. The window draws the table color, in red, green, blue order, for each index, with rows turned top-down. It does not read index bytes as color triples. Resources 148, 150, 155, and 164 of `9e954d01.tbk` are 8 bits per pixel. The first stored byte of each is index 0. For 148, 150, and 155 that is 192, 192, 192, and for 164 it is 113, 217, 217. Resource 155 is 580 by 158, and the `textbox` button on `P450` draws it. Every type-1 picture the reader finds decodes: 49 at 8 bits and 18 at 24 bits in `9e954d01.tbk`, and 18 and 14 in `nida81.tbk`. Each of the 67 in `9e954d01.tbk` is the same RGB as the `Bitmap` file of that id in the TBKX export.
+
 ## Button picture
 
 A class `0x09` button is 43 bytes. The word at `+0x28` is a near pointer to a graphics block. When that word is not 0, the block starts with `0x0202` and the unaligned word at byte `0x15` of the block is the picture id. That id is a type-1 resource id plus one. The reader returns it. On `9e954d01.tbk` the four huge-table bitmaps are named there by their stored ids.
