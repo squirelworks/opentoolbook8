@@ -135,6 +135,10 @@ The word at byte 2 of a style run is 1, or a near pointer in the list at the boo
 
 A class `0x0B` record is 49 bytes. The four signed words at `+0x0F` are a rectangle. It is the union of the rectangles at `+0x0F` of the objects whose word at `+0x04` names the record. The reader returns that rectangle. On `9e954d01.tbk` the two records in `FINDINGS.md` are (2557, 105, 6322, 1005) and (3202, 360, 6142, 765). The same read holds for every such record in `nida81.tbk`.
 
+## Class `0xD`
+
+A class `0xD` record is 45 bytes. It stores its rectangle and colors where class `0x8` does. The four signed words at `+0x0F` are an ordered rectangle. The bytes at `+0x17`, `+0x18`, and `+0x19` are a color, and the byte at `+0x1A` is 0. The bytes at `+0x1B`, `+0x1C`, and `+0x1D` are a color, and the byte at `+0x1E` is 0. The byte at `+0x25` is the pattern. That holds on all 14 records in `nida81.tbk`, all on page `P22100`, and every one is pattern 254. `9e954d01.tbk` has none. The window paints the rectangle with the class `0x8` rule: the color at `+0x1B` fills it when the pattern is not 253, and the color at `+0x17` is the outline. On `P22100` object 279 is (7282, 4176, 7495, 4259), outline 96, 96, 96, fill 255, 0, 0. The corners are drawn square. The words at `+0x28` and `+0x2A` are not drawn; they are in `FINDINGS.md`.
+
 ## Class `0xC` colors
 
 A class `0xC` record is 41 bytes. The bytes at `+0x17`, `+0x18`, and `+0x19` are a color, and the byte at `+0x1A` is 0. The bytes at `+0x1B`, `+0x1C`, and `+0x1D` are a color, and the byte at `+0x1E` is 0. The byte at `+0x25` is the pattern. The reader returns both colors and the pattern. On `9e954d01.tbk` page `P410`, both ellipses use the same pattern and the same first color as that page's background. On `nida81.tbk` page `P310`, five ellipses do the same, and other ellipses on that page do not. The same read holds for every such record in both books.
@@ -265,7 +269,7 @@ A book with no startup page and no stored page is an error. The error names the 
 
 `python3 -m opentoolbook path/to/book.tbk --report` prints the record count, the follow-up reads, the files the book names, and the startup call names. It does not open a window. `--report path/to/book.tbk` prints the same report. `--home` with a book and without `--report` opens the book and searches that install. It does not print the install list. `--home` without a book still prints the install folder.
 
-`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds classes `0xD`, `0x11`, `0x15`, and `0x19`, and the window does not paint those. It paints class `0x13` as an angled line. Class `0x12` pies and class `0x17` records are outside that walk and are not painted.
+`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds classes `0x11`, `0x15`, and `0x19`, and the window does not paint those. It paints class `0x13` as an angled line and class `0xD` as its bounds. Class `0x12` pies and class `0x17` records are outside that walk and are not painted.
 
 ## User properties
 
