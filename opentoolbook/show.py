@@ -39,7 +39,7 @@ from opentoolbook.field import (
     _trailer,
     _u16,
 )
-from opentoolbook.click import follow_click, quiz_background
+from opentoolbook.click import follow_click, quiz_background, quiz_setup_click
 from opentoolbook.quiznav import quiz_click
 from opentoolbook.page import _child_nears, _object_name, _objects
 from opentoolbook.props import UserProperties
@@ -174,6 +174,7 @@ def open_page(
             "book": Path(book).name if book else "",
             "folder": Path(book).parent if book else None,
             "props": props if props is not None else UserProperties(),
+            "handlers": None,
         }
 
         def redraw() -> None:
@@ -190,6 +191,9 @@ def open_page(
             name = button_at(listed, event.x, event.y)
             if not name:
                 return
+            if state["handlers"] is None:
+                state["handlers"] = _system_handlers(state["folder"], state["book"], state["data"])
+            quiz_setup_click(state["data"], state["page"], name, state["pages"], state["handlers"], state["props"])
             acted = follow_click(state["data"], state["page"], name, state["pages"])
             if acted is None:
                 if not quiz_background(state["data"], state["page"]):
@@ -211,6 +215,7 @@ def open_page(
                     state["data"] = path.read_bytes()
                     state["pages"] = page_ids(state["data"])
                     state["book"] = path.name
+                    state["handlers"] = None
             if acted.page_id not in state["pages"] or acted.page_id == state["page"]:
                 return
             state["page"] = acted.page_id
@@ -222,6 +227,18 @@ def open_page(
     finally:
         if root.winfo_exists():
             root.destroy()
+
+
+def _system_handlers(folder, book: str, data: bytes) -> dict[str, str]:
+    """Handler bodies of this book and the books it names, by lower-case name."""
+    from opentoolbook.entry import _companion_handlers, _handler_map
+    from opentoolbook.shelf import open_book
+
+    found: dict[str, str] = {}
+    if folder is not None and book:
+        found.update(_companion_handlers(open_book(folder / book)))
+    found.update(_handler_map(data))
+    return found
 
 
 def button_at(listed: DisplayList, x: float, y: float) -> str | None:

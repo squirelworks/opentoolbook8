@@ -67,6 +67,29 @@ def run_handler(source: str, pages: tuple[str, ...], page_id: str) -> Follow:
     return Follow(target, book)
 
 
+def quiz_setup_click(
+    data: bytes,
+    page_id: str,
+    button: str,
+    pages: tuple[str, ...],
+    handlers: dict[str, str],
+    props,
+) -> int | None:
+    """Run the ``setupQuizEx`` call in this button's handler into ``props``.
+
+    Returns that call's ``error``, or None when the handler makes no such
+    call or the system books do not define ``setupQuizEx``.
+    """
+    from opentoolbook.quizsetup import selection_setup
+
+    source = _handler(data, page_id, button)
+    setup = handlers.get("setupquizex")
+    if source is None or not setup:
+        return None
+    number = pages.index(page_id) + 1 if page_id in pages else 0
+    return selection_setup(source, setup, props, number)
+
+
 def quiz_background(data: bytes, page_id: str) -> bool:
     """True when the page's background ``buttonClick`` calls ``handleQuizClick``."""
     return "handlequizclick" in background_script(data, page_id).lower()
