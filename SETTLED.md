@@ -55,6 +55,10 @@ A button bitmap is an 8-byte prefix followed by a `BM` file in the huge table. T
 
 `9e954d01.tbk` names four bitmaps in the huge table. Resource 148 is at `0x2577`, 581 by 157, 8 bits per pixel. Resource 150 is at `0x18ff7`, 580 by 387, 8 bits per pixel. Resource 155 stays at `0x50117`, 580 by 158, 8 bits per pixel. Resource 164 is at `0x1be627`, 580 by 158, 8 bits per pixel. That count is four.
 
+## 8-bit pictures
+
+An 8-bit picture's pixels are indexes into the color table that follows its info header. The table has the info header's color count, or 256 when that count is 0. The window draws the table color, in red, green, blue order, for each index, with rows turned top-down. It does not read index bytes as color triples. Resources 148, 150, 155, and 164 of `9e954d01.tbk` are 8 bits per pixel. The first stored byte of each is index 0. For 148, 150, and 155 that is 192, 192, 192, and for 164 it is 113, 217, 217. Resource 155 is 580 by 158, and the `textbox` button on `P450` draws it. Every type-1 picture the reader finds decodes: 49 at 8 bits and 18 at 24 bits in `9e954d01.tbk`, and 18 and 14 in `nida81.tbk`. Each of the 67 in `9e954d01.tbk` is the same RGB as the `Bitmap` file of that id in the TBKX export.
+
 ## Button picture
 
 A class `0x09` button is 43 bytes. The word at `+0x28` is a near pointer to a graphics block. When that word is not 0, the block starts with `0x0202` and the unaligned word at byte `0x15` of the block is the picture id. That id is a type-1 resource id plus one. The reader returns it. On `9e954d01.tbk` the four huge-table bitmaps are named there by their stored ids.
@@ -130,6 +134,14 @@ A class `0x0E` line is 53 bytes. The endpoints are the signed pairs at `+0x26`. 
 ## Style run name
 
 The word at byte 2 of a style run is 1, or a near pointer in the list at the book record's `+0x28`. The first word of that list is a count of the pointers. When the run word is one of those pointers, the bytes there are a C string and the reader returns it. When the word is 1, the reader returns no string. On `9e954d01.tbk` more than one of those strings occurs, the same pointer is the same string, and 1 is not in the list. The same shape holds on `nida81.tbk`.
+
+## No hatch for class 0x8
+
+The next class `0x8` pattern byte after 254 and 253 that occurs in both books does not exist. In `9e954d01.tbk` the bytes at `+0x25` are 254 on 143 records, 33 on 56, 253 on 41, and 4 on 3. In `nida81.tbk` they are 254 on 75, 253 on 9, and 81 on 2. Only 254 and 253 are in both. The export names 254 `solidFill` and 253 `none`, and it writes 33 and 4 as bare numbers, `Pattern="33"` and `Pattern="4"`. No byte and no Instructor note names a hatch for 33, 4, or 81. The window does not draw a hatch: such a rectangle is its fill color at `+0x1B` and its stroke at `+0x17`. On `P440` the first pattern-33 bar is `750,4830,825,5130`, filled 192, 192, 192 with a black stroke.
+
+## Layer list
+
+A page or a background stores one class `0x06` record of 15 bytes whose word at `+0x08` is that page's or background's near. The word at `+0x02` is a count, and the word at `+0x0C` is a trailer handle. That handle's item holds that many near words: the parent's objects, back to front. The word at `+0x00` is at least the count. On `9e954d01.tbk` each of the 131 pages has exactly one such record and its list holds the page's objects once each. The object ids in list order are the export's `Page.Objects` order on all 131 pages. On 36 of them that order is not the stored order. Each of the 44 pages of `nida81.tbk` has one such record with the same property. The 14 lesson backgrounds and 20 `nida81.tbk` backgrounds store one as well, naming the same objects in their stored order. The window paints a page's or background's objects in list order, and a group's children in its own child list order. When the list is missing or does not name the same objects, the stored order stays. The field rules in the window section then run on that order. On `P300` the list is `0x25a`, `0x2da`, `0x9c`, `0xe4`, `0x3f6`: `MenuFrame`, the `MenuTitle` group, the `selection1` group, `Next`, `Back`. `MenuFrame` is behind the `selection1` button, so a click on that button is the button and not the frame. On `P410` the list puts the chip rectangle 39 in front of rectangles 68 and 69 and ellipse 58, which the stored order painted over it.
 
 ## Class `0x0B`
 
@@ -237,6 +249,10 @@ An inline type-1 picture stores a `BM` file eight bytes after `01 02 01 00`. On 
 
 Resizing the window refits the page. The canvas fills the window. A `Configure` event with a new canvas size computes the fit scale again from the stored page size and that view: 9360 by 6624 on the lesson, 9000 by 6000 on the fixtures. The paint list is unchanged and only the scale moves. A 600 by 400 view of `otb-line-rect.tbk` is scale 1, and a 300 by 400 view of the same page is scale 0.5. There are no scroll bars.
 
+## No enterButton or leaveButton
+
+`handler_sites` finds every `to handle NAME` line in a book's expanded scripts: inline object scripts, type 10 scripts, and type 19 shared scripts. Handler names are stored as keyword tokens, so a byte search of the file does not see them. On `9e954d01.tbk`, `nida81.tbk`, `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk` there is no `enterButton` handler and no `leaveButton` handler. The window dispatches neither message. The hover handlers the books do have are `mouseEnter` and `mouseLeave`, 19 of each on `9e954d01.tbk` and 3 of each on `nida81.tbk`, all in inline scripts of class `0xA` fields such as `Selection1` on `P300`, and none in the system books. Those are hover, and the window does not dispatch them either.
+
 ## Window close
 
 The window's close button ends the Tk loop. `open_page` returns, and `python3 -m opentoolbook --show PAGE book.tbk` exits 0. Before this, closing the window raised `TclError` from the destroyed root. A click whose handler raises `ValueError` or `OSError` prints that error's one line on stderr and the window stays up on the same page. Any other exception keeps its traceback and the window also stays up. The smoke test opens `otb-line-rect.tbk` and presses close. It is skipped with a message when `DISPLAY` is unset or the Python has no `tkinter`.
@@ -333,7 +349,7 @@ A `__` name is a system variable the lesson and the four system books declare, s
 
 ## Lesson tests
 
-`python3 -m unittest discover -s tests` passes with no lesson on disk. Every test that reads Logic Families takes the path from `OPENTOOLBOOK_TBK` and skips when that variable is unset or names no file. Nothing from the lesson, `nida81.tbk`, or the `nc81*.sbk` books is checked in. A test reads a companion with `tests/lesson.py` `companion`, which is `find_file` over `search_roots` of the lesson: the lesson directory, then its parent, case-insensitive, the same shelf `open_book` uses. A disc copy with `NC81RECS.SBK` in upper case beside the lesson and `NIDA81.TBK` one directory up passes the same tests as a flat lower-case copy. When the shelf has no such file, `companion` returns the path beside the lesson, so the test's own `is_file` check fails or skips as before.
+`python3 -m unittest discover -s tests` passes with no lesson on disk. Every test that reads Logic Families takes the path from `OPENTOOLBOOK_TBK` and skips when that variable is unset or names no file. Nothing from the lesson, `nida81.tbk`, or the `nc81*.sbk` books is checked in. A test reads a companion with `tests/lesson.py` `companion`, which is `find_file` over `search_roots` of the lesson: the lesson directory, then its parent, case-insensitive, the same shelf `open_book` uses. A disc copy with `NC81RECS.SBK` in upper case beside the lesson and `NIDA81.TBK` one directory up passes the same tests as a flat lower-case copy. When the shelf has no such file, `companion` returns the path beside the lesson, so the test's own `is_file` check fails or skips as before. A test that builds a `Navigator` on the logo book and follows a name back to the lesson passes `lesson=`, the same shelf the window keeps, because on a disc copy the lesson is in `Lessons/` below the logo book and not on the logo book's own shelf. A file name a test compares is compared in lower case.
 
 ## Statement walker
 
