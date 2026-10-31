@@ -408,6 +408,29 @@ class Navigator:
             self.history.append(where)
         return result
 
+    def key_down(self, keysym: str) -> Clicked | None:
+        """Send ``keyDown`` with the OpenScript key constant for ``keysym``."""
+        from opentoolbook.keys import KEYSYMS
+        from opentoolbook.openscript.interp import Ref
+
+        key = KEYSYMS.get(keysym)
+        if key is None:
+            return None
+        where = (self.book, self.page_id)
+        acted = self._send(
+            None,
+            "keydown",
+            None,
+            to=Ref("page", "this", None, None),
+            args=(key,),
+        )
+        if acted is None:
+            return None
+        result = self._apply(acted)
+        if result.moved and where != (self.book, self.page_id):
+            self.history.append(where)
+        return result
+
     def chain(self):
         """Handler maps by book: this book's, then each ``sysBooks`` book's."""
         from opentoolbook.send import handler_chain

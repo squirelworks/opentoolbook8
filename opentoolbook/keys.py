@@ -22,7 +22,17 @@ from opentoolbook.script import resource_scripts
 
 _PAGE = 5
 # Tk key names to the OpenScript key constant the handler compares against.
-KEYSYMS = {"Return": "keyenter", "KP_Enter": "keyenter"}
+KEYSYMS = {
+    "Return": "keyenter",
+    "KP_Enter": "keyenter",
+    "Prior": "keyprior",
+    "Next": "keynext",
+    "Up": "keyuparrow",
+    "Down": "keydownarrow",
+    "Home": "keyhome",
+    "End": "keyend",
+    "Escape": "keyescape",
+}
 KEYSYMS.update({f"F{index}": f"keyf{index}" for index in range(1, 13)})
 
 _HANDLER = re.compile(r"^\s*to\s+handle\s+keyup\b", re.IGNORECASE)

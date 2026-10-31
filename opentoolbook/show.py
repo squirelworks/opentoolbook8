@@ -491,6 +491,19 @@ def open_page(
             listed = getattr(canvas, "listed", None)
             if listed is None:
                 return
+            # PageUp/PageDown, arrows, and F-keys send keyDown when a handler answers.
+            if event.keysym not in {"Right", "Left", "Return", "KP_Enter"}:
+                down = nav.key_down(event.keysym)
+                if down is not None:
+                    if down.beep:
+                        root.bell()
+                    for text in down.requests:
+                        from tkinter import messagebox
+
+                        messagebox.showinfo(nav.book_name or "ToolBook", text, parent=root)
+                    if down.moved or down.changed or down.checked:
+                        redraw()
+                    return
             try:
                 result = press_key(nav, listed, event.keysym)
             except ValueError as exc:
@@ -535,6 +548,12 @@ def open_page(
         root.bind("<Left>", on_key)
         root.bind("<Return>", on_key)
         root.bind("<KP_Enter>", on_key)
+        root.bind("<Prior>", on_key)
+        root.bind("<Next>", on_key)
+        root.bind("<Up>", on_key)
+        root.bind("<Down>", on_key)
+        for index in range(1, 13):
+            root.bind(f"<F{index}>", on_key)
         root.bind("<Key>", on_char)
         root.bind("<Escape>", lambda _event: root.quit())
         canvas.bind("<Configure>", on_configure)

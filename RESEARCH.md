@@ -1604,3 +1604,7 @@ Source: handoff M5. Windows/ToolBook `linkDLL32` names are answered from `opento
 ## ask vs request
 
 Source: handoff M5 ask edge. OpenScript keyword list has both `ask` and `request`. The parser had only `request` as a Request node; `ask … with …` fell through as a raw Command. Both now parse as Request.
+
+## keyDown for PageUp / PageDown / F-keys
+
+Source: handoff M8 keyboard. Tk `Prior`/`Next` map to OpenScript `keyPrior`/`keyNext`. The window sends `keyDown` with that constant before falling through to the older button/`keyUp` walker for Right/Left/Enter. `keyUp` as a live interpreter message is not wired yet.
