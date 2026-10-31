@@ -1637,3 +1637,7 @@ Source: handoff M6 (answers / skipped questions); `startCompletionPass` in `nc81
 
 Source: handoff M6 (`P10301` skipped count and OK). `same()` compared object refs as their `str` forms, so `button "OK"` never equalled `button "OK" of …`. The interpreter now compares refs by kind and name; that lets `Test2`'s `send okClicked` run. `getSkippedCount` already returned the real count on enterPage.
 
+## startupBook opens the runtime book
+
+Source: handoff M4 (`startupBook` in `TB80.INI`). The key was parsed with the other startup keys but unused. A bare `python3 -m opentoolbook` with `--ini` / `--windows` now resolves that filename on the shelf and opens it.
+

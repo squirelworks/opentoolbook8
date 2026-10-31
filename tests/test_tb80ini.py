@@ -113,6 +113,55 @@ class StartupSysBooks(unittest.TestCase):
             self.assertEqual((entry.startup_width, entry.startup_height), (400, 300))
 
 
+class StartupBook(unittest.TestCase):
+    def test_resolve_startup_book_finds_the_file_beside_the_ini(self):
+        from opentoolbook.tb80ini import read_tb80_ini, resolve_startup_book
+
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            book = folder / "Start.TBK"
+            book.write_bytes(FIXTURE.read_bytes())
+            ini = folder / "TB80.INI"
+            ini.write_text("startupBook=start.tbk\n", encoding="latin1")
+            settings = read_tb80_ini(None, override=ini)
+            self.assertEqual(settings.startup_book, "start.tbk")
+            self.assertEqual(resolve_startup_book(settings), book)
+
+    def test_main_opens_startup_book_when_no_book_argument(self):
+        from opentoolbook.__main__ import main
+
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            book = folder / "otb-line-rect.tbk"
+            book.write_bytes(FIXTURE.read_bytes())
+            ini = folder / "TB80.INI"
+            ini.write_text("startupBook=otb-line-rect.tbk\n", encoding="latin1")
+            with patch("opentoolbook.__main__.open_page", return_value=()) as open_page:
+                with patch("opentoolbook.__main__.opening_page") as opening:
+                    from opentoolbook.entry import Entry
+                    from opentoolbook.props import UserProperties
+
+                    opening.return_value = Entry(
+                        page_id="",
+                        book=book,
+                        data=book.read_bytes(),
+                        props=UserProperties(),
+                    )
+                    code = main(["opentoolbook", "--ini", str(ini)])
+            self.assertEqual(code, 0)
+            opening.assert_called_once()
+            self.assertEqual(opening.call_args.args[0], book)
+            open_page.assert_called_once()
+            self.assertEqual(open_page.call_args.kwargs.get("lesson"), str(book))
+
+    def test_main_without_book_or_startup_book_prints_usage(self):
+        from opentoolbook.__main__ import main
+
+        with patch("sys.stderr"):
+            code = main(["opentoolbook"])
+        self.assertEqual(code, 2)
+
+
 class StartupView(unittest.TestCase):
     def test_ini_pixels_win_over_page_size(self):
         from opentoolbook.show import startup_view

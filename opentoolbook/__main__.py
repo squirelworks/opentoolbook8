@@ -2,9 +2,11 @@
 
 ``python3 -m opentoolbook book.tbk`` opens the book on the page its
 startup handlers name, or on the first stored page when they do not
-name one. ``--report`` prints the record count, the files the book
-names, and the startup call names, and does not open a window.
-``--show PAGE`` opens that page id and does not follow startup handlers.
+name one. With no book argument, ``TB80.INI`` ``startupBook`` names the
+file to open (found beside the INI, then ``--home``, then ``--windows``).
+``--report`` prints the record count, the files the book names, and the
+startup call names, and does not open a window. ``--show PAGE`` opens
+that page id and does not follow startup handlers.
 
 A ``linkDLL`` line is not called. ``forward`` is not executed.
 ``gotoPageList`` names pages that are not quoted, so a resumed session
@@ -30,6 +32,7 @@ from opentoolbook.shelf import (
     search_roots,
     unshipped_dll,
 )
+from opentoolbook.tb80ini import read_tb80_ini, resolve_startup_book
 
 
 def main(argv: list[str]) -> int:
@@ -65,11 +68,16 @@ def main(argv: list[str]) -> int:
     home = Path(args.home) if args.home else None
     windows = Path(args.windows) if args.windows else None
     ini = Path(args.ini) if args.ini else None
+    book = Path(args.book) if args.book else None
+    if book is None and not args.show:
+        # No book on the command: TB80.INI startupBook is the book to open.
+        settings = read_tb80_ini(None, windows=windows, override=ini)
+        book = resolve_startup_book(settings, home=home, windows=windows)
     if args.show:
-        if not args.book:
+        if book is None:
             parser.print_usage(sys.stderr)
             return 2
-        opened = Path(args.book)
+        opened = book
         try:
             data = opened.read_bytes()
         except OSError:
@@ -88,9 +96,9 @@ def main(argv: list[str]) -> int:
             print(exc, file=sys.stderr)
             return 2
         return 1 if errors else 0
-    if args.book and not args.report:
+    if book is not None and not args.report:
         try:
-            entry = opening_page(Path(args.book), home, windows=windows, ini=ini)
+            entry = opening_page(book, home, windows=windows, ini=ini)
         except ValueError as exc:
             print(exc, file=sys.stderr)
             return 2
@@ -100,7 +108,7 @@ def main(argv: list[str]) -> int:
             str(entry.book),
             args.home,
             entry.props,
-            lesson=args.book,
+            lesson=str(book),
             variables=entry.variables,
             sysbooks=entry.sysbooks,
             objects=entry.objects,
@@ -108,14 +116,14 @@ def main(argv: list[str]) -> int:
             window_height=entry.startup_height,
         )
         return 1 if errors else 0
-    if not any((args.book, args.home)):
+    if not any((book, args.home)):
         parser.print_usage(sys.stderr)
         return 2
 
     if args.home:
-        _print_home(Path(args.home), Path(args.book) if args.book else None, windows=windows, ini=ini)
-    elif args.book:
-        _print_book(Path(args.book), None, windows=windows, ini=ini)
+        _print_home(Path(args.home), book, windows=windows, ini=ini)
+    elif book is not None:
+        _print_book(book, None, windows=windows, ini=ini)
     return 0
 
 

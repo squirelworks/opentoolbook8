@@ -85,6 +85,40 @@ def _merged(parser: configparser.ConfigParser) -> dict[str, str]:
     return found
 
 
+def resolve_startup_book(
+    settings: Tb80Ini,
+    home: Path | None = None,
+    windows: Path | None = None,
+) -> Path | None:
+    """The file ``startupBook`` names on the shelf, or None when unset or missing.
+
+    Search order: the INI's folder, ``--home``, then ``<windows>\\asym\\runtime``
+    and ``<windows>``, ignoring case. A bare command with no book argument uses
+    this path when the INI names one.
+    """
+    from opentoolbook.shelf import find_file
+
+    name = settings.startup_book
+    if not name:
+        return None
+    roots: list[Path] = []
+    if settings.path is not None:
+        roots.append(settings.path.parent)
+    if home is not None:
+        roots.append(home)
+    if windows is not None:
+        roots.append(windows / "asym" / "runtime")
+        roots.append(windows)
+    seen: list[Path] = []
+    unique: list[Path] = []
+    for root in roots:
+        if root in seen:
+            continue
+        seen.append(root)
+        unique.append(root)
+    return find_file(tuple(unique), name)
+
+
 def _sysbooks(raw: str | None) -> tuple[str, ...]:
     if not raw:
         return ()
