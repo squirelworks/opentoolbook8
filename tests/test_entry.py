@@ -155,9 +155,16 @@ class ChooseOpeningTests(unittest.TestCase):
         }
         self.assertEqual(choose_opening(("P0", "P10", "P2"), {}, scripts), ("P2", None))
 
-    def test_opensession_alone_can_name_the_page(self):
+    def test_opensession_alone_is_not_a_startup_message(self):
         handlers = {"opensession": 'to get openSession\ngo to page "P2"\nend\n'}
-        self.assertEqual(choose_opening(("P0", "P2"), handlers), ("P2", None))
+        self.assertEqual(choose_opening(("P0", "P2"), handlers), ("P0", None))
+
+    def test_enter_book_runs_after_enter_application(self):
+        handlers = {
+            "enterapplication": 'to handle enterApplication\ngo to page "P1"\nend\n',
+            "enterbook": 'to handle enterBook\ngo to page "P2"\nend\n',
+        }
+        self.assertEqual(choose_opening(("P0", "P1", "P2"), handlers), ("P2", None))
 
 
 class OpeningPageTests(unittest.TestCase):

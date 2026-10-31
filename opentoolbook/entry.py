@@ -1,6 +1,6 @@
 """The page a book opens on.
 
-ToolBook sends ``enterSystem``, then ``enterApplication``, then shows a
+ToolBook sends ``enterSystem``, ``enterApplication``, then ``enterBook``, then shows a
 page. A quoted ``go to page`` in a branch this reader takes is that page.
 The reader takes ``sysLevel = reader`` because a missing ``sysLevel`` is
 ``reader``. ``it`` is the value of the last ``get``. ``__studentRecords``
@@ -38,10 +38,9 @@ _FILE_EXISTS_IS = re.compile(r'^fileexists32\(\s*"([^"]*)"\s*\)\s*(=|<>)\s*(-?\d
 _GET_VALUE = re.compile(r"^get\s+(.+)$")
 _IT_IS = re.compile(r'^it (?:is|=) (-?\d+|true|false|"[^"]*")$')
 _COMPARE = re.compile(r"^([a-z_][a-z0-9_]*) = (false|true|\d+)$")
-_MESSAGES = ("entersystem", "enterapplication")
+_MESSAGES = ("entersystem", "enterapplication", "enterbook")
 _PUSH_SYSBOOKS = re.compile(r'^push\s+"([^"]+)"\s+onto\s+sysbooks$')
 _IN_SYSBOOKS = re.compile(r'^"([^"]+)"\s+is\s+(not\s+)?in\s+sysbooks$')
-_OTHER_STARTUP = ("opensession", "gotopagelist", "entersystem", "enterapplication")
 
 
 @dataclass(frozen=True)
@@ -223,16 +222,10 @@ def choose_opening(
 
 
 def _run_startup(state: _State) -> None:
-    names = [name for name in _MESSAGES if name in state.handlers]
-    if not names:
-        for name in _OTHER_STARTUP:
-            if name in state.handlers and name not in names:
-                names.append(name)
-        for name in sorted(state.handlers):
-            if name.startswith("initialize") and name not in names:
-                names.append(name)
-    for name in names:
-        _call(name, state)
+    """``enterSystem``, ``enterApplication``, then ``enterBook``, each when a handler answers it."""
+    for name in _MESSAGES:
+        if name in state.handlers:
+            _call(name, state)
         state.breaking = False
         state.returning = False
 

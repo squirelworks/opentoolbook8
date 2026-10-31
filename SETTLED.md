@@ -351,7 +351,7 @@ Resource type 16 in the PE resource directory is a version resource. The reader 
 
 ## Opening the book
 
-`python3 -m opentoolbook path/to/book.tbk` opens a Tk window on the book's opening page. `enterSystem` runs, then `enterApplication`, when the book defines them. A `get` call in a branch the reader takes runs that handler when its body is in the book or in a book in `sysBooks`. A quoted `go to page` in a taken branch is the page. A missing `sysLevel` is `reader`, so `sysLevel = "reader"` is the branch that runs. `forward` is not executed. A `linkDLL` line is not called.
+`python3 -m opentoolbook path/to/book.tbk` opens a Tk window on the book's opening page. `enterSystem` runs, then `enterApplication`, then `enterBook`, each when a handler in the book or in `sysBooks` answers it. No other handler runs at startup because of its name: a book with only `openSession` or `initialize*` handlers runs none of them. A `get` call in a branch the reader takes runs that handler when its body is in the book or in a book in `sysBooks`. A quoted `go to page` in a taken branch is the page. A missing `sysLevel` is `reader`, so `sysLevel = "reader"` is the branch that runs. `forward` is not executed. A `linkDLL` line is not called.
 
 `openSession` returns 0 when `__studentRecords` has not been set. `if it is 1` does not run, so `gotoPageList` does not run. `gotoPageList` says `go to page(pagename) of book(bookname)`. Those names are not quoted. The list is filled by the session DLL, which is not called. A resumed session is not the page the window opens.
 
