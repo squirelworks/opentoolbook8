@@ -61,6 +61,19 @@ def reader_condition(text: str, reader: bool = True) -> bool | None:
     return None
 
 
+def this_name(expression: str, page_id: str | None, book_name: str | None) -> str | None:
+    """``name of this page`` is the page id. ``name of this book`` is the file name.
+
+    None for any other expression, or when the caller does not know that name.
+    """
+    low = norm(expression)
+    if low == "name of this page":
+        return page_id
+    if low == "name of this book":
+        return book_name
+    return None
+
+
 def split_if(lines: list[str], index: int) -> tuple[list[str], list[str], int]:
     """``(then lines, else lines, index after the closing end)`` from ``index``."""
     taken: list[str] = []
