@@ -170,6 +170,7 @@ def show_page(
     *,
     sys_level: str | None = None,
     checked: Mapping[str, bool] | None = None,
+    correct: bool = False,
 ) -> DisplayList:
     """The display list for one page. It does not open a window.
 
@@ -180,10 +181,16 @@ def show_page(
     ``sys_level`` ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
     ``checked`` maps a button name, in any case, to the checked state a
     click gave it. It wins over bit 4 of that button's ``+0x26``.
+    The rectangle named ``Correct`` is the answer mark. It is on the list
+    only when ``correct`` is True, which is when ``setupQuizPage`` ran
+    ``set visible of rectangle("correct") of page iPage to true`` for
+    this page.
     """
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
     items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props, sys_level)
+    if not correct:
+        items = tuple(item for item in items if not _answer_mark(item))
     if fields:
         items = _written(items, fields)
     if checked:
@@ -568,6 +575,10 @@ def _written(items: tuple[Paint, ...], fields: dict[str, str]) -> tuple[Paint, .
     return tuple(out)
 
 
+def _answer_mark(item: Paint) -> bool:
+    return item.kind == "rectangle" and item.name.lower() == "correct"
+
+
 def _stored(data: bytes, page_id: str, width: int, height: int) -> list[Paint]:
     segments = _segments(data)
     by_key = {segment.key: segment for segment in segments}
@@ -663,9 +674,6 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
     name = _object_name(data, trailer, at) if trailer is not None else ""
     object_id = _u16(data, at)
     bounds = _bounds(data, at)
-    # The rectangle named Correct is the answer mark. No quiz pass has shown it.
-    if kind == _RECTANGLE and name.lower() == "correct":
-        return None
     if kind in (_RECTANGLE, _ELLIPSE, _POLYGON):
         fill, stroke, width = _stroked(data, at)
         points = _polygon_points(data, segment, at) if kind == _POLYGON else ()
