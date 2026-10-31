@@ -109,6 +109,29 @@ class StartupVariableTests(unittest.TestCase):
         self.assertEqual(variables["nextpage"], "p10")
 
 
+class TitleTests(unittest.TestCase):
+    def test_the_title_is_the_book_file_and_the_page_id(self):
+        nav = Navigator(FIXTURE.read_bytes(), "", FIXTURE)
+        self.assertEqual(nav.title(), "otb-line-rect.tbk - ")
+        self.assertEqual(Navigator(FIXTURE.read_bytes(), "P1").title(), "P1")
+
+    def test_the_title_follows_open_next_and_a_book_switch(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from opentoolbook.entry import opening_page
+
+        entry = opening_page(path)
+        opened = Navigator(entry.data, entry.page_id, entry.book)
+        self.assertEqual(opened.title(), "nida81.tbk - P0")
+        nav = Navigator(path.read_bytes(), "P300", path)
+        self.assertEqual(nav.title(), "9e954d01.tbk - P300")
+        nav.click("Next")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P400")
+        switched = Navigator(path.read_bytes(), "P300", path)
+        switched.click("Selection1")
+        self.assertEqual(switched.title(), "nida81.tbk - P310")
+
 class HistoryTests(unittest.TestCase):
     def test_nothing_shown_before_is_a_viewer_back_that_stays(self):
         nav = Navigator(FIXTURE.read_bytes(), "", FIXTURE)

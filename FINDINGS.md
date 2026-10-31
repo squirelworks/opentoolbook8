@@ -145,7 +145,7 @@ Words `+0x06` and `+0x08` are 65535. Words `+0x02`, `+0x20`, and `+0x26` are 0. 
 
 ### Class `0xE`, 53 bytes, 528 records
 
-Same length as class `0x10`, and a different record. Words `+0x06` and `+0x08` are 65535. Words `+0x02` and `+0x20` are 0. Word `+0x32` is 15 in every one of the 528. The four words at `+0x0F` have area in 12 of the 528. On the other 516 one side is equal. Two records:
+Same length as class `0x10`, and a different record. Words `+0x06` and `+0x08` are 65535. Words `+0x02` and `+0x20` are 0. Word `+0x32` is 15 in every one of the 528. Word `+0x32` is not the stroke width: two lines are `LineStyle="2"` in the export and still store 15. The width is the byte at `+0x22`, in `SETTLED.md`. The styles 3, 7, and 8 of that byte have no export pair yet. The four words at `+0x0F` have area in 12 of the 528. On the other 516 one side is equal. Two records:
 
 ```
 270000001400ffffffff0800001400fa05e10f6108e10ffffcf00080808000210000040000006108e10ffa05e10f00000f000f00a7
@@ -430,7 +430,7 @@ Byte 4 in the first book is 0 on 219 runs, 238 on 3, and 146 on 2. Byte 5 is 0 o
 
 Byte 7 in the first book is 255 on 111, 0 on 84, 240 on 20, and 64 on 9. Byte 8 is 0 on 84, 252 on 62, 255 on 49, 240 on 20, and 64 on 9. Byte 9 is 0 on 128, 240 on 82, 255 on 9, 64 on 3, and 191 on 2. In `nida81.tbk` byte 7 is 0 on 81, 255 on 37, and 64 on 13. Byte 8 is 0 on 79, 255 on 27, 252 on 14, 64 on 9, and 128 on 2. Byte 9 is 0 on 93, 255 on 20, 240 on 14, 191 on 2, and 64 on 2.
 
-The seven Wingdings runs in `9e954d01.tbk` store 0 at bytes 4, 5, 7, 8, and 9. `nida81.tbk` has no Wingdings run. The word at byte 4 of an Arial run is 0 on all 74 Arial runs in the first book and all 69 in the second. That is the same word the Wingdings runs store. The word at byte 7 is not one value on the Arial runs. No point size is read from these bytes.
+The seven Wingdings runs in `9e954d01.tbk` store 0 at bytes 4, 5, 7, 8, and 9. `nida81.tbk` has no Wingdings run. The word at byte 4 of an Arial run is 0 on all 74 Arial runs in the first book and all 69 in the second. That is the same word the Wingdings runs store. The word at byte 7 is not one value on the Arial runs. No point size is read from these bytes. The size is in the font-table entry the run's word at byte 2 names; `SETTLED.md` has that read.
 
 ## Class `0x15` words that vary
 
@@ -518,7 +518,7 @@ The pattern on a class `0x8`, `0xC`, or `0x10` record is the byte at `+0x25`. Cl
 
 The export is a TB115 naming of `9e954d01`. The bytes below are the TB80 file. A field is listed here when the export name and the bytes already read are the same value on more than one record.
 
-The export object id is the word at the start of the record. Rectangle is class `0x8`, button `0x9`, field `0xA`, group `0xB`, ellipse `0xC`, line `0xE`, irregular polygon `0x10`, arc `0x11`, and angled line `0x13`. Five hotwords are class `0x17`. The field `Review 2` on `P10410` is not in that page walk. That field is one example.
+The export object id is the word at the start of the record. Rectangle is class `0x8`, button `0x9`, field `0xA`, group `0xB`, ellipse `0xC`, line `0xE`, irregular polygon `0x10`, arc `0x11`, and angled line `0x13`. Five hotwords are class `0x17`. The field `Review 2` on `P10410` is the last object of its directory record and stores 1 as its end word. The page walk now reads that case, as `SETTLED.md` says.
 
 Field `Text`, with the `{...}` tokens removed, is the character record on 230 named fields. `InfoText` on `PINFO` stores one newline the export does not. That newline is one example. A token such as `{size:18}` is not a character in the record.
 

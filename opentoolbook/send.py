@@ -3,8 +3,8 @@
 The handler is looked up in the open book first, then in
 ``nc81base.sbk``, ``nc81recs.sbk``, ``nc81test.sbk``, and
 ``nc81trnr.sbk``, in that order. The system books are found with the
-same search as the book report. A handler whose body links a DLL
-(``linkDLL`` or ``linkDLL32``) returns without running, so no DLL is
+same search as the book report. A handler whose body links or unlinks a DLL
+(``linkDLL``, ``linkDLL32``, or ``unlinkDLL``) returns without running, so no DLL is
 called. Every other handler runs with the statement walker that opening
 the book uses.
 """
@@ -17,7 +17,7 @@ from pathlib import Path
 
 SYSTEM_BOOKS = ("nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk")
 
-_LINK = re.compile(r"^\s*linkdll(32)?\b", re.IGNORECASE | re.MULTILINE)
+_LINK = re.compile(r"^\s*(?:un)?linkdll(32)?\b", re.IGNORECASE | re.MULTILINE)
 
 
 @dataclass(frozen=True)
@@ -56,8 +56,36 @@ class Chain:
 
 
 def calls_dll(source: str) -> bool:
-    """True when the handler links a DLL."""
+    """True when the handler links or unlinks a DLL."""
     return _LINK.search(source) is not None
+
+
+_CALLS = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)\s*\(")
+
+
+def reaches_dll(chain: Chain, name: str, seen: set[str] | None = None) -> str | None:
+    """The handler on the path from ``name`` that links a DLL, or None.
+
+    ``name`` itself counts. A call is a name followed by ``(`` that the
+    chain holds. Each handler is followed once.
+    """
+    seen = set() if seen is None else seen
+    key = name.lower()
+    if key in seen:
+        return None
+    seen.add(key)
+    found = chain.find(key)
+    if found is None:
+        return None
+    _book, source = found
+    if calls_dll(source):
+        return name
+    body = "\n".join(source.splitlines()[1:])
+    for called in _CALLS.findall(body):
+        reached = reaches_dll(chain, called, seen)
+        if reached is not None:
+            return reached
+    return None
 
 
 def handler_chain(data: bytes, book_name: str, roots: tuple[Path, ...]) -> Chain:
