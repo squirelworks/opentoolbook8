@@ -137,7 +137,8 @@ def open_page(
     book that search does not find is reported on stderr with the file
     and the page, and the window stays. A quiz page with no quiz running
     still uses OK, Next, and Skip for the next page and Back for the
-    previous page.
+    previous page. The title is the book file and the page id, and it
+    changes on every navigation, including a book switch.
     """
     import sys
     import tkinter as tk
@@ -150,7 +151,6 @@ def open_page(
         width, height = page_size(data)
         view_w = max(1, min(_pixels(width), root.winfo_screenwidth() - 48))
         view_h = max(1, min(_pixels(height), root.winfo_screenheight() - 96))
-        root.title(page_id)
         canvas = tk.Canvas(
             root,
             width=view_w,
@@ -160,13 +160,14 @@ def open_page(
         )
         canvas.pack()
         nav = Navigator(data, page_id, book, home)
+        root.title(nav.title())
 
         def redraw() -> None:
             listed = nav.display(view_w, view_h)
             canvas.delete("all")
             draw_page(canvas, listed)
             canvas.listed = listed
-            root.title(nav.page_id)
+            root.title(nav.title())
 
         def on_click(event) -> None:
             listed = getattr(canvas, "listed", None)

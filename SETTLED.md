@@ -256,3 +256,7 @@ A book with no startup page and no stored page is an error. The error names the 
 The page a click lands on runs its `enterPage` the way the opening page does, in its own book and after a book switch. Its field writes are in the display list, and the book `enterPage` that sets background field `page#` runs for that page. On `P300` that field reads `P300`. `Next` from `P300` opens `P400`, and `page#` reads `P400`. `Back` from `P100` opens `P10`, and field `First` reads `Hello Student, this lesson is about:`. `Selection1` from `P300` opens `P310` of `nida81.tbk`, and `page#` reads `P310`.
 
 A quoted `go to page` in the landing page's `enterPage`, in a branch the reader takes, moves the window again, at most four times. The handlers it calls are the book's own and those of the books it names, found with the click search. Landing on `P0` of `9e954d01.tbk` runs `lastbook = name of this book`, `nextpage = "p10"`, and `go to page "P0" of book getLogoBook()`, so the window moves on to `P0` of `nida81.tbk`. `--show PAGE` still draws the page it is given and does not follow that page's `enterPage` move.
+
+## Window title
+
+The window title is the book file name, a dash, and the page id, such as `nida81.tbk - P0`. It changes on every navigation, including a book switch. The bare command on `9e954d01.tbk` opens with `nida81.tbk - P0`. `Next` from `P300` of the lesson shows `9e954d01.tbk - P400`, and `Selection1` from `P300` shows `nida81.tbk - P310`. A window opened without a book file shows the page id alone.
