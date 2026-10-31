@@ -23,7 +23,8 @@ where class ``0x8`` does, and the window paints it as those bounds. A
 paint object is its stored bitmap drawn at the left and top of its
 bounds. A picture is its packed metafile drawn into its bounds, clear
 where the metafile leaves the page showing. It does not paint arcs
-(``0x11``). A group is not a paint; its children are. Class ``0x12`` pies
+(``0x11``). A page's and a background's objects paint in the order of their
+class ``0x06`` layer list. A group is not a paint; its children are. Class ``0x12`` pies
 and class ``0x17`` records are outside that walk, and they are not painted.
 """
 
@@ -47,7 +48,7 @@ from opentoolbook.field import (
     _trailer,
     _u16,
 )
-from opentoolbook.page import _child_nears, _object_name, _objects
+from opentoolbook.page import _child_nears, _object_name, _objects, layer_nears
 from opentoolbook.paintobject import paint_object_rgb
 from opentoolbook.picture import picture_pixels
 from opentoolbook.props import UserProperties
@@ -137,14 +138,17 @@ def show_page(
     view_width: int,
     view_height: int,
     props: UserProperties | None = None,
+    *,
+    sys_level: str | None = None,
 ) -> DisplayList:
     """The display list for one page. It does not open a window.
 
     ``props`` holds the ``__`` names the page's ``enterPage`` reads.
+    ``sys_level`` ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
     """
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
-    items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props)
+    items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props, sys_level)
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
 
 
@@ -164,7 +168,7 @@ def open_page(
     status: str | None = None,
     lesson: str | None = None,
     variables: dict[str, object] | None = None,
-) -> None:
+) -> tuple[str, ...]:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
     The page id is the one the caller passed. This function does not
@@ -175,7 +179,9 @@ def open_page(
     book that search does not find is reported on stderr with the file
     and the page, and the window stays. A quiz page with no quiz running
     still uses OK, Next, and Skip for the next page and Back for the
-    previous page. ``props`` is the ``__`` store every page in
+    previous page. The Right key runs the page's ``Next`` button and the
+    Left key its ``Back`` button. Enter runs the branch the book's
+    ``keyUp`` handler quotes for ``keyEnter``. Escape closes the window. ``props`` is the ``__`` store every page in
     this window reads. Resizing the window refits the page: the
     scale is computed again from the page size and the new view. The
     close button ends the Tk loop and this
@@ -185,8 +191,9 @@ def open_page(
     ``lesson`` is the path the user passed when the window opens on
     another book. A click still searches beside it.
     ``variables`` are the system variables startup assigned.
+    previous page. The return is every click error the window printed,
+    in order, so the caller can exit non-zero.
     """
-    import sys
     import tkinter as tk
 
     from opentoolbook.navigate import Navigator
@@ -213,9 +220,10 @@ def open_page(
             "props": props if props is not None else UserProperties(),
             "view": (view_w, view_h),
         }
+        errors: list[str] = []
 
         def redraw() -> None:
-            listed = show_page(nav.data, nav.page_id, *state["view"], state["props"])
+            listed = nav.display(*state["view"], state["props"])
             paint(listed)
 
         def paint(listed: DisplayList) -> None:
@@ -239,11 +247,33 @@ def open_page(
             if listed is None:
                 return
             name = button_at(listed, event.x, event.y)
-            try:
-                result = nav.click(name)
-            except ValueError as exc:
-                print(exc, file=sys.stderr)
+            result = click_reported(nav, name, errors)
+            if result is None:
                 root.bell()
+                return
+            if result.beep:
+                root.bell()
+            for text in result.requests:
+                from tkinter import messagebox
+
+                messagebox.showinfo(nav.book_name or "ToolBook", text, parent=root)
+            if result.moved:
+                redraw()
+
+        def on_key(event) -> None:
+            listed = getattr(canvas, "listed", None)
+            if listed is None:
+                return
+            try:
+                result = press_key(nav, listed, event.keysym)
+            except ValueError as exc:
+                import sys
+
+                print(exc, file=sys.stderr)
+                errors.append(str(exc))
+                root.bell()
+                return
+            if result is None:
                 return
             if result.beep:
                 root.bell()
@@ -251,11 +281,17 @@ def open_page(
                 redraw()
 
         canvas.bind("<Button-1>", on_click)
+        root.bind("<Right>", on_key)
+        root.bind("<Left>", on_key)
+        root.bind("<Return>", on_key)
+        root.bind("<KP_Enter>", on_key)
+        root.bind("<Escape>", lambda _event: root.quit())
         canvas.bind("<Configure>", on_configure)
         root.protocol("WM_DELETE_WINDOW", root.quit)
         root.report_callback_exception = _report_click_error
         redraw()
         root.mainloop()
+        return tuple(errors)
     finally:
         try:
             root.destroy()
@@ -276,6 +312,66 @@ def _report_click_error(kind, value, trace) -> None:
         print(value, file=sys.stderr)
         return
     traceback.print_exception(kind, value, trace, file=sys.stderr)
+
+
+def click_reported(nav, name: str, errors: list[str], stream=None):
+    """Run one click. A reader error prints its one line and returns None.
+
+    The line is the same sentence the open prints, for example
+    ``nida81.tbk was not found; P310 of that book does not open``. The
+    page and book stay where they were.
+    """
+    import sys
+
+    try:
+        return nav.click(name)
+    except ValueError as exc:
+        print(exc, file=stream if stream is not None else sys.stderr)
+        errors.append(str(exc))
+        return None
+
+
+# Right is the button named Next. Left is the button named Back.
+KEY_BUTTONS = {"Right": "next", "Left": "back"}
+
+
+def key_button(listed: DisplayList, key: str) -> str | None:
+    """The button a key presses on this page, as the page names it, or None."""
+    wanted = KEY_BUTTONS.get(key)
+    if wanted is None:
+        return None
+    for item in listed.items:
+        if item.kind == "button" and item.name.lower() == wanted:
+            return item.name
+    return None
+
+
+def press_key(nav, listed: DisplayList, key: str):
+    """Run the click of the button ``key`` presses. None when the page has no such button.
+
+    Right and Left are the viewer's keys. Another key runs only when the
+    book's ``keyUp`` handler quotes it and that branch sends ``buttonClick``
+    to a button this page has.
+    """
+    name = key_button(listed, key)
+    if name is None:
+        name = _book_key_button(nav, listed, key)
+    if name is None:
+        return None
+    return nav.click(name)
+
+
+def _book_key_button(nav, listed: DisplayList, key: str) -> str | None:
+    from opentoolbook.keys import key_handler
+
+    handler = key_handler(nav.data, nav.page_id, key)
+    if handler is None or handler.button is None:
+        return None
+    wanted = handler.button.lower()
+    for item in listed.items:
+        if item.kind == "button" and item.name.lower() == wanted:
+            return item.name
+    return None
 
 
 def button_at(listed: DisplayList, x: float, y: float) -> str | None:
@@ -306,13 +402,14 @@ def _entered(
     page_id: str,
     items: tuple[Paint, ...],
     props: UserProperties | None = None,
+    sys_level: str | None = None,
 ) -> tuple[Paint, ...]:
     """Run the page's enterPage text. A missing sysLevel is reader."""
     from opentoolbook.enter import cover_style, enter_fields
 
     indexes = [index for index, item in enumerate(items) if item.kind == "field"]
     packed = tuple((items[index].name, items[index].text or "", items[index].runs) for index in indexes)
-    changed = enter_fields(data, page_id, packed, props=props)
+    changed = enter_fields(data, page_id, packed, props=props, sys_level=sys_level)
     if changed == packed:
         return items
     out = list(items)
@@ -377,9 +474,7 @@ def _walk(data, segment, trailer, base: int, known: set[int], parent: int) -> li
     found = _objects(data, segment)
     by_near = {at - segment.base: (at, kind) for at, kind in found}
     items: list[Paint] = []
-    for at, kind in found:
-        if _u16(data, at + 4) != parent:
-            continue
+    for at, kind in _layered(data, segment, trailer, found, parent):
         near = at - segment.base
         if kind == _GROUP:
             for child in _child_nears(data, segment, at):
@@ -389,6 +484,17 @@ def _walk(data, segment, trailer, base: int, known: set[int], parent: int) -> li
         if painted is not None:
             items.append(painted)
     return items
+
+
+def _layered(data, segment, trailer, found, parent: int):
+    """The parent's objects in the order of its layer list, else stored order."""
+    children = [(at, kind) for at, kind in found if _u16(data, at + 4) == parent]
+    layers = layer_nears(data, segment, trailer, parent)
+    nears = {at - segment.base for at, _kind in children}
+    if not layers or set(layers) != nears:
+        return children
+    place = {near: index for index, near in enumerate(layers)}
+    return sorted(children, key=lambda child: place[child[0] - segment.base])
 
 
 def _child(data, segment, trailer, base, known, by_near, near: int) -> list[Paint]:
