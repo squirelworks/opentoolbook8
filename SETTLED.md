@@ -131,6 +131,10 @@ A class `0x0E` line is 53 bytes. The endpoints are the signed pairs at `+0x26`. 
 
 The word at byte 2 of a style run is 1, or a near pointer in the list at the book record's `+0x28`. The first word of that list is a count of the pointers. When the run word is one of those pointers, the bytes there are a C string and the reader returns it. When the word is 1, the reader returns no string. On `9e954d01.tbk` more than one of those strings occurs, the same pointer is the same string, and 1 is not in the list. The same shape holds on `nida81.tbk`.
 
+## No hatch for class 0x8
+
+The next class `0x8` pattern byte after 254 and 253 that occurs in both books does not exist. In `9e954d01.tbk` the bytes at `+0x25` are 254 on 143 records, 33 on 56, 253 on 41, and 4 on 3. In `nida81.tbk` they are 254 on 75, 253 on 9, and 81 on 2. Only 254 and 253 are in both. The export names 254 `solidFill` and 253 `none`, and it writes 33 and 4 as bare numbers, `Pattern="33"` and `Pattern="4"`. No byte and no Instructor note names a hatch for 33, 4, or 81. The window does not draw a hatch: such a rectangle is its fill color at `+0x1B` and its stroke at `+0x17`. On `P440` the first pattern-33 bar is `750,4830,825,5130`, filled 192, 192, 192 with a black stroke.
+
 ## Class `0x0B`
 
 A class `0x0B` record is 49 bytes. The four signed words at `+0x0F` are a rectangle. It is the union of the rectangles at `+0x0F` of the objects whose word at `+0x04` names the record. The reader returns that rectangle. On `9e954d01.tbk` the two records in `FINDINGS.md` are (2557, 105, 6322, 1005) and (3202, 360, 6142, 765). The same read holds for every such record in `nida81.tbk`.
