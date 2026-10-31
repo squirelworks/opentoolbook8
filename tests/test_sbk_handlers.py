@@ -9,6 +9,8 @@ from pathlib import Path
 
 from opentoolbook.script import book_handlers, resource_scripts
 
+from lesson import companion
+
 
 # kind, name. Measured from the type 10 source of each book.
 HANDLERS = {
@@ -246,7 +248,6 @@ class SystemBookHandlerTests(unittest.TestCase):
         path = os.environ.get("OPENTOOLBOOK_TBK")
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        folder = Path(path).parent
         self.assertEqual(set(HANDLERS), {
             "nc81base.sbk",
             "nc81recs.sbk",
@@ -255,7 +256,7 @@ class SystemBookHandlerTests(unittest.TestCase):
         })
         seen = []
         for name, expected in HANDLERS.items():
-            script = resource_scripts((folder / name).read_bytes())
+            script = resource_scripts(companion(path, name).read_bytes())
             self.assertEqual(len(script), 1)
             found = book_handlers(name, script[0].source)
             self.assertEqual(
@@ -274,7 +275,6 @@ class SystemBookHandlerTests(unittest.TestCase):
         path = os.environ.get("OPENTOOLBOOK_TBK")
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        folder = Path(path).parent
         samples = {
             ("nc81base.sbk", "initializeBase"): "cmdLine",
             ("nc81base.sbk", "specifyMenuColors"): "color1, color2",
@@ -293,7 +293,7 @@ class SystemBookHandlerTests(unittest.TestCase):
         }
         checked = set()
         for name in HANDLERS:
-            source = resource_scripts((folder / name).read_bytes())[0].source
+            source = resource_scripts(companion(path, name).read_bytes())[0].source
             found = book_handlers(name, source)
             self.assertEqual(len(found), len(HANDLERS[name]))
             for item in found:

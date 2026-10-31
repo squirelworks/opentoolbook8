@@ -26,6 +26,8 @@ from opentoolbook.bitmap import (
 )
 from opentoolbook.record import Book
 
+from lesson import companion
+
 
 class BitmapTests(unittest.TestCase):
     def test_resource_155(self):
@@ -87,7 +89,7 @@ class ButtonBoundsTests(unittest.TestCase):
         self.assertEqual(choice_bounds, (2430, 1635, 2715, 1920))
         self.assertNotEqual(next_bounds, choice_bounds)
         self._ordered(data)
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         self._ordered(nida.read_bytes())
 
@@ -113,7 +115,7 @@ class ButtonBorderTests(unittest.TestCase):
         self.assertGreaterEqual(lesson.count(1), 2)
         self.assertGreaterEqual(lesson.count(9), 2)
         self.assertGreaterEqual(lesson.count(7), 2)
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         other = stored_button_borders(nida.read_bytes())
         self.assertGreaterEqual(other.count(1), 2)
@@ -130,7 +132,7 @@ class ButtonCheckedPictureTests(unittest.TestCase):
         self.assertEqual(button_checked_picture(data, "P10210", "A"), 118)
         self.assertEqual(button_checked_picture(data, "P300", "MenuFrame"), 0)
         self._stored_ids(data)
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         self._stored_ids(nida.read_bytes())
 
@@ -151,7 +153,7 @@ class ButtonInvertPictureTests(unittest.TestCase):
         self.assertEqual(button_invert_picture(data, "P10210", "A"), 117)
         self.assertEqual(button_invert_picture(data, "P300", "MenuFrame"), 0)
         self._stored_ids(data)
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         self._stored_ids(nida.read_bytes())
 
@@ -176,7 +178,7 @@ class ButtonDisabledPictureTests(unittest.TestCase):
         self.assertGreaterEqual(sum(1 for item in found if item), 2)
         resources = _type1_resource_ids(data)
         self.assertTrue(all(item == 0 or (item - 1) in resources for item in found))
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         other = button_disabled_ids(nida.read_bytes())
         self.assertGreaterEqual(len(other), 2)
@@ -194,7 +196,7 @@ class ButtonEnabledTests(unittest.TestCase):
         lesson = stored_button_enabled(data)
         self.assertGreaterEqual(lesson.count(1), 2)
         self.assertGreaterEqual(lesson.count(0), 2)
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         other = stored_button_enabled(nida.read_bytes())
         self.assertGreaterEqual(other.count(1), 2)
@@ -212,7 +214,7 @@ class ButtonCheckedTests(unittest.TestCase):
         lesson = stored_button_checked(data)
         self.assertGreaterEqual(lesson.count(1), 2)
         self.assertGreaterEqual(lesson.count(0), 2)
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         other = stored_button_checked(nida.read_bytes())
         self.assertGreaterEqual(len(other), 2)
