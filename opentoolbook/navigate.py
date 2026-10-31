@@ -7,10 +7,12 @@ parent, ``--home``, ``--home/courses``, and ``--home/Nida98/Lessons``,
 regardless of case. After the window changes books, the search still
 starts from the lesson the user opened, then the book on screen, then
 ``--home``. A file that search does not find is an error that names the
-file and the page. A click that hits no button, or a button with no
-``buttonClick``, goes to the page's own ``buttonClick``. A quiz button on
-a page whose background calls ``handleQuizClick`` uses the stored page
-list. A page id matches regardless of case.
+file and the page, in the same sentence as the open:
+``nida81.tbk was not found; P310 of that book does not open``. A click
+that hits no button, or a button with no ``buttonClick``, goes to the
+page's own ``buttonClick``. A quiz button on a page whose background
+calls ``handleQuizClick`` uses the stored page list. A page id matches
+regardless of case.
 """
 
 from __future__ import annotations
@@ -21,17 +23,7 @@ from pathlib import Path
 from opentoolbook.click import follow_click, page_click, quiz_background
 from opentoolbook.field import page_ids
 from opentoolbook.quiznav import quiz_click
-from opentoolbook.shelf import find_file, search_roots
-
-
-class MissingBook(ValueError):
-    """A book a click names that the search does not find."""
-
-    def __init__(self, name: str, page_id: str, roots: tuple[Path, ...]) -> None:
-        self.name = name
-        self.page_id = page_id
-        self.roots = roots
-        super().__init__(f"{name} was not found; {page_id} of that book is the page the click opens")
+from opentoolbook.shelf import MissingBook, find_file, search_roots
 
 
 @dataclass(frozen=True)

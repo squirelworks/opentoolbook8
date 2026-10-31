@@ -3,11 +3,11 @@
 ToolBook sends ``enterSystem``, then ``enterApplication``, then shows a
 page. A quoted ``go to page`` in a branch this reader takes is that page.
 The reader takes ``sysLevel = reader`` because a missing ``sysLevel`` is
-``reader``. ``__studentRecords`` that has not been set is 0, so
-``openSession`` returns 0 and ``gotoPageList`` does not run. The names in
+``reader``. ``it`` is the value of the last ``get``. ``__studentRecords``
+that has not been set is 0, so ``openSession`` returns 0 and ``gotoPageList`` does not run. The names in
 ``gotoPageList`` are not quoted. ``forward`` is not executed. A
-``linkDLL`` line is not called. ``fileExists32`` is not called; a quoted
-name in that check is looked up with the same search as the book report.
+``linkDLL`` line is not called. ``fileExists32`` is not a DLL call here:
+it is 1 when the book report's search finds the quoted name, else 0.
 
 When those handlers do not name a page, the page is the first one stored
 in the book's page list. That page's ``enterPage`` is read the same way.
@@ -20,16 +20,22 @@ import struct
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from opentoolbook.enter import _enter_page, _norm
+from opentoolbook.enter import _enter_page
 from opentoolbook.field import page_ids
+from opentoolbook.props import UserProperties
 from opentoolbook.script import book_handlers, quoted_go_to, resource_scripts
-from opentoolbook.shelf import find_file, open_book, search_roots
+from opentoolbook.send import calls_dll, handler_chain
+from opentoolbook.shelf import MissingBook, file_exists32, find_file, open_book, search_roots
+from opentoolbook.walk import norm, reader_condition, this_name, walk
 
+_SEND = re.compile(r"^send\s+([a-z_][a-z0-9_]*)$")
 _GET = re.compile(r"^get\s+([a-z_][a-z0-9_]*)\s*\((.*)\)\s*$")
 _ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$")
 _BOOK_CALL = re.compile(r"of\s+book\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", re.IGNORECASE)
-_FILE_EXISTS = re.compile(r'^fileexists32\("([^"]*)"\) = 1$')
-_IT_IS = re.compile(r"^it is (\d+)$")
+_FILE_EXISTS = re.compile(r'^fileexists32\(\s*"([^"]*)"\s*\)$')
+_FILE_EXISTS_IS = re.compile(r'^fileexists32\(\s*"([^"]*)"\s*\)\s*(=|<>)\s*(-?\d+)$')
+_GET_VALUE = re.compile(r"^get\s+(.+)$")
+_IT_IS = re.compile(r'^it (?:is|=) (-?\d+|true|false|"[^"]*")$')
 _COMPARE = re.compile(r"^([a-z_][a-z0-9_]*) = (false|true|\d+)$")
 _MESSAGES = ("entersystem", "enterapplication")
 _OTHER_STARTUP = ("opensession", "gotopagelist", "entersystem", "enterapplication")
@@ -42,6 +48,7 @@ class Entry:
     page_id: str
     book: Path
     data: bytes
+    props: UserProperties = field(default_factory=UserProperties)
     # System variables the startup handlers assigned, by lower-case name.
     variables: dict[str, object] = field(default_factory=dict)
 
@@ -53,6 +60,7 @@ class _State:
     roots: tuple[Path, ...]
     book_file: str
     variables: dict[str, object] = field(default_factory=dict)
+    props: UserProperties = field(default_factory=UserProperties)
     it: object = 0
     page_id: str | None = None
     book_name: str | None = None
@@ -61,14 +69,19 @@ class _State:
     return_value: object = None
     breaking: bool = False
     stack: list[str] = field(default_factory=list)
+    skipped: list[str] = field(default_factory=list)
 
 
-def opening_page(path: Path, home: Path | None = None) -> Entry:
+def opening_page(path: Path, home: Path | None = None, props: UserProperties | None = None) -> Entry:
     """The page ``path`` opens on, after the startup handlers and ``enterPage``.
 
-    The system variables those handlers assigned come back on the entry,
+    The ``__`` names those handlers assign are kept in ``props`` and
+    returned on the entry, so the window reads the same values. The
+    system variables those handlers assigned come back on the entry too,
     so a click in the window reads the same ``lastbook`` and ``nextpage``.
     """
+    if props is None:
+        props = UserProperties()
     variables: dict[str, object] = {}
     try:
         data = path.read_bytes()
@@ -79,15 +92,17 @@ def opening_page(path: Path, home: Path | None = None) -> Entry:
     except ValueError as exc:
         raise ValueError(f"no opening page in {path.name}: {exc}") from exc
     pages = _pages(data)
-    handlers = _companion_handlers(opened)
-    handlers.update(_handler_map(data))
     roots = search_roots(path, home)
+    handlers = handler_chain(data, path.name, roots).merged()
+    for name, body in _companion_handlers(opened).items():
+        handlers.setdefault(name, body)
     page, other = choose_opening(
         pages,
         handlers,
         _page_scripts(data, pages),
         roots=roots,
         book_name=path.name,
+        props=props,
         variables=variables,
     )
     current_path = path
@@ -96,7 +111,7 @@ def opening_page(path: Path, home: Path | None = None) -> Entry:
     while other:
         found = find_file(roots, other)
         if found is None:
-            raise ValueError(f"{other} was not found; {page} of that book is the opening page")
+            raise MissingBook(other, page, roots)
         current_path = found
         current_data = found.read_bytes()
         current_pages = _pages(current_data)
@@ -117,9 +132,10 @@ def opening_page(path: Path, home: Path | None = None) -> Entry:
             book_name=found.name,
             startup=False,
             page_id=page,
+            props=props,
             variables=variables,
         )
-    return Entry(page, current_path, current_data, variables)
+    return Entry(page, current_path, current_data, props, variables)
 
 
 def choose_opening(
@@ -131,16 +147,20 @@ def choose_opening(
     book_name: str = "book.tbk",
     startup: bool = True,
     page_id: str | None = None,
+    props: UserProperties | None = None,
     variables: dict[str, object] | None = None,
 ) -> tuple[str, str | None]:
     """``(page id, other book or None)`` after startup and this book's ``enterPage``.
 
     ``handlers`` maps a lower-case handler name to its source. ``page_scripts``
     maps a page id to that page's script. An other book is a file name, not
-    a path. The caller resolves it. ``variables`` is filled with the system
+    a path. The caller resolves it. ``props`` keeps the ``__`` names the
+    handlers assign. ``variables`` is filled with the system
     variables the handlers assign.
     """
     state = _State(pages, {key.lower(): value for key, value in handlers.items()}, roots, book_name)
+    if props is not None:
+        state.props = props
     if variables is not None:
         state.variables = variables
     state.page_id = page_id
@@ -159,9 +179,7 @@ def choose_opening(
                 raise ValueError(f"{state.page_id} is not a page of {book_name}")
             state.page_id = matched
     if state.book_error and not state.book_name:
-        raise ValueError(
-            f"{state.book_error} was not found; {state.page_id} of the book it names is the opening page"
-        )
+        raise MissingBook(state.book_error, state.page_id or "", state.roots)
     if state.book_name:
         return state.page_id or "", state.book_name
     scripts = page_scripts or {}
@@ -179,9 +197,7 @@ def choose_opening(
         before = matched
         _follow_enter(state, _script_for(scripts, matched))
         if state.book_error and not state.book_name:
-            raise ValueError(
-                f"{state.book_error} was not found; {state.page_id} of the book it names is the opening page"
-            )
+            raise MissingBook(state.book_error, state.page_id or "", state.roots)
         if state.book_name:
             return state.page_id or "", state.book_name
         if (state.page_id or "").lower() == before.lower():
@@ -217,86 +233,64 @@ def _follow_enter(state: _State, source: str) -> None:
 
 
 def _walk(lines: list[str], state: _State) -> object:
-    index = 0
-    while index < len(lines):
-        if state.returning or state.breaking:
-            return state.return_value
-        raw = lines[index]
-        low = _norm(raw)
-        if not low or low.startswith("--"):
-            index += 1
-            continue
-        if low.startswith("to handle") or low.startswith("to get") or low.startswith("to set"):
-            index += 1
-            continue
-        if low.startswith("linkdll"):
-            index += 1
-            while index < len(lines) and not _norm(lines[index]).startswith("end linkdll"):
-                index += 1
-            index += 1
-            continue
-        if low in {"end", "end if"} or (
-            low.startswith("end ")
-            and not low.startswith("end if")
-            and not low.startswith("end step")
-            and not low.startswith("end conditions")
-            and not low.startswith("end link")
-        ):
-            return state.return_value if state.returning else None
-        if low == "forward":
-            index += 1
-            continue
-        if low == "break":
-            state.breaking = True
-            return None
-        if low.startswith("if "):
-            condition = low[3:-5].strip() if low.endswith(" then") else low[3:].strip()
-            index += 1
-            taken, skipped, index = _split_if(lines, index)
-            known = _condition(condition, state)
-            if known is True:
-                _walk(taken, state)
-            elif known is False:
-                _walk(skipped, state)
-            if state.returning or state.breaking:
-                return state.return_value
-            continue
-        found = quoted_go_to(raw)
-        if found is not None:
-            page, book = found
-            if book is None:
-                book, error = _book_from_call(raw, state)
-                if error:
-                    state.book_error = error
-            state.page_id = page
-            state.book_name = book
-            index += 1
-            continue
-        if low.startswith("return"):
-            state.return_value = _return_value(low, state)
-            state.returning = True
-            return state.return_value
-        call = _GET.match(low)
-        if call is not None:
-            state.it = _call(call.group(1), state)
-            index += 1
-            continue
-        if low in {"send next", "send previous"}:
-            step = 1 if low == "send next" else -1
-            current = state.page_id or (state.pages[0] if state.pages else "")
-            state.page_id = _step(state.pages, current, step)
-            state.book_name = None
-            index += 1
-            continue
-        assigned = _ASSIGN.match(raw.strip())
-        if assigned is not None:
-            value = _value(assigned.group(2).strip(), state)
-            if value is not None:
-                state.variables[assigned.group(1).lower()] = value
-            index += 1
-            continue
-        index += 1
-    return state.return_value if state.returning else None
+    return walk(
+        lines,
+        state,
+        condition=lambda text: _condition(text, state),
+        statement=lambda raw, low: _statement(raw, low, state),
+        returns=lambda expr: _return_value(expr, state),
+    )
+
+
+def _statement(raw: str, low: str, state: _State) -> None:
+    found = quoted_go_to(raw)
+    if found is not None:
+        page, book = found
+        if book is None:
+            book, error = _book_from_call(raw, state)
+            if error:
+                state.book_error = error
+        state.page_id = page
+        state.book_name = book
+        return
+    exists = _FILE_EXISTS.fullmatch(low[4:].strip()) if low.startswith("get ") else None
+    if exists is not None:
+        state.it = file_exists32(state.roots, exists.group(1))
+        return
+    call = _GET.match(low)
+    if call is not None:
+        state.it = _call(call.group(1), state)
+        return
+    got = _GET_VALUE.match(raw.strip())
+    if got is not None:
+        state.it = _get_value(got.group(1).strip(), state)
+        return
+    if low in {"send next", "send previous"}:
+        step = 1 if low == "send next" else -1
+        current = state.page_id or (state.pages[0] if state.pages else "")
+        state.page_id = _step(state.pages, current, step)
+        state.book_name = None
+        return
+    sent = _SEND.match(low)
+    if sent is not None:
+        _send(sent.group(1), state)
+        return
+    assigned = _ASSIGN.match(raw.strip())
+    if assigned is not None:
+        value = _value(assigned.group(2).strip(), state)
+        if value is not None:
+            _assign(state, assigned.group(1), value)
+
+
+def _send(name: str, state: _State) -> object:
+    """``send name``: the handler runs unless it links a DLL."""
+    body = state.handlers.get(name.lower())
+    if body is None:
+        return None
+    if calls_dll(body):
+        state.skipped.append(name.lower())
+        return None
+    return _call(name, state)
 
 
 def _book_from_call(line: str, state: _State) -> tuple[str | None, str | None]:
@@ -326,24 +320,67 @@ def _call(name: str, state: _State) -> object:
 
 
 def _condition(text: str, state: _State) -> bool | None:
-    low = " ".join(text.lower().split())
-    if low in {'syslevel = reader', 'syslevel = "reader"'}:
-        return True
-    if low in {'syslevel <> reader', 'syslevel <> "reader"'}:
-        return False
-    exists = _FILE_EXISTS.fullmatch(low)
+    low = norm(text)
+    reader = reader_condition(low)
+    if reader is not None:
+        return reader
+    exists = _FILE_EXISTS_IS.fullmatch(low)
     if exists is not None:
-        return find_file(state.roots, exists.group(1)) is not None
+        same = file_exists32(state.roots, exists.group(1)) == int(exists.group(3))
+        return same if exists.group(2) == "=" else not same
+    alone = _FILE_EXISTS.fullmatch(low)
+    if alone is not None:
+        return file_exists32(state.roots, alone.group(1)) == 1
     compared = _IT_IS.fullmatch(low)
     if compared is not None:
-        return str(state.it) == compared.group(1)
+        expected = compared.group(1)
+        if expected.startswith('"'):
+            return str(state.it if state.it is not None else "").lower() == expected[1:-1]
+        return _same(state.it, _literal(expected))
     named = _COMPARE.fullmatch(low)
     if named is not None:
         expected = _literal(named.group(2))
-        if named.group(1) not in state.variables:
+        if not _known(state, named.group(1)):
             return expected in (False, 0)
-        return state.variables[named.group(1)] == expected
+        return _lookup(state, named.group(1)) == expected
     return None
+
+
+def _assign(state: _State, name: str, value: object) -> None:
+    if UserProperties.owns(name):
+        state.props.set(name, value)
+    else:
+        state.variables[name.lower()] = value
+
+
+def _known(state: _State, name: str) -> bool:
+    if UserProperties.owns(name):
+        return name in state.props
+    return name.lower() in state.variables
+
+
+def _lookup(state: _State, name: str) -> object:
+    if UserProperties.owns(name):
+        return state.props.get(name)
+    return state.variables.get(name.lower())
+
+
+def _get_value(expr: str, state: _State) -> object:
+    """The value ``get expr`` stores in ``it``: a literal, a name, or nothing."""
+    value = _value(expr, state)
+    if value is not None:
+        return value
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", expr) and _known(state, expr):
+        return _lookup(state, expr)
+    return None
+
+
+def _same(found: object, expected: object) -> bool:
+    if found is None:
+        return expected in (False, 0)
+    if isinstance(expected, bool) or isinstance(found, bool):
+        return str(found).lower() == str(expected).lower()
+    return str(found) == str(expected)
 
 
 def _literal(text: str) -> object:
@@ -360,48 +397,24 @@ def _value(expr: str, state: _State) -> object | None:
     low = expr.lower()
     if low in {"false", "true"} or re.fullmatch(r"-?\d+", expr):
         return _literal(low)
-    if low == "name of this book":
-        return state.book_file
+    named = this_name(low, state.page_id, state.book_file)
+    if named is not None:
+        return named
+    exists = _FILE_EXISTS.fullmatch(low)
+    if exists is not None:
+        return file_exists32(state.roots, exists.group(1))
     if len(expr) >= 2 and expr[0] == '"' and expr[-1] == '"':
         return expr[1:-1]
     return None
 
 
-def _return_value(low: str, state: _State) -> object:
-    expr = low[6:].strip()
-    if not expr:
-        return None
-    if expr in state.variables:
-        return state.variables[expr]
+def _return_value(expr: str, state: _State) -> object:
+    if _known(state, expr):
+        return _lookup(state, expr)
     value = _value(expr, state)
     if value is not None:
         return value
     return expr
-
-
-def _split_if(lines: list[str], index: int) -> tuple[list[str], list[str], int]:
-    taken: list[str] = []
-    skipped: list[str] = []
-    branch = taken
-    depth = 0
-    while index < len(lines):
-        low = _norm(lines[index])
-        if low.startswith("if "):
-            depth += 1
-            branch.append(lines[index])
-            index += 1
-            continue
-        if low == "else" and depth == 0:
-            branch = skipped
-            index += 1
-            continue
-        if low in {"end", "end if"} and depth == 0:
-            return taken, skipped, index + 1
-        if low in {"end", "end if"}:
-            depth -= 1
-        branch.append(lines[index])
-        index += 1
-    return taken, skipped, index
 
 
 def _step(pages: tuple[str, ...], page_id: str, step: int) -> str:
