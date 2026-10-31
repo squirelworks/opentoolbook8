@@ -221,6 +221,10 @@ An inline type-1 picture stores a `BM` file eight bytes after `01 02 01 00`. On 
 
 Resizing the window refits the page. The canvas fills the window. A `Configure` event with a new canvas size computes the fit scale again from the stored page size and that view: 9360 by 6624 on the lesson, 9000 by 6000 on the fixtures. The paint list is unchanged and only the scale moves. A 600 by 400 view of `otb-line-rect.tbk` is scale 1, and a 300 by 400 view of the same page is scale 0.5. There are no scroll bars.
 
+## No enterButton or leaveButton
+
+`handler_sites` finds every `to handle NAME` line in a book's expanded scripts: inline object scripts, type 10 scripts, and type 19 shared scripts. Handler names are stored as keyword tokens, so a byte search of the file does not see them. On `9e954d01.tbk`, `nida81.tbk`, `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk` there is no `enterButton` handler and no `leaveButton` handler. The window dispatches neither message. The hover handlers the books do have are `mouseEnter` and `mouseLeave`, 19 of each on `9e954d01.tbk` and 3 of each on `nida81.tbk`, all in inline scripts of class `0xA` fields such as `Selection1` on `P300`, and none in the system books. Those are hover, and the window does not dispatch them either.
+
 ## Enter page greeting
 
 On `P10` of `9e954d01.tbk` the `enterPage` handler sets the text of field `First` to `"Hello" && getFirst() & ", this lesson is about:"` when `sysLevel` is `reader`, and to `"Hello, this lesson is about:"` otherwise. The field's stored name is `first`. A missing `sysLevel` is `reader`. `getFirst` in `nc81recs.sbk` returns `__studentFirst`. The reader strips the ends of that variable, and returns `Student` when it is empty. `&&` is one operator and is recognized before `&`. `&&` concatenates with a space. `&` concatenates. The display list for `P10` shows `Hello Student, this lesson is about:`. The one style run at offset 0, face `Arial`, covered the stored string and covers the new string. The field `Text` stays `LOGIC FAMILIES`.
