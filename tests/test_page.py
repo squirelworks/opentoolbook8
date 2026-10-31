@@ -7,6 +7,8 @@ from pathlib import Path
 from opentoolbook.background import background
 from opentoolbook.page import page_records
 
+from lesson import companion
+
 # P1140 stores this child-list three times. Object 80 is the arc in one of them.
 _GATE = (0x11, 0x13, 0x0C, 0x0E, 0x0B)
 
@@ -17,7 +19,7 @@ class PageRecordTests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         logic = Path(path).read_bytes()
-        nida_path = Path(path).with_name("nida81.tbk")
+        nida_path = companion(path, "nida81.tbk")
         self.assertTrue(nida_path.is_file())
         nida = nida_path.read_bytes()
         self._logic(logic)
