@@ -1607,4 +1607,8 @@ Source: handoff M5 ask edge. OpenScript keyword list has both `ask` and `request
 
 ## keyDown for PageUp / PageDown / F-keys
 
-Source: handoff M8 keyboard. Tk `Prior`/`Next` map to OpenScript `keyPrior`/`keyNext`. The window sends `keyDown` with that constant before falling through to the older button/`keyUp` walker for Right/Left/Enter. `keyUp` as a live interpreter message is not wired yet.
+Source: handoff M8 keyboard. Tk `Prior`/`Next` map to OpenScript `keyPrior`/`keyNext`. The window sends `keyDown` with that constant before falling through to the older button/`keyUp` walker for Right/Left/Enter.
+
+## keyUp on the interpreter
+
+Source: handoff M8 keyboard; RESEARCH note that live `keyUp` was unwired. The window now sends `keyUp` after `keyDown` on the page path with the same OpenScript key constant. The static branch walker in `keys.py` remains as a fallback for Enter/Next/Back when live handlers do not move the page.
