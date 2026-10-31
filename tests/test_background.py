@@ -8,6 +8,8 @@ from pathlib import Path
 from opentoolbook.background import background
 from opentoolbook.field import page_ids
 
+from lesson import companion
+
 
 class BackgroundTests(unittest.TestCase):
     def test_p0_pattern_and_color(self):
@@ -24,7 +26,7 @@ class BackgroundTests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         logic = Path(path).read_bytes()
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         self._second(logic, {(0, 0, 0), (255, 255, 0)})
         self._second(nida.read_bytes(), {(0, 0, 0)})
