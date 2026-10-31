@@ -86,7 +86,7 @@ class NavigatorRequestTests(unittest.TestCase):
 
         fixture = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
         nav = navigate.Navigator(fixture.read_bytes(), "")
-        asked = Follow("", None, ("You are already in the quiz review!",), 1)
+        asked = Follow("", None, requests=("You are already in the quiz review!",), beeps=1)
         with patch.object(navigate, "follow_click", return_value=asked):
             clicked = nav.click("selection1")
         self.assertEqual(
