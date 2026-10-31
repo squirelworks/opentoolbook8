@@ -13,9 +13,10 @@ shape is painted in front of a shape that contains the label.
 The page walk names classes ``0x8``, ``0x9``, ``0xA``, ``0xB``, ``0xC``,
 ``0xD``, ``0xE``, ``0x10``, ``0x11``, ``0x13``, ``0x15``, and ``0x19``.
 Of those, the window paints rectangles, ellipses, lines, class ``0x10``
-polygons, fields, and buttons, plus the class 4 background. It does not
-paint ``0xD``, arcs (``0x11``), class ``0x13`` point lists, ``0x15``, or
-``0x19``. A group is not a paint; its children are. Class ``0x12`` pies
+polygons, fields, and buttons, plus the class 4 background. A class
+``0xD`` record stores its bounds and colors where class ``0x8`` does, and
+the window paints it as those bounds. It does not paint arcs
+(``0x11``), class ``0x13`` point lists, ``0x15``, or ``0x19``. A group is not a paint; its children are. Class ``0x12`` pies
 and class ``0x17`` records are outside that walk, and they are not painted.
 """
 
@@ -56,6 +57,7 @@ _BUTTON = 0x9
 _FIELD = 0xA
 _GROUP = 0xB
 _ELLIPSE = 0xC
+_CLASS_D = 0xD
 _LINE = 0xE
 _POLYGON = 0x10
 _SHAPE = {_RECTANGLE, _ELLIPSE, _LINE, _POLYGON}
@@ -339,6 +341,9 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
         fill, stroke = _colors(data, at)
         points = _polygon_points(data, segment, at) if kind == _POLYGON else ()
         return Paint(_DRAW[kind], object_id, name, bounds, fill, stroke, data[at + 0x25], points)
+    if kind == _CLASS_D:
+        fill, stroke = _colors(data, at)
+        return Paint("class 0xD", object_id, name, bounds, fill, stroke, data[at + 0x25])
     if kind == _LINE:
         _fill, stroke = _colors(data, at)
         return Paint("line", object_id, name, bounds, None, stroke, None, _line_points(data, at))
@@ -508,7 +513,7 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list) -> None:
     if item.kind == "background" and item.fill is not None and item.bounds is not None:
         canvas.create_rectangle(*_device_box(item.bounds, scale), fill=_rgb(item.fill), outline="")
         return
-    if item.kind == "rectangle" and item.bounds is not None:
+    if item.kind in ("rectangle", "class 0xD") and item.bounds is not None:
         canvas.create_rectangle(
             *_device_box(item.bounds, scale),
             fill=_rgb(item.fill) if item.fill is not None else "",

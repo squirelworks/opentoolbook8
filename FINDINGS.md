@@ -294,6 +294,15 @@ These class words occur on one object only, so none of their fields is recorded 
 
 `nida81.tbk` has two class `0x26` records of 83 bytes, and those records use the same constant words. One of the two carries the C string `Key Map`. That is a second record with the string.
 
+## Class `0xD` words at +0x28 and +0x2A
+
+All 14 class `0xD` records in `nida81.tbk` are on page `P22100`. The word at `+0x28` equals the word at `+0x2A` on all 14: 27 on two, 56 on eight, and 11 on four. A rounded corner size would fit, but nothing in the repo names it, so the window draws square corners. The bytes `01 00 00 01 00 00` at `+0x1F` through `+0x24` are the same on 10 records; the byte at `+0x1F` is 3 on the four whose pair is 11. Two records:
+
+```
+170100009e08ffffffff0000004900721c5010471da31060606000ff000000010000010000fe00001b001b004b
+da0000000019ffffffff0000001400161a500d391a9713ffffff0060606000030000010000fe00000b000b008b
+```
+
 ## Class `0x19`
 
 `nida81.tbk` has 39 class `0x19` records of 89 bytes. `9e954d01.tbk` has none. Word `+0x02` is 0. Words `+0x06` and `+0x08` are 65535. Word `+0x1E` is 256, word `+0x36` is 768, and word `+0x38` is 512. The byte at `+0x26` is 254. The four signed words at `+0x0F` are an ordered rectangle in all 39. The word at `+0x04` is a near pointer to an object. On 31 records it is 20 and names the page. On the other 8 it names a class `0xB` record of 49 bytes. Page `P370` object 38 is one of those eight: the word is `0x9C`. Two records whose pointer is the page:
