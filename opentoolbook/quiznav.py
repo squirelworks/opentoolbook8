@@ -21,6 +21,7 @@ class QuizClick:
 
     page_id: str
     beep: bool
+    request: str | None = None
 
 
 def quiz_click(
@@ -30,11 +31,13 @@ def quiz_click(
     *,
     quiz_pass: int | None = None,
     checked: str | None = None,
+    script: str | None = None,
 ) -> QuizClick:
     """Apply one named button on ``page_id``.
 
     ``quiz_pass`` ``None`` means no quiz is running. ``checked`` is the
     letter the script has checked, or empty when the reader has not.
+    ``script`` is ``handleQuizClick``. The ``Skip`` request text comes from it.
     """
     name = button.strip().lower()
     choice = (checked or "").strip()
@@ -43,7 +46,7 @@ def quiz_click(
             return QuizClick(page_id, True)
         return QuizClick(page_id, False)
     if quiz_pass == 8 and name == "skip" and choice:
-        return QuizClick(page_id, True)
+        return QuizClick(page_id, True, skip_request(script or ""))
     if quiz_pass not in (None, 8):
         return QuizClick(page_id, False)
     if name in _NEXT:
@@ -62,3 +65,30 @@ def _adjacent(pages: tuple[str, ...], page_id: str, step: int) -> str:
     if moved < 0 or moved >= len(pages):
         return page_id
     return pages[moved]
+
+
+def skip_request(script: str) -> str | None:
+    """The ``request`` text of the ``Skip`` branch when a letter is checked."""
+    from opentoolbook.walk import Flow, block_if, is_beep, norm, request_text, split_if, walk
+
+    lines = script.splitlines()
+    for index, line in enumerate(lines):
+        test = block_if(norm(line))
+        if test is None or test.replace(" ", "") != 'nameofvtargetis"skip"':
+            continue
+        taken, _skipped, _end = split_if(lines, index + 1)
+        asked: list[str] = []
+
+        def condition(text: str) -> bool | None:
+            return True if text.replace(" ", "") == 'response<>""' else None
+
+        def statement(raw: str, _low: str) -> None:
+            if is_beep(raw):
+                return
+            text = request_text(raw)
+            if text is not None:
+                asked.append(text)
+
+        walk(taken, Flow(), condition=condition, statement=statement)
+        return asked[0] if asked else None
+    return None
