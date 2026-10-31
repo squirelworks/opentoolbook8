@@ -16,6 +16,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
 
 ENTER_APPLICATION = """
 to handle enterApplication
+    system logical __import
     __import = false
     forward
 end
@@ -36,7 +37,8 @@ end
 
 OPEN_SESSION = """
 to get openSession
-    if __studentRecords = 0 then
+    system int __studentRecords
+    if __studentRecords <> 1 then
         return 0
     end if
     go to page "P999"
@@ -52,6 +54,7 @@ end
 
 PAGE = """
 to handle enterPage
+    system logical __import
     if __import = false then
         if sysLevel = "reader" then
             go to page "P0" of book getLogoBook()

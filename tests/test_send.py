@@ -54,7 +54,8 @@ class SendTests(unittest.TestCase):
             "gothere": 'to handle goThere\n  go to page "P2"\nend\n',
             "linked": 'to handle linked\n  linkDLL32 "kernel32.dll"\n  end linkDLL32\n  go to page "P1"\nend\n',
         }
-        self.assertEqual(choose_opening(("P0", "P1", "P2"), handlers), ("P2", None))
+        # linkDLL only declares functions. The rest of the handler runs, so the last go wins.
+        self.assertEqual(choose_opening(("P0", "P1", "P2"), handlers), ("P1", None))
 
     def test_the_real_system_book(self):
         path = os.environ.get("OPENTOOLBOOK_TBK")

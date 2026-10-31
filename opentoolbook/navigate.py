@@ -358,6 +358,7 @@ class Navigator:
                 startup=False,
                 page_id=self.page_id,
                 variables=self.variables,
+                props=self.props,
             )
             data, pages, book = self.data, self.pages, self.book
             if other and other.lower() != self.book_name.lower():

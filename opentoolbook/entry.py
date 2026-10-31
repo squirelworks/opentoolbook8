@@ -223,20 +223,51 @@ def choose_opening(
 
 def _run_startup(state: _State) -> None:
     """``enterSystem``, ``enterApplication``, then ``enterBook``, each when a handler answers it."""
+    engine, host = _engine(state)
     for name in _MESSAGES:
-        if name in state.handlers:
-            _call(name, state)
-        state.breaking = False
-        state.returning = False
+        if engine.handles(name):
+            _guarded(engine, lambda name=name: engine.send(name))
+        if host.book_error:
+            break
+    _sync(state, host, engine)
+
+
+def _engine(state: _State):
+    from opentoolbook.run import BookHost, engine_for
+
+    host = BookHost(state.pages, state.book_file, state.roots)
+    host.page_id = state.page_id
+    host.book_name = state.book_name
+    return engine_for(state, host), host
+
+
+def _guarded(engine, run) -> None:
+    from opentoolbook.openscript.values import ScriptError
+
+    try:
+        run()
+    except ScriptError as exc:
+        engine.skipped.append(f"error: {exc}")
+
+
+def _sync(state: _State, host, engine) -> None:
+    state.page_id = host.page_id
+    state.book_name = host.book_name
+    if host.book_error and not state.book_error:
+        state.book_error = host.book_error
+    state.skipped.extend(engine.skipped)
 
 
 def _follow_enter(state: _State, source: str) -> None:
-    handler = _enter_page(source)
-    if not handler:
+    """Run the page's own ``enterPage``. ``forward`` passes it to the book and ``sysBooks``."""
+    from opentoolbook.run import parsed
+
+    handler = parsed(source).handlers.get("handle enterpage") if source else None
+    if handler is None:
         return
-    _walk(handler.splitlines(), state)
-    state.breaking = False
-    state.returning = False
+    engine, host = _engine(state)
+    _guarded(engine, lambda: engine._run(handler, "enterpage", "handle", -1, (), None))
+    _sync(state, host, engine)
 
 
 def _walk(lines: list[str], state: _State) -> object:

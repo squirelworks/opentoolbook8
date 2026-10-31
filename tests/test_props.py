@@ -12,6 +12,7 @@ LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 
 ENTER_APPLICATION = """
 to handle enterApplication
+    system __import, __studentFirst
     __import = false
     __studentFirst = "Ada"
     forward
@@ -27,6 +28,7 @@ end
 
 PAGE = """
 to handle enterPage
+    system __import
     if __import = false then
         go to page "P2"
     end if
@@ -54,8 +56,12 @@ class StoreTests(unittest.TestCase):
         self.assertIs(props.get("__import"), False)
         self.assertEqual(props.get("__studentFirst"), "Ada")
 
-    def test_an_unset_name_is_false_in_a_condition(self):
+    def test_an_unset_name_is_null_and_not_false(self):
+        # A system name nobody assigned is null. Null is not false, so the branch does not run.
         props = UserProperties()
+        page, _book = choose_opening(("P1", "P2"), {}, {"P1": PAGE}, props=props)
+        self.assertEqual(page, "P1")
+        props.set("__import", False)
         page, _book = choose_opening(("P1", "P2"), {}, {"P1": PAGE}, props=props)
         self.assertEqual(page, "P2")
         props.set("__import", True)

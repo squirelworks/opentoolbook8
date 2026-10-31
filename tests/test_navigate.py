@@ -102,7 +102,7 @@ class StartupVariableTests(unittest.TestCase):
     def test_enter_page_assignments_come_back_from_startup(self):
         from opentoolbook.entry import choose_opening
 
-        source = 'to handle enterPage\n    lastbook = name of this book\n    nextpage = "p10"\nend\n'
+        source = 'to handle enterPage\n    system lastbook, nextpage\n    lastbook = name of this book\n    nextpage = "p10"\nend\n'
         variables: dict = {}
         page, book = choose_opening(("P1",), {}, {"P1": source}, book_name="9e954d01.tbk", variables=variables)
         self.assertEqual((page, book), ("P1", None))
@@ -236,8 +236,9 @@ class LessonTests(unittest.TestCase):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         from opentoolbook.entry import opening_page
 
-        # The lesson's own startup pushes nc81base.sbk, which holds getLogoBook.
-        nav = Navigator(path.read_bytes(), "P0", path, sysbooks=opening_page(path).sysbooks)
+        # The lesson's own startup pushes nc81base.sbk, which holds getLogoBook, and sets __import.
+        entry = opening_page(path)
+        nav = Navigator(path.read_bytes(), "P0", path, props=entry.props, sysbooks=entry.sysbooks)
         nav.enter()
         self.assertEqual((nav.book.name, nav.page_id), ("nida81.tbk", "P0"))
         self.assertEqual(nav.variables["lastbook"], path.name)

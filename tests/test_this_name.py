@@ -31,7 +31,7 @@ class ThisNameTests(unittest.TestCase):
         scripts = {"P0": 'to handle enterPage\n  go to page "P1" of book thisBook()\nend\n'}
         self.assertEqual(
             choose_opening(("P0", "P1"), handlers, scripts, book_name="lesson.tbk"),
-            ("P1", "lesson.tbk"),
+            ("P1", None),
         )
         scripts = {"P0": 'to handle enterPage\n  go to page "P1" of book thisPage()\nend\n'}
         self.assertEqual(
