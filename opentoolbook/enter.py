@@ -4,13 +4,15 @@
 ``Student`` when that variable is empty. A missing ``sysLevel`` is
 ``reader``. ``&&`` is one operator and is recognized before ``&``. A
 value that still contains ``__`` and ``of this book`` is not written
-over the field.
+over the field. ``name of this book`` reads the user property the book
+stores under that name, when it stores one.
 """
 
 from __future__ import annotations
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
 from opentoolbook.props import UserProperties
+from opentoolbook.userprops import book_properties
 from opentoolbook.script import _script, resource_scripts
 
 _PAGE = 5
@@ -29,8 +31,12 @@ def concatenate(
     *,
     student_first: str | None = None,
     page_id: str | None = None,
+    book: dict[str, str] | None = None,
 ) -> str:
-    """Join one expression. ``&&`` inserts a space. ``&`` does not."""
+    """Join one expression. ``&&`` inserts a space. ``&`` does not.
+
+    ``book`` maps a lower-case user property name to the text the book stores.
+    """
     tokens = list(_tokens(expression))
     parts: list[list[tuple[str, str, str]]] = [[]]
     operators: list[str] = []
@@ -40,7 +46,7 @@ def concatenate(
             operators.append(kind)
             continue
         parts[-1].append((kind, value, source))
-    values = [_operand(part, student_first, page_id) for part in parts]
+    values = [_operand(part, student_first, page_id, book) for part in parts]
     result = values[0] if values else ""
     for operator, value in zip(operators, values[1:]):
         result = f"{result} {value}" if operator == "andand" else result + value
@@ -106,11 +112,12 @@ def enter_fields(
         return fields
     reader = (sys_level is None) or sys_level.lower() == "reader"
     names = tuple(name for name, _text, _runs in fields)
+    stored = book_properties(data)
     found = []
     if handler:
-        found.extend(_assignments(handler.splitlines(), reader, student_first, page_id, names))
+        found.extend(_assignments(handler.splitlines(), reader, student_first, page_id, names, stored))
     if book:
-        found.extend(_assignments(book.splitlines(), reader, student_first, page_id, names))
+        found.extend(_assignments(book.splitlines(), reader, student_first, page_id, names, stored))
     out = list(fields)
     for name, value in found:
         if blocks_write(value):
@@ -149,6 +156,7 @@ def _assignments(
     student_first: str | None,
     page_id: str,
     names: tuple[str, ...],
+    stored: dict[str, str] | None = None,
 ):
     index = 0
     while index < len(lines):
@@ -159,12 +167,12 @@ def _assignments(
             taken, skipped, index = _split_if(lines, index)
             chosen = _branch(condition, reader, names, taken, skipped)
             if chosen is not None:
-                yield from _assignments(chosen, reader, student_first, page_id, names)
+                yield from _assignments(chosen, reader, student_first, page_id, names, stored)
             continue
         found = _set_text(lines[index])
         if found is not None:
             name, expression = found
-            yield name, concatenate(expression, student_first=student_first, page_id=page_id)
+            yield name, concatenate(expression, student_first=student_first, page_id=page_id, book=stored)
         index += 1
 
 
@@ -263,7 +271,12 @@ def _book_enter(data: bytes) -> str:
     return ""
 
 
-def _operand(tokens: list[tuple[str, str, str]], student_first: str | None, page_id: str | None) -> str:
+def _operand(
+    tokens: list[tuple[str, str, str]],
+    student_first: str | None,
+    page_id: str | None,
+    book: dict[str, str] | None = None,
+) -> str:
     if len(tokens) == 1 and tokens[0][0] == "str":
         return tokens[0][1]
     if (
@@ -276,6 +289,9 @@ def _operand(tokens: list[tuple[str, str, str]], student_first: str | None, page
         return get_first(student_first)
     if page_id is not None and _source(tokens).lower() == "name of this page":
         return page_id
+    words = _source(tokens).lower().split()
+    if book and len(words) == 4 and words[1:] == ["of", "this", "book"] and words[0] in book:
+        return book[words[0]]
     return _source(tokens)
 
 

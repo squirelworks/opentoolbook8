@@ -219,7 +219,7 @@ On `P10` of `9e954d01.tbk` the `enterPage` handler sets the text of field `First
 
 `get setSection("Intro")` calls `setSection` in `nc81base.sbk`. That handler writes through `kernel32.dll`. The reader does not call the DLL, and the greeting does not use the return. `forward` has no handler body in the lesson or the four system books. The reader does not invent one.
 
-On `PINFO` and `PQINFO` the handler sets field `version` to `"Version: " & __nidaVersion of this book`. That value still contains `__` and `of this book`, so it is not written. The stored line `Version: 2.003.0001` stays.
+On `PINFO` and `PQINFO` the handler sets field `version` to `"Version: " & __nidaVersion of this book`. The book stores that user property (see "Stored user properties"), so the field reads `Version: 2.003.0001` from the property. A value that still contains `__` and `of this book` because the book stores no such property is not written, and the stored line stays.
 
 ## Quiz page click
 
@@ -254,3 +254,9 @@ A book with no startup page and no stored page is an error. The error names the 
 ## User properties
 
 A `__` name is a system variable the lesson and the four system books declare, such as `system string __studentFirst` in `getFirst` of `nc81recs.sbk`. The reader keeps those names in one in-memory store. A name is case-insensitive. A value lives for the process and nothing is written to a student-record file. A name that was never set reads as nothing, and nothing is `false` or 0 in a condition. Startup, the window, and every page's `enterPage` share the same store. On `9e954d01.tbk` startup leaves `__import` at `false`, because `enterApplication` assigns it. `getFirst` returns `__studentFirst` from the store. When that name is set to `Ada`, the display list for `P10` shows `Hello Ada, this lesson is about:` with the same `Arial` run at offset 0. Empty or unset `__studentFirst` still shows `Hello Student, this lesson is about:`. `__studentRecords` and `openSession` do not change.
+
+## Stored user properties
+
+A book stores its user properties in one run of tagged blocks. Each block starts with three words: a link word, the block id, and 0. A name block holds the name and a NUL. A value block holds a word `n` and then `n` bytes: either a type word (4 or 9), a length word, the characters, and a NUL, or the characters and a NUL alone (`<BookPath>`). Block id 1 opens the run. Block id 2 closes it and is the property table: a word, the entry count, and 0, then one eight-byte entry per property: value id, name id, a hash word, and 0. The run holds the name block `:HDMEDIAPATH`, and the reader finds the run from it. The same layout is in `9e954d01.tbk`, `nida81.tbk`, `otb-line-rect.tbk`, `otb-pie.tbk`, `new2-withcompression.tbk`, `new3_a.tbk`, and `new3_b.tbk`. Every one of those stores `:HDMEDIAPATH` = `<BookPath>`, `_ASYM_EA_Version` = `8.0`, and `ASYM_DeploymentMethod` = `Native`. A value whose bytes are neither form, such as `_oldSaveOnClose` with type word `0x1F` in the lesson, is not read. The four system books store no such table.
+
+`9e954d01.tbk` stores `__nidaVersion` = `2.003.0001` and `__beenToP1` = `true`. `nida81.tbk` stores no `__nidaVersion`. No handler in the lesson or the four system books assigns `__nidaVersion`; `initializeBase` does not name it. `name of this book` in an `enterPage` field write reads the stored property, so the `version` field on `PINFO` and `PQINFO` is `Version: 2.003.0001` from the book.
