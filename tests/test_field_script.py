@@ -82,8 +82,13 @@ class NavigatorFieldTests(unittest.TestCase):
         nav = navigate.Navigator.__new__(navigate.Navigator)
         nav.data, nav.pages, nav.page_id, nav.book, nav.home, nav.fields = b"", ("P1", "P2"), "P1", None, None, {}
         nav.lesson, nav.variables, nav._handlers = None, {}, {}
+        nav.props, nav.letters = navigate.UserProperties(), {}
         nav.history = []
         wrote = Follow("P1", None, fields=(("Stem", "new"),))
+        # These two clicks are on no stored page, so no quiz group runs setupQuizEx.
+        quiet = patch.object(navigate, "quiz_setup_click")
+        quiet.start()
+        self.addCleanup(quiet.stop)
         with patch.object(navigate, "follow_click", return_value=wrote) as called:
             clicked = nav.click("Check", {"Stem": "old"})
         self.assertEqual(called.call_args.args[6], {"Stem": "old"})
