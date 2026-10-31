@@ -29,6 +29,7 @@ from opentoolbook.shelf import (
     parse_install_list,
     parse_version,
     search_roots,
+    unshipped_dll,
 )
 
 
@@ -67,19 +68,29 @@ def main(argv: list[str]) -> int:
             parser.print_usage(sys.stderr)
             return 2
         opened = Path(args.book)
-        open_page(opened.read_bytes(), args.show, str(opened), args.home)
+        home = Path(args.home) if args.home else None
+        open_page(opened.read_bytes(), args.show, str(opened), args.home, status=unshipped_dll(opened, home))
         return 0
     if args.book and not args.report:
         if any((args.catalog, args.cailt, args.keydisk)):
             code = _print_side(args)
             if code:
                 return code
+        home = Path(args.home) if args.home else None
         try:
-            entry = opening_page(Path(args.book), Path(args.home) if args.home else None)
+            entry = opening_page(Path(args.book), home)
         except ValueError as exc:
             print(exc, file=sys.stderr)
             return 2
-        open_page(entry.data, entry.page_id, str(entry.book), args.home, args.book)
+        open_page(
+            entry.data,
+            entry.page_id,
+            str(entry.book),
+            args.home,
+            entry.props,
+            status=unshipped_dll(entry.book, home),
+            lesson=args.book,
+        )
         return 0
     if not any((args.book, args.catalog, args.cailt, args.keydisk, args.home)):
         parser.print_usage(sys.stderr)
