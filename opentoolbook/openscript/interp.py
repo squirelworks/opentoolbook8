@@ -902,5 +902,13 @@ _FUNCTIONS: dict[str, Callable[[Engine, tuple], object]] = {
     "truncate": _trunc,
     "trunc": _trunc,
     "isnumber": lambda engine, args: number(_arg(args, 0)) is not None,
-    "isobject": lambda engine, args: isinstance(_arg(args, 0), Ref),
+    "isobject": lambda engine, args: _is_object(engine, args),
 }
+
+
+def _is_object(engine, args: tuple) -> bool:
+    """A host that knows the book answers; otherwise any reference is an object."""
+    handled, value = engine.host.function(engine, "isobject", args)
+    if handled:
+        return bool(value)
+    return isinstance(_arg(args, 0), Ref)

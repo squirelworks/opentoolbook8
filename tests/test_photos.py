@@ -67,20 +67,20 @@ class PhotoCountTests(unittest.TestCase):
         self.assertEqual(canvas.photos, [])
 
     def test_p300_to_p400_to_p300_stays_bounded(self):
-        from opentoolbook.click import follow_click
-        from opentoolbook.field import page_ids
+        from opentoolbook.navigate import Navigator
 
         path = _lesson()
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         data = path.read_bytes()
-        pages = page_ids(data)
+        nav = Navigator(data, "P300", path)
         page = "P300"
         canvas = FakeCanvas()
         counts = []
         for button in (None, "Next", "Back", "Next", "Back"):
             if button is not None:
-                page = follow_click(data, page, button, pages).page_id
+                nav.click(button)
+                page = nav.page_id
             draw_page(canvas, _pictures(show_page(data, page, 624, 442)), FakePhoto)
             counts.append((page, FakePhoto.live))
         pages = [page for page, _live in counts]

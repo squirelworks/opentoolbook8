@@ -283,7 +283,6 @@ class LessonTests(unittest.TestCase):
         path = _lesson()
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        from opentoolbook.click import page_click
         from opentoolbook.enter import page_source
         from opentoolbook.show import button_at, show_page
 
@@ -296,7 +295,6 @@ class LessonTests(unittest.TestCase):
         shown = Navigator(data, "P0", logo)
         self.assertFalse(shown.click(None).moved)
         self.assertEqual((shown.page_id, shown.book), ("P0", logo))
-        self.assertIsNone(page_click(data, "P310", shown.pages))
         assigned = Navigator(data, "P0", logo, lesson=path, variables={"NextPage": "p10", "lastbook": "9e954d01.tbk"})
         self.assertTrue(assigned.click(None).moved)
         self.assertEqual((assigned.page_id, assigned.book.name), ("P10", path.name))

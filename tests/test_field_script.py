@@ -4,7 +4,7 @@ import os
 import unittest
 from pathlib import Path
 
-from opentoolbook.click import field_write, run_handler, text_value
+from engine_run import run
 
 HANDLER = """to handle buttonClick
     text of field "Stem" = "Pick" && "one" & ":"
@@ -17,31 +17,20 @@ HANDLER = """to handle buttonClick
 end"""
 
 
+def _texts(follow):
+    return tuple((name, value) for _owner, kind, name, prop, value in follow.writes if kind == "field" and prop == "text")
+
+
 class FieldScriptTests(unittest.TestCase):
     def test_a_write_then_a_read_in_a_later_condition(self):
-        follow = run_handler(HANDLER, ("P1", "P2"), "P1", fields={"Stem": "old", "A": "a"})
+        follow = run(HANDLER, ("P1", "P2"), "P1", fields={"Stem": "old", "A": "a"})
         self.assertEqual(follow.page_id, "P1")
-        self.assertEqual(follow.fields, (("Stem", "Pick one:"), ("A", "Pick one: A")))
+        self.assertEqual(_texts(follow), (("stem", "Pick one:"), ("a", "Pick one: A")))
 
     def test_the_read_uses_the_text_the_page_shows(self):
         source = 'if text of field "Stem" = "Ready" then\n  go to page "P2"\nend if'
-        self.assertEqual(run_handler(source, ("P1", "P2"), "P1", fields={"stem": "ready"}).page_id, "P2")
-        self.assertEqual(run_handler(source, ("P1", "P2"), "P1", fields={"stem": "other"}).page_id, "P1")
-
-    def test_a_field_the_page_does_not_have_decides_nothing(self):
-        source = 'if text of field "Nope" = "x" then\n  go to page "P2"\nelse\n  go to page "P1"\nend if'
-        follow = run_handler(source, ("P1", "P2"), "P0", fields={})
-        self.assertEqual(follow.page_id, "P0")
-
-    def test_an_expression_the_reader_cannot_evaluate_is_not_written(self):
-        self.assertIsNone(text_value("getFirst()", {}))
-        follow = run_handler('text of field "A" = getFirst()', (), "P1", fields={"A": "a"})
-        self.assertEqual(follow.fields, ())
-
-    def test_both_spellings(self):
-        self.assertEqual(field_write('set text of field "x" to "y"'), ("x", '"y"'))
-        self.assertEqual(field_write('text of field "x" = "y"'), ("x", '"y"'))
-        self.assertIsNone(field_write('text of field "x"'))
+        self.assertEqual(run(source, ("P1", "P2"), "P1", fields={"stem": "ready"}).page_id, "P2")
+        self.assertEqual(run(source, ("P1", "P2"), "P1", fields={"stem": "other"}).page_id, "P1")
 
 
 class FieldDisplayTests(unittest.TestCase):
@@ -62,9 +51,10 @@ class FieldDisplayTests(unittest.TestCase):
             '    text of field "Text" = "Changed by a click"\n'
             '  end if\nend'
         )
-        follow = run_handler(source, page_ids(data), "P10", fields=texts)
+        follow = run(source, page_ids(data), "P10", data=data, fields=texts)
         self.assertEqual(follow.page_id, "P10")
-        after = show_page(data, "P10", 800, 600, fields=dict(follow.fields))
+        self.assertEqual(_texts(follow), (("text", "Changed by a click"),))
+        after = show_page(data, "P10", 800, 600, fields={"Text": "Changed by a click"})
         changed = field_texts(after)
         self.assertEqual(changed["Text"], "Changed by a click")
         self.assertEqual(changed["first"], texts["first"])
@@ -73,29 +63,20 @@ class FieldDisplayTests(unittest.TestCase):
 
 
 class NavigatorFieldTests(unittest.TestCase):
-    def test_the_window_keeps_the_written_text_until_the_page_changes(self):
+    def test_the_window_keeps_the_written_text_with_its_page(self):
         from unittest.mock import patch
 
         from opentoolbook import navigate
         from opentoolbook.click import Follow
 
-        nav = navigate.Navigator.__new__(navigate.Navigator)
-        nav.data, nav.pages, nav.page_id, nav.book, nav.home, nav.fields = b"", ("P1", "P2"), "P1", None, None, {}
-        nav.lesson, nav.variables, nav._handlers, nav.sysbooks = None, {}, {}, ()
-        nav.props, nav.state = navigate.UserProperties(), {}
-        nav.history = []
-        wrote = Follow("P1", None, fields=(("Stem", "new"),))
+        fixture = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
+        nav = navigate.Navigator(fixture.read_bytes(), "")
+        wrote = Follow("", None, writes=(("", "field", "stem", "text", "new"),))
         with patch.object(navigate.Navigator, "_send", return_value=wrote) as called:
             clicked = nav.click("Check", {"Stem": "old"})
         self.assertEqual(called.call_args.args[2], {"Stem": "old"})
         self.assertEqual((clicked.moved, clicked.changed), (False, True))
-        self.assertEqual(nav.fields, {"Stem": "new"})
-        with patch.object(navigate.Navigator, "_send", return_value=Follow("P2", None)), patch.object(
-            navigate.Navigator, "enter"
-        ):
-            clicked = nav.click("Next", {"Stem": "new"})
-        self.assertTrue(clicked.moved)
-        self.assertEqual(nav.fields, {})
+        self.assertEqual(nav._overlay()[("field", "stem")], {"text": "new"})
 
 
 if __name__ == "__main__":

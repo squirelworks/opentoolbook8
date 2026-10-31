@@ -2,7 +2,6 @@
 
 import unittest
 
-from opentoolbook.click import run_handler
 from opentoolbook.walk import Flow, block_if, reader_condition, split_if, walk
 
 
@@ -62,22 +61,6 @@ class WalkTests(unittest.TestCase):
     def test_top_level_end_ends_the_handler(self):
         seen, _flow, _value = _run("a\nend buttonClick\nb")
         self.assertEqual(seen, ["a"])
-
-
-class ClickWalkTests(unittest.TestCase):
-    def test_click_break_in_an_unknown_branch_does_not_stop(self):
-        source = (
-            "to handle buttonClick\n"
-            "  if __quizHelp = 1 then\n    break\n  end if\n"
-            '  go to page "P20"\nend'
-        )
-        follow = run_handler(source, ("P10", "P20"), "P10")
-        self.assertEqual((follow.page_id, follow.book), ("P20", None))
-
-    def test_click_reader_branch_runs(self):
-        source = 'if sysLevel = reader\n  forward\nend if\ngo to page("P1280")\nend'
-        follow = run_handler(source, (), "P1270")
-        self.assertEqual(follow.page_id, "P1280")
 
 
 if __name__ == "__main__":

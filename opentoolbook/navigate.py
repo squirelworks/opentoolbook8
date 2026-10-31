@@ -18,16 +18,15 @@ properties scripts set (text, checked, enabled, visible) are kept in ``state``
 by book and owner, and stay while the window is open.
 A page id matches
 regardless of case. A ``request`` the click runs is returned with the
-result, and the window shows it. Field text a click writes, and objects
-it hides or shows, stay that way on the page until the page changes.
+result, and the window shows it.
 
 The navigator keeps the stack of ``(book, page)`` it has shown, apart from
 the stored page list. ``back`` pops that stack. A book button that says
 ``send previous`` still uses the stored page list.
 
-The page a click lands on runs its ``enterPage`` the way the opening
-page does. A quoted ``go to page`` there moves the window again, to
-another book when it names one. Its field writes are in the display list.
+A ``go`` within the book sends ``leavePage`` and ``enterPage`` while the
+handler runs. A go to another book sends ``enterBook``,
+``enterBackground`` and ``enterPage`` to that book.
 """
 
 from __future__ import annotations
@@ -36,7 +35,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from opentoolbook.click import object_handler
-from opentoolbook.enter import _enter_page, page_source
 from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
 from opentoolbook.shelf import MissingBook, find_file, open_book, search_roots
@@ -88,10 +86,6 @@ class Navigator:
         self.props = props if props is not None else UserProperties()
         # Pages shown before this one, oldest first: (book, page id, book bytes).
         self.history: list[tuple[Path | None, str, bytes]] = []
-        # Field text a click wrote, by field name. Cleared when the page changes.
-        self.fields: dict[str, str] = {}
-        # Objects a click hid or showed, by (kind, name or id). Cleared when the page changes.
-        self.visible: dict[tuple[str, str | int], bool] = {}
         # Properties scripts set while the window is open: by book, then owner
         # (a page id or a background key), then (kind, lower-case name).
         self.state: dict[str, dict[str, dict[tuple[str, str], dict[str, object]]]] = dict(objects or {})
@@ -154,8 +148,6 @@ class Navigator:
         if data is not self.data:
             self.pages = page_ids(data)
         self.book, self.page_id, self.data = book, page_id, data
-        self.fields = {}
-        self.visible = {}
         self.inverted = {}
         return True
 
@@ -229,11 +221,7 @@ class Navigator:
                 changed = changed or prop != "checked"
         for button, inverted in acted.inverts:
             self.inverted[button.lower()] = inverted
-        changed = changed or bool(acted.fields or acted.visible or acted.inverts)
-        for name, text in acted.fields:
-            self.fields[name] = text
-        for key, shown_now in acted.visible:
-            self.visible[key] = shown_now
+        changed = changed or bool(acted.inverts)
         data, pages, book = self.data, self.pages, self.book
         before_book = book
         if acted.book and acted.book.lower() != self.book_name.lower():
@@ -247,8 +235,6 @@ class Navigator:
             return Clicked(False, beep, asked, changed, checked)
         self.data, self.pages, self.book = data, pages, book
         self.page_id = page
-        self.fields = {}
-        self.visible = {}
         self.inverted = {}
         if book != before_book:
             # A go within the book sent leavePage and enterPage while the handler ran.
@@ -286,9 +272,7 @@ class Navigator:
 
         overlay = self._overlay()
         fields = {name: values["text"] for (kind, name), values in overlay.items() if kind == "field" and "text" in values}
-        fields.update(self.fields)
         visible = {(kind, name): values["visible"] for (kind, name), values in overlay.items() if "visible" in values}
-        visible.update(self.visible)
         enabled = {name: values["enabled"] for (kind, name), values in overlay.items() if kind == "button" and "enabled" in values}
         correct = overlay.get(("rectangle", "correct"), {}).get("visible") is True
         listed = show_page(
@@ -350,35 +334,12 @@ class Navigator:
         return (str(self.book or ""), self.page_id)
 
     def enter(self) -> None:
-        """Run the ``enterPage`` of the page on screen and follow a quoted move."""
-        from opentoolbook.entry import choose_opening
+        """Send ``enterPage`` to the page on screen and follow the page it goes to."""
+        from opentoolbook.openscript.interp import Ref
 
-        for _hop in range(_HOPS):
-            source = page_source(self.data, self.page_id)
-            if not _enter_page(source):
-                return
-            page, other = choose_opening(
-                self.pages,
-                self.handlers(),
-                {self.page_id: source},
-                roots=self.roots(),
-                book_name=self.book_name,
-                startup=False,
-                page_id=self.page_id,
-                variables=self.variables,
-                props=self.props,
-            )
-            data, pages, book = self.data, self.pages, self.book
-            if other and other.lower() != self.book_name.lower():
-                book = self.find_book(other, page)
-                data = book.read_bytes()
-                pages = page_ids(data)
-            matched = next((item for item in pages if item.lower() == page.lower()), None)
-            if matched is None:
-                raise ValueError(f"{page} is not a page of {book.name if book else 'this book'}")
-            if book == self.book and matched == self.page_id:
-                return
-            self.data, self.pages, self.book, self.page_id = data, pages, book, matched
+        acted = self._send(None, "enterpage", None, to=Ref("page", "this", None, None))
+        if acted is not None:
+            self._apply(acted)
 
     def chain(self):
         """Handler maps by book: this book's, then each ``sysBooks`` book's."""

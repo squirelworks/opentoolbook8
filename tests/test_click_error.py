@@ -56,14 +56,14 @@ class Nida71Tests(unittest.TestCase):
     """``nida81.tbk`` names ``nida71.tbk``. That file is not shipped and stays missing."""
 
     def test_a_click_that_quotes_nida71_is_the_missing_book_error(self):
-        from opentoolbook.click import run_handler
+        from engine_run import run
 
         source = (
             "to handle buttonClick\n"
             '\tgo to page "P12060" of book "nida71.tbk"\n'
             "end\n"
         )
-        follow = run_handler(source, ("P12001",), "P12001")
+        follow = run(source, ("P12001",), "P12001", book="nida81.tbk")
         self.assertEqual((follow.page_id, follow.book), ("P12060", "nida71.tbk"))
         with tempfile.TemporaryDirectory() as tmp:
             top = Path(tmp)

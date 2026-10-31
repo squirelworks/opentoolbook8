@@ -90,6 +90,8 @@ class ClickHost(BookHost):
         from opentoolbook.show import background_name
 
         key = ("page path", page, background_only)
+        if not self.data:
+            return []
         if key not in self._maps:
             found = [] if background_only else [parsed(page_source(self.data, page)).handlers]
             found.append(parsed(background_script(self.data, page)).handlers)
@@ -171,7 +173,10 @@ class ClickHost(BookHost):
         if page not in self._listed:
             from opentoolbook.show import show_page
 
-            self._listed[page] = show_page(self.data, page, 1, 1, None).items
+            try:
+                self._listed[page] = show_page(self.data, page, 1, 1, None).items
+            except ValueError:
+                self._listed[page] = ()
         return self._listed[page]
 
     def _objects(self, page: str, layer: str | None = None) -> set:
@@ -184,7 +189,7 @@ class ClickHost(BookHost):
 
     def _locate(self, ref: object):
         """``(owner, page, kind, lower-case name, stored item)`` of an object reference, or None."""
-        if not isinstance(ref, Ref) or ref.by != "name" or ref.kind in {"page", "book", "background"}:
+        if not isinstance(ref, Ref) or ref.by not in {"name", "id"} or ref.kind in {"page", "book", "background"}:
             return None
         container = ref.of
         layer = None
@@ -196,15 +201,28 @@ class ClickHost(BookHost):
             return None
         if page is None:
             return None
-        name = text(ref.value).lower()
-        item = next(
-            (
-                item
-                for item in self._listing(page)
-                if item.kind == ref.kind and item.name.lower() == name and (layer is None or item.layer == layer)
-            ),
-            None,
-        )
+        if ref.by == "id":
+            # An object by id is kept under its name when it has one, else under the id.
+            wanted = int(as_number(ref.value))
+            item = next(
+                (
+                    item
+                    for item in self._listing(page)
+                    if item.kind == ref.kind and item.object_id == wanted and (layer is None or item.layer == layer)
+                ),
+                None,
+            )
+            name = item.name.lower() if item is not None and item.name else wanted
+        else:
+            name = text(ref.value).lower()
+            item = next(
+                (
+                    item
+                    for item in self._listing(page)
+                    if item.kind == ref.kind and item.name.lower() == name and (layer is None or item.layer == layer)
+                ),
+                None,
+            )
         if item is not None:
             layer = item.layer
         owner = self._background(page) if layer == "background" else page

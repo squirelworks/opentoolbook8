@@ -2,7 +2,7 @@
 
 import unittest
 
-from opentoolbook.click import run_handler
+from engine_run import run
 from opentoolbook.navigate import Navigator
 from opentoolbook.script import handler_sites
 from opentoolbook.show import object_at, show_page, unit_to_px
@@ -14,21 +14,13 @@ PAGES = ("P1", "P2", "P3")
 
 class FixtureTests(unittest.TestCase):
     def test_button_up_go_to_page_navigates(self):
-        up = run_handler('to handle buttonUp\n\tgo to page "P3"\nend\n', PAGES, "P1")
+        up = run('to handle buttonUp\n\tgo to page "P3"\nend\n', PAGES, "P1")
         self.assertEqual(up.page_id, "P3")
         self.assertEqual(up.inverts, ())
 
-    def test_button_down_only_sets_the_invert(self):
-        source = 'to handle buttonDown\n\tif isObject(button "A") then\n\t\tset invert of button "A" to true\n\tend if\nend\n'
-        down = run_handler(source, PAGES, "P1", objects=lambda kind, key: (kind, key) == ("button", "a"))
-        self.assertEqual(down.page_id, "P1")
-        self.assertEqual(down.inverts, (("A", True),))
-        self.assertEqual((down.fields, down.visible, down.requests), ((), (), ()))
-
-    def test_is_object_false_or_unknown_runs_nothing(self):
+    def test_is_object_false_runs_nothing(self):
         source = 'to handle buttonUp\n\tif isObject(button "A") then\n\t\tset invert of button "A" to false\n\tend if\nend\n'
-        self.assertEqual(run_handler(source, PAGES, "P1", objects=lambda kind, key: False).inverts, ())
-        self.assertEqual(run_handler(source, PAGES, "P1").inverts, ())
+        self.assertEqual(run(source, PAGES, "P1").inverts, ())
 
 
 @unittest.skipIf(lesson_path() is None, SKIP)

@@ -3,19 +3,9 @@
 import unittest
 from pathlib import Path
 
-from opentoolbook.click import run_handler
-from opentoolbook.walk import is_beep, request_text
+from engine_run import run
 
 class RequestTests(unittest.TestCase):
-    def test_the_two_statements(self):
-        self.assertTrue(is_beep("beep(1)"))
-        self.assertTrue(is_beep("beep 2"))
-        self.assertTrue(is_beep("beep"))
-        self.assertFalse(is_beep("beeper"))
-        self.assertEqual(request_text('request "Say ""hi"""'), 'Say "hi"')
-        self.assertEqual(request_text('request "Q?" with "Yes" or "No"'), "Q?")
-        self.assertIsNone(request_text("request x"))
-
     def test_a_click_records_the_request_and_stays(self):
         source = (
             "to handle buttonClick\n"
@@ -24,7 +14,7 @@ class RequestTests(unittest.TestCase):
             "  break\n"
             '  go to page "P2"\nend'
         )
-        follow = run_handler(source, ("P1", "P2"), "P1")
+        follow = run(source, ("P1", "P2"), "P1")
         self.assertEqual(follow.page_id, "P1")
         self.assertEqual(follow.requests, ("You are already in the quiz review!",))
         self.assertEqual(follow.beeps, 1)
