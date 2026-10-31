@@ -13,9 +13,15 @@ shape is painted in front of a shape that contains the label.
 The page walk names classes ``0x8``, ``0x9``, ``0xA``, ``0xB``, ``0xC``,
 ``0xD``, ``0xE``, ``0x10``, ``0x11``, ``0x13``, ``0x15``, and ``0x19``.
 Of those, the window paints rectangles, ellipses, lines, class ``0x10``
-polygons, fields, and buttons, plus the class 4 background. It does not
-paint ``0xD``, arcs (``0x11``), class ``0x13`` point lists, ``0x15``, or
-``0x19``. A group is not a paint; its children are. Class ``0x12`` pies
+polygons, class ``0x13`` angled lines, fields, buttons, class ``0x15``
+paint objects, and class ``0x19`` pictures, plus the class 4 background.
+An angled line is its stored points, stroked in the color at ``+0x17``
+and not filled. A class ``0xD`` record stores its bounds and colors
+where class ``0x8`` does, and the window paints it as those bounds. A
+paint object is its stored bitmap drawn at the left and top of its
+bounds. A picture is its packed metafile drawn into its bounds, clear
+where the metafile leaves the page showing. It does not paint arcs
+(``0x11``). A group is not a paint; its children are. Class ``0x12`` pies
 and class ``0x17`` records are outside that walk, and they are not painted.
 """
 
@@ -39,10 +45,12 @@ from opentoolbook.field import (
     _trailer,
     _u16,
 )
-from opentoolbook.click import follow_click, quiz_background
-from opentoolbook.quiznav import quiz_click
 from opentoolbook.page import _child_nears, _object_name, _objects
+from opentoolbook.paintobject import paint_object_rgb
+from opentoolbook.picture import picture_pixels
+from opentoolbook.props import UserProperties
 from opentoolbook.pixels import picture_rgb
+from opentoolbook.polyline import _read as _polyline
 from opentoolbook.size import page_size
 
 # One page unit is 1/20 point. One point is 96/72 pixels at 96 dpi.
@@ -56,8 +64,12 @@ _BUTTON = 0x9
 _FIELD = 0xA
 _GROUP = 0xB
 _ELLIPSE = 0xC
+_CLASS_D = 0xD
 _LINE = 0xE
 _POLYGON = 0x10
+_ANGLED = 0x13
+_PAINT_OBJECT = 0x15
+_PICTURE = 0x19
 _SHAPE = {_RECTANGLE, _ELLIPSE, _LINE, _POLYGON}
 _DRAW = {
     _RECTANGLE: "rectangle",
@@ -86,6 +98,7 @@ class Paint:
     picture_id: int | None = None
     picture_role: str | None = None
     picture: tuple[int, int, bytes] | None = None
+    mask: bytes | None = None
 
 
 @dataclass(frozen=True)
@@ -115,26 +128,71 @@ def fit_scale(width: int, height: int, view_width: int, view_height: int) -> flo
     return min(view_width / page_w, view_height / page_h)
 
 
-def show_page(data: bytes, page_id: str, view_width: int, view_height: int) -> DisplayList:
-    """The display list for one page. It does not open a window."""
+def show_page(
+    data: bytes,
+    page_id: str,
+    view_width: int,
+    view_height: int,
+    props: UserProperties | None = None,
+    *,
+    sys_level: str | None = None,
+) -> DisplayList:
+    """The display list for one page. It does not open a window.
+
+    ``props`` holds the ``__`` names the page's ``enterPage`` reads.
+    ``sys_level`` ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
+    """
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
-    items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)))
+    items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props, sys_level)
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
 
 
-def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
+def refit(listed: DisplayList, view_width: int, view_height: int) -> DisplayList:
+    """The same display list in a view of another size. Only the scale changes."""
+    scale = fit_scale(listed.width, listed.height, view_width, view_height)
+    return replace(listed, view_width=view_width, view_height=view_height, scale=scale)
+
+
+def open_page(
+    data: bytes,
+    page_id: str,
+    book: str | None = None,
+    home: str | None = None,
+    props: UserProperties | None = None,
+    *,
+    status: str | None = None,
+    lesson: str | None = None,
+    variables: dict[str, object] | None = None,
+) -> tuple[str, ...]:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
     The page id is the one the caller passed. This function does not
     follow startup handlers. A button whose handler quotes a page opens
-    that page. A quoted book is that filename in the directory of
-    ``book``, exact case, and nowhere else. A quiz page with no quiz
-    running still uses OK, Next, and Skip for the next page and Back
-    for the previous page.
+    that page. A quoted book is found with the same search as opening a
+    book: the directory of ``book``, its parent, ``home``,
+    ``home/courses``, and ``home/Nida98/Lessons``, regardless of case. A
+    book that search does not find is reported on stderr with the file
+    and the page, and the window stays. A quiz page with no quiz running
+    still uses OK, Next, and Skip for the next page and Back for the
+    previous page. The Right key runs the page's ``Next`` button and the
+    Left key its ``Back`` button. Enter runs the branch the book's
+    ``keyUp`` handler quotes for ``keyEnter``. Escape closes the window. ``props`` is the ``__`` store every page in
+    this window reads. Resizing the window refits the page: the
+    scale is computed again from the page size and the new view. The
+    close button ends the Tk loop and this
+    function returns. A click that raises prints the error and the window
+    stays up. ``status`` is one line shown once under the page, such as
+    ``MINSTB32.dll named, not shipped``. It does not stop the paint.
+    ``lesson`` is the path the user passed when the window opens on
+    another book. A click still searches beside it.
+    ``variables`` are the system variables startup assigned.
+    previous page. The return is every click error the window printed,
+    in order, so the caller can exit non-zero.
     """
     import tkinter as tk
-    from pathlib import Path
+
+    from opentoolbook.navigate import Navigator
 
     root = tk.Tk()
     try:
@@ -150,61 +208,166 @@ def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
             highlightthickness=0,
             background="#ffffff",
         )
-        canvas.pack()
+        if status:
+            tk.Label(root, text=status, anchor="w").pack(side="bottom", fill="x")
+        canvas.pack(fill="both", expand=True)
+        nav = Navigator(data, page_id, book, home, lesson, variables)
         state = {
-            "data": data,
-            "pages": page_ids(data),
-            "page": page_id,
-            "book": Path(book).name if book else "",
-            "folder": Path(book).parent if book else None,
+            "props": props if props is not None else UserProperties(),
+            "view": (view_w, view_h),
         }
+        errors: list[str] = []
 
         def redraw() -> None:
-            listed = show_page(state["data"], state["page"], view_w, view_h)
+            listed = nav.display(*state["view"], state["props"])
+            paint(listed)
+
+        def paint(listed: DisplayList) -> None:
             canvas.delete("all")
             draw_page(canvas, listed)
             canvas.listed = listed
-            root.title(state["page"])
+            root.title(nav.page_id)
+
+        def on_configure(event) -> None:
+            view = (max(1, event.width), max(1, event.height))
+            if view == state["view"]:
+                return
+            state["view"] = view
+            listed = getattr(canvas, "listed", None)
+            if listed is None:
+                return
+            paint(refit(listed, *view))
 
         def on_click(event) -> None:
             listed = getattr(canvas, "listed", None)
             if listed is None:
                 return
             name = button_at(listed, event.x, event.y)
-            if not name:
+            result = click_reported(nav, name, errors)
+            if result is None:
+                root.bell()
                 return
-            acted = follow_click(state["data"], state["page"], name, state["pages"])
-            if acted is None:
-                if not quiz_background(state["data"], state["page"]):
-                    return
-                result = quiz_click(state["pages"], state["page"], name)
-                if result.beep:
-                    root.bell()
-                if result.page_id == state["page"]:
-                    return
-                state["page"] = result.page_id
+            if result.beep:
+                root.bell()
+            for text in result.requests:
+                from tkinter import messagebox
+
+                messagebox.showinfo(nav.book_name or "ToolBook", text, parent=root)
+            if result.moved:
                 redraw()
+
+        def on_key(event) -> None:
+            listed = getattr(canvas, "listed", None)
+            if listed is None:
                 return
-            if acted.book:
-                folder = state["folder"]
-                path = None if folder is None else folder / acted.book
-                if path is None or not path.is_file():
-                    return
-                if path.name.lower() != state["book"].lower():
-                    state["data"] = path.read_bytes()
-                    state["pages"] = page_ids(state["data"])
-                    state["book"] = path.name
-            if acted.page_id not in state["pages"] or acted.page_id == state["page"]:
+            try:
+                result = press_key(nav, listed, event.keysym)
+            except ValueError as exc:
+                import sys
+
+                print(exc, file=sys.stderr)
+                errors.append(str(exc))
+                root.bell()
                 return
-            state["page"] = acted.page_id
-            redraw()
+            if result is None:
+                return
+            if result.beep:
+                root.bell()
+            if result.moved:
+                redraw()
 
         canvas.bind("<Button-1>", on_click)
+        root.bind("<Right>", on_key)
+        root.bind("<Left>", on_key)
+        root.bind("<Return>", on_key)
+        root.bind("<KP_Enter>", on_key)
+        root.bind("<Escape>", lambda _event: root.quit())
+        canvas.bind("<Configure>", on_configure)
+        root.protocol("WM_DELETE_WINDOW", root.quit)
+        root.report_callback_exception = _report_click_error
         redraw()
         root.mainloop()
+        return tuple(errors)
     finally:
-        if root.winfo_exists():
+        try:
             root.destroy()
+        except tk.TclError:
+            pass
+
+
+def _report_click_error(kind, value, trace) -> None:
+    """A click that raises prints its message and leaves the window up.
+
+    A ``ValueError`` or ``OSError`` is the reader's own error, one line on
+    stderr. Anything else is a bug and keeps its traceback.
+    """
+    import sys
+    import traceback
+
+    if isinstance(value, (ValueError, OSError)):
+        print(value, file=sys.stderr)
+        return
+    traceback.print_exception(kind, value, trace, file=sys.stderr)
+
+
+def click_reported(nav, name: str, errors: list[str], stream=None):
+    """Run one click. A reader error prints its one line and returns None.
+
+    The line is the same sentence the open prints, for example
+    ``nida81.tbk was not found; P310 of that book does not open``. The
+    page and book stay where they were.
+    """
+    import sys
+
+    try:
+        return nav.click(name)
+    except ValueError as exc:
+        print(exc, file=stream if stream is not None else sys.stderr)
+        errors.append(str(exc))
+        return None
+
+
+# Right is the button named Next. Left is the button named Back.
+KEY_BUTTONS = {"Right": "next", "Left": "back"}
+
+
+def key_button(listed: DisplayList, key: str) -> str | None:
+    """The button a key presses on this page, as the page names it, or None."""
+    wanted = KEY_BUTTONS.get(key)
+    if wanted is None:
+        return None
+    for item in listed.items:
+        if item.kind == "button" and item.name.lower() == wanted:
+            return item.name
+    return None
+
+
+def press_key(nav, listed: DisplayList, key: str):
+    """Run the click of the button ``key`` presses. None when the page has no such button.
+
+    Right and Left are the viewer's keys. Another key runs only when the
+    book's ``keyUp`` handler quotes it and that branch sends ``buttonClick``
+    to a button this page has.
+    """
+    name = key_button(listed, key)
+    if name is None:
+        name = _book_key_button(nav, listed, key)
+    if name is None:
+        return None
+    return nav.click(name)
+
+
+def _book_key_button(nav, listed: DisplayList, key: str) -> str | None:
+    from opentoolbook.keys import key_handler
+
+    handler = key_handler(nav.data, nav.page_id, key)
+    if handler is None or handler.button is None:
+        return None
+    wanted = handler.button.lower()
+    for item in listed.items:
+        if item.kind == "button" and item.name.lower() == wanted:
+            return item.name
+    return None
 
 
 def button_at(listed: DisplayList, x: float, y: float) -> str | None:
@@ -230,13 +393,19 @@ def _pixels(units: int) -> int:
     return max(1, round(unit_to_px(units, 1)))
 
 
-def _entered(data: bytes, page_id: str, items: tuple[Paint, ...]) -> tuple[Paint, ...]:
+def _entered(
+    data: bytes,
+    page_id: str,
+    items: tuple[Paint, ...],
+    props: UserProperties | None = None,
+    sys_level: str | None = None,
+) -> tuple[Paint, ...]:
     """Run the page's enterPage text. A missing sysLevel is reader."""
     from opentoolbook.enter import enter_fields
 
     indexes = [index for index, item in enumerate(items) if item.kind == "field"]
     packed = tuple((items[index].name, items[index].text or "", items[index].runs) for index in indexes)
-    changed = enter_fields(data, page_id, packed)
+    changed = enter_fields(data, page_id, packed, props=props, sys_level=sys_level)
     if changed == packed:
         return items
     out = list(items)
@@ -339,14 +508,43 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
         fill, stroke = _colors(data, at)
         points = _polygon_points(data, segment, at) if kind == _POLYGON else ()
         return Paint(_DRAW[kind], object_id, name, bounds, fill, stroke, data[at + 0x25], points)
+    if kind == _CLASS_D:
+        fill, stroke = _colors(data, at)
+        return Paint("class 0xD", object_id, name, bounds, fill, stroke, data[at + 0x25])
     if kind == _LINE:
         _fill, stroke = _colors(data, at)
         return Paint("line", object_id, name, bounds, None, stroke, None, _line_points(data, at))
+    if kind == _ANGLED:
+        _fill, stroke = _colors(data, at)
+        try:
+            points = _polyline(data, segment, at).points
+        except ValueError:
+            return None
+        return Paint("angled line", object_id, name, bounds, None, stroke, None, points)
     if kind == _FIELD:
         text, runs = _runs(data, trailer, base, known, at)
         return Paint("field", object_id, name, bounds, text=text, runs=runs)
     if kind == _BUTTON:
         return _button(data, segment, at, object_id, name, bounds)
+    if kind == _PAINT_OBJECT:
+        try:
+            picture = paint_object_rgb(data, segment, at)
+        except ValueError:
+            return None
+        return Paint("paint object", object_id, name, bounds, picture=picture)
+    if kind == _PICTURE:
+        try:
+            drawn = picture_pixels(data, at)
+        except ValueError:
+            return None
+        return Paint(
+            "picture",
+            object_id,
+            name,
+            bounds,
+            picture=(drawn.width, drawn.height, drawn.rgb),
+            mask=drawn.mask,
+        )
     return None
 
 
@@ -508,7 +706,7 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list) -> None:
     if item.kind == "background" and item.fill is not None and item.bounds is not None:
         canvas.create_rectangle(*_device_box(item.bounds, scale), fill=_rgb(item.fill), outline="")
         return
-    if item.kind == "rectangle" and item.bounds is not None:
+    if item.kind in ("rectangle", "class 0xD") and item.bounds is not None:
         canvas.create_rectangle(
             *_device_box(item.bounds, scale),
             fill=_rgb(item.fill) if item.fill is not None else "",
@@ -526,6 +724,10 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list) -> None:
         flat = [unit_to_px(value, scale) for point in item.points for value in point]
         canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000")
         return
+    if item.kind == "angled line" and len(item.points) >= 2:
+        flat = [unit_to_px(value, scale) for point in item.points for value in point]
+        canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000")
+        return
     if item.kind == "polygon" and len(item.points) >= 2:
         flat = [unit_to_px(value, scale) for point in item.points for value in point]
         canvas.create_polygon(
@@ -534,13 +736,21 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list) -> None:
             outline=_rgb(item.stroke) if item.stroke is not None else "",
         )
         return
-    if item.kind == "button" and item.picture is not None and item.bounds is not None:
+    if item.kind in ("button", "paint object") and item.picture is not None and item.bounds is not None:
         width, height, rgb = _scale_rgb(item.picture[0], item.picture[1], item.picture[2], scale)
         photo = tk.PhotoImage(data=_ppm(width, height, rgb))
         photos.append(photo)
         x = unit_to_px(item.bounds[0], scale)
         y = unit_to_px(item.bounds[1], scale)
         canvas.create_image(x, y, image=photo, anchor="nw")
+        return
+    if item.kind == "picture" and item.picture is not None and item.bounds is not None:
+        left, top, right, bottom = _device_box(item.bounds, scale)
+        width = max(1, round(right - left))
+        height = max(1, round(bottom - top))
+        photo = tk.PhotoImage(data=_png(*_stretch(item.picture, item.mask, width, height)))
+        photos.append(photo)
+        canvas.create_image(left, top, image=photo, anchor="nw")
         return
     if item.kind == "field" and item.text and item.bounds is not None:
         _draw_text(canvas, scale, item)
@@ -606,6 +816,38 @@ def _rgb(color: tuple[int, int, int]) -> str:
 
 def _ppm(width: int, height: int, rgb: bytes) -> bytes:
     return f"P6\n{width} {height}\n255\n".encode("ascii") + rgb
+
+
+def _stretch(picture, mask, width: int, height: int) -> tuple[int, int, bytes]:
+    """Nearest-pixel RGBA at the given size. A pixel the mask leaves out is clear."""
+    source_w, source_h, rgb = picture
+    out = bytearray(width * height * 4)
+    for y in range(height):
+        source_y = min(source_h - 1, y * source_h // height)
+        for x in range(width):
+            source_x = min(source_w - 1, x * source_w // width)
+            pixel = source_y * source_w + source_x
+            if mask is not None and not mask[pixel]:
+                continue
+            dest = (y * width + x) * 4
+            out[dest:dest + 3] = rgb[pixel * 3:pixel * 3 + 3]
+            out[dest + 3] = 255
+    return width, height, bytes(out)
+
+
+def _png(width: int, height: int, rgba: bytes) -> bytes:
+    import zlib
+
+    def chunk(kind: bytes, body: bytes) -> bytes:
+        return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body))
+
+    rows = b"".join(b"\x00" + rgba[y * width * 4:(y + 1) * width * 4] for y in range(height))
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(rows))
+        + chunk(b"IEND", b"")
+    )
 
 
 def _scale_rgb(width: int, height: int, rgb: bytes, scale: float) -> tuple[int, int, bytes]:

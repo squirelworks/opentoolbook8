@@ -19,16 +19,18 @@ import sys
 from pathlib import Path
 
 from opentoolbook.entry import opening_page
-from opentoolbook.nida import discs_for, parse_cailt, parse_catalog, read_keydisk, zip_names_for
+from opentoolbook.nida import catalog_lesson, discs_for, parse_cailt, parse_catalog, read_keydisk, zip_names_for
 from opentoolbook.show import open_page
 from opentoolbook.shelf import (
     CALL_BOOKS,
     find_file,
+    missing_sentence,
     named_calls,
     open_book,
     parse_install_list,
     parse_version,
     search_roots,
+    unshipped_dll,
 )
 
 
@@ -46,6 +48,11 @@ def main(argv: list[str]) -> int:
     )
     parser.add_argument("--catalog", help="courses.xml, or a folder that contains it")
     parser.add_argument(
+        "--open",
+        metavar="LESSON",
+        help="with --catalog, open this lesson id's .tbk, found with the shelf search",
+    )
+    parser.add_argument(
         "--cailt",
         nargs=2,
         metavar=("TABLE", "LESSON"),
@@ -62,25 +69,50 @@ def main(argv: list[str]) -> int:
         help="open a Tk window on this page id. Does not follow startup handlers",
     )
     args = parser.parse_args(argv[1:])
+    if args.open:
+        if not args.catalog or args.book or args.show or args.report:
+            parser.print_usage(sys.stderr)
+            return 2
+        return _open_lesson(args)
     if args.show:
         if not args.book:
             parser.print_usage(sys.stderr)
             return 2
         opened = Path(args.book)
-        open_page(opened.read_bytes(), args.show, str(opened))
-        return 0
+        try:
+            data = opened.read_bytes()
+        except OSError:
+            print(missing_sentence(opened.name, args.show), file=sys.stderr)
+            return 2
+        home = Path(args.home) if args.home else None
+        try:
+            errors = open_page(data, args.show, str(opened), args.home, status=unshipped_dll(opened, home))
+        except ValueError as exc:
+            print(exc, file=sys.stderr)
+            return 2
+        return 1 if errors else 0
     if args.book and not args.report:
         if any((args.catalog, args.cailt, args.keydisk)):
             code = _print_side(args)
             if code:
                 return code
+        home = Path(args.home) if args.home else None
         try:
-            entry = opening_page(Path(args.book), Path(args.home) if args.home else None)
+            entry = opening_page(Path(args.book), home)
         except ValueError as exc:
             print(exc, file=sys.stderr)
             return 2
-        open_page(entry.data, entry.page_id, str(entry.book))
-        return 0
+        errors = open_page(
+            entry.data,
+            entry.page_id,
+            str(entry.book),
+            args.home,
+            entry.props,
+            status=unshipped_dll(entry.book, home),
+            lesson=args.book,
+            variables=entry.variables,
+        )
+        return 1 if errors else 0
     if not any((args.book, args.catalog, args.cailt, args.keydisk, args.home)):
         parser.print_usage(sys.stderr)
         return 2
@@ -103,6 +135,24 @@ def main(argv: list[str]) -> int:
         _print_home(Path(args.home), Path(args.book) if args.book else None)
     elif args.book:
         _print_book(Path(args.book), None)
+    return 0
+
+
+def _open_lesson(args) -> int:
+    """Open one catalog lesson id on its opening page."""
+    courses, _programs = _catalog_paths(Path(args.catalog))
+    if courses is None:
+        print(f"no courses.xml in {args.catalog}", file=sys.stderr)
+        return 2
+    home = Path(args.home) if args.home else None
+    try:
+        catalog = parse_catalog(courses.read_text(encoding="latin1"))
+        lesson = catalog_lesson(catalog, courses.parent, args.open, home)
+        entry = opening_page(lesson, home)
+    except ValueError as exc:
+        print(exc, file=sys.stderr)
+        return 2
+    open_page(entry.data, entry.page_id, str(entry.book), args.home)
     return 0
 
 
