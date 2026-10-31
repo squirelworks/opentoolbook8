@@ -518,7 +518,7 @@ The pattern on a class `0x8`, `0xC`, or `0x10` record is the byte at `+0x25`. Cl
 
 The export is a TB115 naming of `9e954d01`. The bytes below are the TB80 file. A field is listed here when the export name and the bytes already read are the same value on more than one record.
 
-The export object id is the word at the start of the record. Rectangle is class `0x8`, button `0x9`, field `0xA`, group `0xB`, ellipse `0xC`, line `0xE`, irregular polygon `0x10`, arc `0x11`, and angled line `0x13`. Five hotwords are class `0x17`. The field `Review 2` on `P10410` is not in that page walk. That field is one example.
+The export object id is the word at the start of the record. Rectangle is class `0x8`, button `0x9`, field `0xA`, group `0xB`, ellipse `0xC`, line `0xE`, irregular polygon `0x10`, arc `0x11`, and angled line `0x13`. Five hotwords are class `0x17`. The field `Review 2` on `P10410` is the last object of its directory record and stores 1 as its end word. The page walk now reads that case, as `SETTLED.md` says.
 
 Field `Text`, with the `{...}` tokens removed, is the character record on 230 named fields. `InfoText` on `PINFO` stores one newline the export does not. That newline is one example. A token such as `{size:18}` is not a character in the record.
 

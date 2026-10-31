@@ -33,8 +33,9 @@ paint object is its stored bitmap drawn at the left and top of its
 bounds. A picture is its packed metafile drawn into its bounds, clear
 where the metafile leaves the page showing. It does not paint arcs
 (``0x11``). A page's and a background's objects paint in the order of their
-class ``0x06`` layer list. A group is not a paint; its children are. Class ``0x12`` pies
-and class ``0x17`` records are outside that walk, and they are not painted.
+class ``0x06`` layer list. A group is not a paint; its children are. Class
+``0x12`` pies are on the walk and are not painted. Class ``0x17`` hotwords
+are on the walk under their field and are not painted a second time.
 """
 
 from __future__ import annotations

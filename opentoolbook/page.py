@@ -10,6 +10,10 @@ at ``+0x04`` names the group, in the order of the 10-byte entries at
 A class ``0x17`` hotword is 17 bytes, and its word at ``+0x04`` names a
 class ``0xA`` field. The walk returns a field's hotwords as that field's
 children, in stored order. A hotword is not on the page by itself.
+
+Class ``0x12`` pies are on the walk. A record whose end word is 1 is the
+last object in its directory record and runs to the end of that record;
+the pie fixture's second pie is one. A pie carries its stored words.
 """
 
 from __future__ import annotations
@@ -26,6 +30,7 @@ from opentoolbook.field import (
     _trailer,
     _u16,
 )
+from opentoolbook.pie import PIE, PIE_BYTES, pie_words
 
 PAGE = 5
 FIELD = 0x0A
@@ -45,6 +50,7 @@ _BYTES = {
     0x0E: 53,
     0x10: 53,
     0x11: 61,
+    PIE: PIE_BYTES,
     0x13: 55,
     0x15: 89,
     HOTWORD: 17,
@@ -61,6 +67,7 @@ class PageObject:
     name: str
     near: int
     children: tuple[PageObject, ...] = ()
+    words: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -114,6 +121,10 @@ def _objects(data: bytes, segment) -> list[tuple[int, int]]:
             found.append((at, kind))
             at += size
             continue
+        # The last object stores 1 as its end word and runs to the end of the record.
+        if kind in _BYTES and _u16(data, at - 4) == 1 and end + 1 - at == _BYTES[kind]:
+            found.append((at, kind))
+            break
         at += 1
     return found
 
@@ -135,7 +146,8 @@ def _object(data, segment, trailer, by_near, at: int, kind: int) -> PageObject:
             for hot_at, hot_kind in by_near.values()
             if hot_kind == HOTWORD and _u16(data, hot_at + 4) == near
         )
-    return PageObject(kind, _u16(data, at), _object_name(data, trailer, at), near, children)
+    words = pie_words(data, at) if kind == PIE else ()
+    return PageObject(kind, _u16(data, at), _object_name(data, trailer, at), near, children, words)
 
 
 def layer_nears(data: bytes, segment, trailer, parent: int) -> tuple[int, ...]:
