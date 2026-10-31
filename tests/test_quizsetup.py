@@ -107,6 +107,19 @@ class LessonTests(unittest.TestCase):
             self.assertEqual(props.get("__quizObjectiveCount"), 2)
             self.assertEqual(follow_click(data, page, "selection1", pages).page_id, page)
 
+    def test_the_window_navigator_runs_the_setup_on_click(self):
+        if not LESSON or not os.path.isfile(LESSON):
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from opentoolbook.navigate import Navigator
+
+        path = Path(LESSON)
+        nav = Navigator(path.read_bytes(), "P10002", path)
+        self.assertFalse(nav.click("selection1").moved)
+        self.assertEqual(nav.page_id, "P10002")
+        self.assertEqual(nav.props.get("__quizPages"), {1: "P10301", 2: "P10302", 3: "P10303"})
+        self.assertEqual(nav.props.get("__quizPass"), 1)
+        self.assertEqual(nav.props.get("__quizType"), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
