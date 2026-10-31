@@ -4,7 +4,9 @@ One page unit is one twentieth of a point. One point is 96/72 pixels at
 96 dpi. The fit scale multiplies that pixel size once. Pattern 254 is a
 solid fill and pattern 253 is no fill. Another pattern byte is not drawn
 as a hatch. A draw object's fill is the color at ``+0x1B`` and its stroke
-is the color at ``+0x17``. A button draws the picture at byte ``0x15`` of
+is the color at ``+0x17``, drawn at the width the line-style byte at
+``+0x22`` names: 4, 5, 6, and 9 are 1, 2, 3, and 8 pixels, and 1 is no
+stroke. A button draws the picture at byte ``0x15`` of
 its graphics block, or the picture at byte ``0x4B`` when the button is
 checked. A button whose enabled bit, bit 0 of ``+0x26``, is 0 draws the
 picture at byte ``0x39`` when that word is not 0. The border byte at
@@ -15,7 +17,8 @@ checks that letter and unchecks the other letters, and the page is drawn
 again with those states. A click on a field's hotword run is a click on
 that hotword. While a button is held down it draws the
 picture at byte ``0x27`` of its graphics block when that word is not 0,
-and letting go draws the up picture again.
+and letting go draws the up picture again. A field's text is drawn at
+the character height of each style run's font-table entry.
 A field that
 contains a shape is painted under that shape. A label that contains no
 shape is painted in front of a shape that contains the label.
@@ -32,8 +35,9 @@ paint object is its stored bitmap drawn at the left and top of its
 bounds. A picture is its packed metafile drawn into its bounds, clear
 where the metafile leaves the page showing. It does not paint arcs
 (``0x11``). A page's and a background's objects paint in the order of their
-class ``0x06`` layer list. A group is not a paint; its children are. Class ``0x12`` pies
-and class ``0x17`` records are outside that walk, and they are not painted.
+class ``0x06`` layer list. A group is not a paint; its children are. Class
+``0x12`` pies are on the walk and are not painted. Class ``0x17`` hotwords
+are on the walk under their field and are not painted a second time.
 """
 
 from __future__ import annotations
@@ -123,6 +127,9 @@ class Paint:
     checked_id: int | None = None
     invert_id: int | None = None
     hotwords: tuple[tuple[int, int, str], ...] = ()
+    sizes: tuple[tuple[int, int | None], ...] = ()
+
+    width: int = 1
 
 
 @dataclass(frozen=True)
@@ -506,7 +513,7 @@ def _entered(
     sys_level: str | None = None,
 ) -> tuple[Paint, ...]:
     """Run the page's enterPage text. A missing sysLevel is reader."""
-    from opentoolbook.enter import enter_fields
+    from opentoolbook.enter import cover_style, enter_fields
 
     indexes = [index for index, item in enumerate(items) if item.kind == "field"]
     packed = tuple((items[index].name, items[index].text or "", items[index].runs) for index in indexes)
@@ -516,7 +523,8 @@ def _entered(
     out = list(items)
     for index, (_name, text, runs) in zip(indexes, changed):
         if text != (out[index].text or "") or runs != out[index].runs:
-            out[index] = replace(out[index], text=text, runs=runs)
+            sizes = cover_style(out[index].text or "", text, out[index].sizes)
+            out[index] = replace(out[index], text=text, runs=runs, sizes=sizes)
     return tuple(out)
 
 
@@ -646,26 +654,27 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
     if kind == _RECTANGLE and name.lower() == "correct":
         return None
     if kind in (_RECTANGLE, _ELLIPSE, _POLYGON):
-        fill, stroke = _colors(data, at)
+        fill, stroke, width = _stroked(data, at)
         points = _polygon_points(data, segment, at) if kind == _POLYGON else ()
-        return Paint(_DRAW[kind], object_id, name, bounds, fill, stroke, data[at + 0x25], points)
+        return Paint(_DRAW[kind], object_id, name, bounds, fill, stroke, data[at + 0x25], points, width=width)
     if kind == _CLASS_D:
-        fill, stroke = _colors(data, at)
-        return Paint("class 0xD", object_id, name, bounds, fill, stroke, data[at + 0x25])
+        fill, stroke, width = _stroked(data, at)
+        return Paint("class 0xD", object_id, name, bounds, fill, stroke, data[at + 0x25], width=width)
     if kind == _LINE:
-        _fill, stroke = _colors(data, at)
-        return Paint("line", object_id, name, bounds, None, stroke, None, _line_points(data, at))
+        _fill, stroke, width = _stroked(data, at)
+        return Paint("line", object_id, name, bounds, None, stroke, None, _line_points(data, at), width=width)
     if kind == _ANGLED:
-        _fill, stroke = _colors(data, at)
+        _fill, stroke, width = _stroked(data, at)
         try:
             points = _polyline(data, segment, at).points
         except ValueError:
             return None
-        return Paint("angled line", object_id, name, bounds, None, stroke, None, points)
+        return Paint("angled line", object_id, name, bounds, None, stroke, None, points, width=width)
     if kind == _FIELD:
         text, runs = _runs(data, trailer, base, known, at)
+        sizes = _sizes(data, trailer, base, known, at)
         hotwords = _hotwords(data, segment, trailer, at, len(text))
-        return Paint("field", object_id, name, bounds, text=text, runs=runs, hotwords=hotwords)
+        return Paint("field", object_id, name, bounds, text=text, runs=runs, sizes=sizes, hotwords=hotwords)
     if kind == _BUTTON:
         return _button(data, segment, at, object_id, name, bounds)
     if kind == _PAINT_OBJECT:
@@ -777,6 +786,33 @@ def _runs(data, trailer, base: int, known: set[int], at: int):
     return text, tuple(runs)
 
 
+def font_height(data: bytes, base: int, known: set[int], word: int) -> int | None:
+    """The character height, in page units, of a font-table entry.
+
+    ``word`` is a near pointer in the list at the book record's ``+0x28``.
+    The entry is the face name, then at ``+0x20`` a signed word that is
+    minus the character height. None when the word is not in that list.
+    """
+    if word not in known or base + word + 0x22 > len(data):
+        return None
+    height = -struct.unpack_from("<h", data, base + word + 0x20)[0]
+    return height if height > 0 else None
+
+
+def _sizes(data, trailer, base: int, known: set[int], at: int) -> tuple[tuple[int, int | None], ...]:
+    """Each style run's offset and character height. A run word of 1 is the field's font at ``+0x22``."""
+    field = font_height(data, base, known, _u16(data, at + 0x22))
+    if trailer is None:
+        return ()
+    found = []
+    for raw in _style_runs(trailer, _u16(data, at + 0x24)):
+        word = _u16(raw, 2)
+        found.append((_u16(raw, 0), field if word == 1 else font_height(data, base, known, word)))
+    if not found:
+        return ((0, field),)
+    return tuple(found)
+
+
 def _hotwords(data, segment, trailer, at: int, length: int) -> tuple[tuple[int, int, str], ...]:
     """Each hotword's character range in the field, and its name.
 
@@ -821,6 +857,24 @@ def hotword_hit(canvas, x: float, y: float) -> str | None:
             if name:
                 return name
     return None
+
+# The line-style byte at +0x22 and the export's LineStyle: 1 is none, 2 is
+# dotted, and 4, 5, 6, 9 are widths 1, 2, 3, 8. Dotted draws solid at 1.
+LINE_NONE = 1
+_LINE_WIDTHS = {2: 1, 4: 1, 5: 2, 6: 3, 9: 8}
+
+
+def line_width(data: bytes, at: int) -> int:
+    """The stroke width in pixels. 0 is no stroke. A byte not read yet is 1."""
+    style = data[at + 0x22]
+    if style == LINE_NONE:
+        return 0
+    return _LINE_WIDTHS.get(style, 1)
+
+
+def _stroked(data: bytes, at: int):
+    fill, stroke = _colors(data, at)
+    return fill, stroke, line_width(data, at)
 
 
 def _colors(data: bytes, at: int):
@@ -942,34 +996,41 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list, make_photo=None)
     if item.kind == "background" and item.fill is not None and item.bounds is not None:
         canvas.create_rectangle(*_device_box(item.bounds, scale), fill=_rgb(item.fill), outline="")
         return
+    width = _device_width(item.width, scale)
+    outline = _rgb(item.stroke) if item.stroke is not None and item.width else ""
     if item.kind in ("rectangle", "class 0xD") and item.bounds is not None:
         canvas.create_rectangle(
             *_device_box(item.bounds, scale),
             fill=_rgb(item.fill) if item.fill is not None else "",
-            outline=_rgb(item.stroke) if item.stroke is not None else "",
+            outline=outline,
+            width=width,
         )
         return
     if item.kind == "ellipse" and item.bounds is not None:
         canvas.create_oval(
             *_device_box(item.bounds, scale),
             fill=_rgb(item.fill) if item.fill is not None else "",
-            outline=_rgb(item.stroke) if item.stroke is not None else "",
+            outline=outline,
+            width=width,
         )
+        return
+    if item.kind in ("line", "angled line") and item.width == 0:
         return
     if item.kind == "line" and len(item.points) == 2:
         flat = [unit_to_px(value, scale) for point in item.points for value in point]
-        canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000")
+        canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000", width=width)
         return
     if item.kind == "angled line" and len(item.points) >= 2:
         flat = [unit_to_px(value, scale) for point in item.points for value in point]
-        canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000")
+        canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000", width=width)
         return
     if item.kind == "polygon" and len(item.points) >= 2:
         flat = [unit_to_px(value, scale) for point in item.points for value in point]
         canvas.create_polygon(
             *flat,
             fill=_rgb(item.fill) if item.fill is not None else "",
-            outline=_rgb(item.stroke) if item.stroke is not None else "",
+            outline=outline,
+            width=width,
         )
         return
     if item.kind in ("button", "paint object") and item.picture is not None and item.bounds is not None:
@@ -1020,6 +1081,7 @@ def _draw_text(canvas, scale: float, item: Paint) -> None:
     drawn = getattr(canvas, "spans", None)
     for start, stored, span_face in _spans_at(item.text, item.runs):
         text = stored.replace("\r\n", "\n").replace("\r", "\n")
+        span_size = _size_at(item.sizes, start, scale) or size
         made = canvas.create_text(
             left,
             y,
@@ -1027,11 +1089,20 @@ def _draw_text(canvas, scale: float, item: Paint) -> None:
             anchor="nw",
             width=width,
             fill="#000000",
-            font=(span_face or "TkDefaultFont", -size),
+            font=(span_face or "TkDefaultFont", -span_size),
         )
         if drawn is not None and item.hotwords:
             drawn[made] = (item, start)
-        y += size * max(1, text.count("\n") + 1)
+        y += span_size * max(1, text.count("\n") + 1)
+
+
+def _size_at(sizes, start: int, scale: float) -> int | None:
+    """The pixel height of the run that holds stored offset ``start``."""
+    height = None
+    for offset, stored in sorted(sizes):
+        if offset <= start:
+            height = stored
+    return max(1, round(unit_to_px(height, scale))) if height else None
 
 
 def _spans(text: str, runs: tuple[tuple[int, str | None], ...]) -> tuple[tuple[str, str | None], ...]:
@@ -1050,6 +1121,11 @@ def _spans_at(text: str, runs) -> tuple[tuple[int, str, str | None], ...]:
             continue
         found.append((offset, text[offset:max(offset, end)], face))
     return tuple(found) or ((0, text, None),)
+
+
+def _device_width(width: int, scale: float) -> int:
+    """A stored pixel width at the fit scale. At least 1, since Tk draws 0 as 1."""
+    return max(1, round(width * scale))
 
 
 def _device_box(bounds, scale: float) -> tuple[float, float, float, float]:
