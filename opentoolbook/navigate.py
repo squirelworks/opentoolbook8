@@ -154,7 +154,7 @@ class Navigator:
         if button:
             quiz_setup_click(self.data, self.page_id, button, self.pages, self.handlers(), self.props)
             acted = follow_click(
-                self.data, self.page_id, button, self.pages, self.variables, self.book_name, shown
+                self.data, self.page_id, button, self.pages, self.variables, self.book_name, shown, call=self.call
             )
         if acted is None:
             acted = page_click(self.data, self.page_id, self.pages, self.variables, self.book_name, shown)
@@ -195,6 +195,17 @@ class Navigator:
         self.visible = {}
         self.enter()
         return Clicked(True, beep, asked)
+
+    def call(self, name: str) -> str | None:
+        """The page a ``get name()`` line in a click goes to, or None.
+
+        ``gotoMenuPage`` is the one call that opens a page.
+        """
+        from opentoolbook.menu import goto_menu_page
+
+        if name.lower() != "gotomenupage":
+            return None
+        return goto_menu_page(self.handlers(), self.pages, self.props)
 
     def display(self, view_width: int, view_height: int, props: UserProperties | None = None):
         """The display list of the page on screen, after its ``enterPage``."""
