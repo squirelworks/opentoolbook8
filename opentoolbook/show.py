@@ -43,6 +43,7 @@ from opentoolbook.field import (
 from opentoolbook.click import follow_click, quiz_background
 from opentoolbook.quiznav import quiz_click
 from opentoolbook.page import _child_nears, _object_name, _objects
+from opentoolbook.props import UserProperties
 from opentoolbook.pixels import picture_rgb
 from opentoolbook.polyline import _read as _polyline
 from opentoolbook.size import page_size
@@ -118,11 +119,20 @@ def fit_scale(width: int, height: int, view_width: int, view_height: int) -> flo
     return min(view_width / page_w, view_height / page_h)
 
 
-def show_page(data: bytes, page_id: str, view_width: int, view_height: int) -> DisplayList:
-    """The display list for one page. It does not open a window."""
+def show_page(
+    data: bytes,
+    page_id: str,
+    view_width: int,
+    view_height: int,
+    props: UserProperties | None = None,
+) -> DisplayList:
+    """The display list for one page. It does not open a window.
+
+    ``props`` holds the ``__`` names the page's ``enterPage`` reads.
+    """
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
-    items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)))
+    items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props)
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
 
 
@@ -132,7 +142,12 @@ def refit(listed: DisplayList, view_width: int, view_height: int) -> DisplayList
     return replace(listed, view_width=view_width, view_height=view_height, scale=scale)
 
 
-def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
+def open_page(
+    data: bytes,
+    page_id: str,
+    book: str | None = None,
+    props: UserProperties | None = None,
+) -> None:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
     The page id is the one the caller passed. This function does not
@@ -140,7 +155,8 @@ def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
     that page. A quoted book is that filename in the directory of
     ``book``, exact case, and nowhere else. A quiz page with no quiz
     running still uses OK, Next, and Skip for the next page and Back
-    for the previous page. Resizing the window refits the page: the
+    for the previous page. ``props`` is the ``__`` store every page in
+    this window reads. Resizing the window refits the page: the
     scale is computed again from the page size and the new view.
     """
     import tkinter as tk
@@ -167,11 +183,12 @@ def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
             "page": page_id,
             "book": Path(book).name if book else "",
             "folder": Path(book).parent if book else None,
+            "props": props if props is not None else UserProperties(),
             "view": (view_w, view_h),
         }
 
         def redraw() -> None:
-            listed = show_page(state["data"], state["page"], *state["view"])
+            listed = show_page(state["data"], state["page"], *state["view"], state["props"])
             paint(listed)
 
         def paint(listed: DisplayList) -> None:
@@ -255,13 +272,18 @@ def _pixels(units: int) -> int:
     return max(1, round(unit_to_px(units, 1)))
 
 
-def _entered(data: bytes, page_id: str, items: tuple[Paint, ...]) -> tuple[Paint, ...]:
+def _entered(
+    data: bytes,
+    page_id: str,
+    items: tuple[Paint, ...],
+    props: UserProperties | None = None,
+) -> tuple[Paint, ...]:
     """Run the page's enterPage text. A missing sysLevel is reader."""
     from opentoolbook.enter import enter_fields
 
     indexes = [index for index, item in enumerate(items) if item.kind == "field"]
     packed = tuple((items[index].name, items[index].text or "", items[index].runs) for index in indexes)
-    changed = enter_fields(data, page_id, packed)
+    changed = enter_fields(data, page_id, packed, props=props)
     if changed == packed:
         return items
     out = list(items)

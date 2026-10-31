@@ -79,7 +79,7 @@ def main(argv: list[str]) -> int:
         except ValueError as exc:
             print(exc, file=sys.stderr)
             return 2
-        open_page(entry.data, entry.page_id, str(entry.book))
+        open_page(entry.data, entry.page_id, str(entry.book), entry.props)
         return 0
     if not any((args.book, args.catalog, args.cailt, args.keydisk, args.home)):
         parser.print_usage(sys.stderr)
