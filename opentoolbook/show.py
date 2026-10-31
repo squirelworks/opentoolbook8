@@ -6,7 +6,9 @@ solid fill and pattern 253 is no fill. Another pattern byte is not drawn
 as a hatch. A draw object's fill is the color at ``+0x1B`` and its stroke
 is the color at ``+0x17``. A button draws the picture at byte ``0x15`` of
 its graphics block, or the picture at byte ``0x4B`` when the button is
-checked. The invert and disabled pictures are not drawn. A field that
+checked. A button whose enabled bit, bit 0 of ``+0x26``, is 0 draws the
+picture at byte ``0x39`` when that word is not 0. The invert picture is
+not drawn. A field that
 contains a shape is painted under that shape. A label that contains no
 shape is painted in front of a shape that contains the label.
 
@@ -353,8 +355,13 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
 def _button(data, segment, at: int, object_id: int, name: str, bounds) -> Paint:
     up = _graphic_word(data, segment, at, 0x15)
     checked_id = _graphic_word(data, segment, at, 0x4B)
+    disabled_id = _graphic_word(data, segment, at, 0x39)
     checked = (data[at + 0x26] >> 4) & 1
-    if checked and checked_id:
+    enabled = data[at + 0x26] & 1
+    if not enabled and disabled_id:
+        picture_id = disabled_id
+        role = "disabled"
+    elif checked and checked_id:
         picture_id = checked_id
         role = "checked"
     else:
