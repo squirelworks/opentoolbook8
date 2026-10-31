@@ -52,6 +52,55 @@ class SentenceTests(unittest.TestCase):
         self.assertEqual(str(clicked.exception), "logo81.tbk was not found; P0 of that book does not open")
 
 
+class Nida71Tests(unittest.TestCase):
+    """``nida81.tbk`` names ``nida71.tbk``. That file is not shipped and stays missing."""
+
+    def test_a_click_that_quotes_nida71_is_the_missing_book_error(self):
+        from opentoolbook.click import run_handler
+
+        source = (
+            "to handle buttonClick\n"
+            '\tgo to page "P12060" of book "nida71.tbk"\n'
+            "end\n"
+        )
+        follow = run_handler(source, ("P12001",), "P12001")
+        self.assertEqual((follow.page_id, follow.book), ("P12060", "nida71.tbk"))
+        with tempfile.TemporaryDirectory() as tmp:
+            top = Path(tmp)
+            book = top / "LF" / "nida81.tbk"
+            book.parent.mkdir()
+            book.write_bytes(FIXTURE.read_bytes())
+            home = top / "home"
+            for folder in (home, home / "courses", home / "Nida98" / "Lessons"):
+                folder.mkdir(parents=True)
+            nav = Navigator(FIXTURE.read_bytes(), "", book, home)
+            with self.assertRaises(MissingBook) as caught:
+                nav.find_book(follow.book, follow.page_id)
+        self.assertEqual(
+            str(caught.exception),
+            "nida71.tbk was not found; P12060 of that book does not open",
+        )
+        self.assertEqual(caught.exception.name, "nida71.tbk")
+        self.assertEqual(len(caught.exception.roots), 5)
+
+    def test_retry_on_p12001_of_nida81_prints_the_error_and_stays(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        nida = path.with_name("nida81.tbk")
+        from opentoolbook.shelf import find_file, search_roots
+
+        self.assertIsNone(find_file(search_roots(nida, None), "nida71.tbk"))
+        nav = Navigator(nida.read_bytes(), "P12001", nida)
+        errors: list[str] = []
+        stream = io.StringIO()
+        self.assertIsNone(click_reported(nav, "Retry", errors, stream))
+        sentence = "nida71.tbk was not found; P12060 of that book does not open"
+        self.assertEqual(errors, [sentence])
+        self.assertEqual(stream.getvalue(), sentence + "\n")
+        self.assertEqual((nav.page_id, nav.book), ("P12001", nida))
+
+
 class CommandTests(unittest.TestCase):
     def test_show_on_a_missing_book_prints_the_sentence_and_exits_2(self):
         with tempfile.TemporaryDirectory() as tmp:
