@@ -6,6 +6,8 @@ from pathlib import Path
 
 from opentoolbook.script import resource_scripts, shared_scripts
 
+from lesson import companion
+
 
 class ResourceScriptTests(unittest.TestCase):
     def test_type_10_bytes_are_a_handler(self):
@@ -17,7 +19,7 @@ class ResourceScriptTests(unittest.TestCase):
             "to handle enterPage",
             "to handle enterSystem",
         )
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         self._handlers(
             nida.read_bytes(),
@@ -44,7 +46,6 @@ class ResourceScriptTests(unittest.TestCase):
         path = os.environ.get("OPENTOOLBOOK_TBK")
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        folder = Path(path).parent
         books = {
             "nc81base.sbk": (129, "-- NC81BASE.SBK"),
             "nc81recs.sbk": (268, "-- NC81RECS.SBK"),
@@ -52,7 +53,7 @@ class ResourceScriptTests(unittest.TestCase):
             "nc81trnr.sbk": (428, "-- NC82TRNR.SBK"),
         }
         for name, (ident, head) in books.items():
-            found = resource_scripts((folder / name).read_bytes())
+            found = resource_scripts(companion(path, name).read_bytes())
             self.assertEqual(len(found), 1)
             item = found[0]
             self.assertEqual(item.resource_id, ident)
@@ -62,7 +63,7 @@ class ResourceScriptTests(unittest.TestCase):
             self.assertIn("to get ", item.source)
             lines = [line.strip() for line in item.source.splitlines() if line.strip()]
             self.assertEqual(lines[-1].lower(), "end")
-        quiz = resource_scripts((folder / "nc81test.sbk").read_bytes())[0].source
+        quiz = resource_scripts(companion(path, "nc81test.sbk").read_bytes())[0].source
         self.assertIn("to get handleQuizClick", quiz)
         self.assertIn("to get getQuizScore\r", quiz)
         self.assertIn("to get getQuizScorePM", quiz)
@@ -103,7 +104,7 @@ class SharedScriptTests(unittest.TestCase):
             self.assertNotIn("\x00", item.source)
             lines = [line.strip() for line in item.source.splitlines() if line.strip()]
             self.assertEqual(lines[-1].lower(), "end")
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         self.assertEqual(shared_scripts(nida.read_bytes()), ())
 

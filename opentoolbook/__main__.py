@@ -30,6 +30,7 @@ from opentoolbook.shelf import (
     parse_install_list,
     parse_version,
     search_roots,
+    unshipped_dll,
 )
 
 
@@ -73,8 +74,9 @@ def main(argv: list[str]) -> int:
         except OSError:
             print(missing_sentence(opened.name, args.show), file=sys.stderr)
             return 2
+        home = Path(args.home) if args.home else None
         try:
-            errors = open_page(data, args.show, str(opened), args.home)
+            errors = open_page(data, args.show, str(opened), args.home, status=unshipped_dll(opened, home))
         except ValueError as exc:
             print(exc, file=sys.stderr)
             return 2
@@ -84,12 +86,22 @@ def main(argv: list[str]) -> int:
             code = _print_side(args)
             if code:
                 return code
+        home = Path(args.home) if args.home else None
         try:
-            entry = opening_page(Path(args.book), Path(args.home) if args.home else None)
+            entry = opening_page(Path(args.book), home)
         except ValueError as exc:
             print(exc, file=sys.stderr)
             return 2
-        errors = open_page(entry.data, entry.page_id, str(entry.book), args.home)
+        errors = open_page(
+            entry.data,
+            entry.page_id,
+            str(entry.book),
+            args.home,
+            entry.props,
+            status=unshipped_dll(entry.book, home),
+            lesson=args.book,
+            variables=entry.variables,
+        )
         return 1 if errors else 0
     if not any((args.book, args.catalog, args.cailt, args.keydisk, args.home)):
         parser.print_usage(sys.stderr)
