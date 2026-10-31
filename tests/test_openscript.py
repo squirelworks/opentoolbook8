@@ -145,6 +145,18 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(engine.get("f"), 7)
         self.assertIn("nothere()", engine.skipped)
 
+    def test_flush_message_queue_is_a_no_op_that_returns(self):
+        engine = _engine(
+            "to get f\n"
+            "  flushMessageQueue\n"
+            "  get flushMessageQueue()\n"
+            "  return it & \"done\"\n"
+            "end\n"
+        )
+        self.assertEqual(engine.get("f"), "done")
+        self.assertNotIn("flushmessagequeue", engine.skipped)
+        self.assertNotIn("flushmessagequeue()", engine.skipped)
+
 
 class ReferenceTests(unittest.TestCase):
     def test_an_array_by_reference_is_shared_and_otherwise_copied(self):

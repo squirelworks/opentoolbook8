@@ -466,6 +466,9 @@ class Engine:
             self.beeps += 1
             self.host.beep()
             return
+        if node.name == "flushmessagequeue":
+            # ToolBook drains the queue; this reader has none, so the statement returns.
+            return
         handlers = self._handlers("handle", node.name)
         if handlers:
             self._run(handlers[0], node.name, "handle", 0, args, None)
@@ -882,6 +885,11 @@ def _trunc(engine: Engine, args: tuple):
     return int(as_number(_arg(args, 0)))
 
 
+def _flush_message_queue(engine: Engine, args: tuple) -> str:
+    """``flushMessageQueue()``: no queued messages here, so nothing to drain."""
+    return ""
+
+
 _FUNCTIONS: dict[str, Callable[[Engine, tuple], object]] = {
     "charcount": lambda engine, args: count_chunks(text(_arg(args, 0)), "char"),
     "wordcount": lambda engine, args: count_chunks(text(_arg(args, 0)), "word"),
@@ -903,6 +911,7 @@ _FUNCTIONS: dict[str, Callable[[Engine, tuple], object]] = {
     "trunc": _trunc,
     "isnumber": lambda engine, args: number(_arg(args, 0)) is not None,
     "isobject": lambda engine, args: _is_object(engine, args),
+    "flushmessagequeue": _flush_message_queue,
 }
 
 

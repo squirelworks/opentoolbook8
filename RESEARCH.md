@@ -1544,3 +1544,7 @@ Source: the Cursor handoff M2 (2026-10-31). A missing PE export DLL such as the 
 ## Page size and metafile records
 
 Source: the Cursor handoff M2 (2026-10-31). Page width and height are the signed words on the book record for every book. A class `0x19` metafile is played from its own records: window org/ext, optional clip, and StretchDIB forms the reader knows; other functions are skipped. Specimen books such as `nida81.tbk` still exercise that path, but the reader does not branch on their names.
+
+## flushMessageQueue
+
+Source: OpenScript keyword list (`OPENCODE.md` / keyword resource) and `nc81trnr.sbk` scripts that call `flushMessageQueue()` (FINDINGS). ToolBook drains its message queue; this reader has none, so the word returns without effect as a statement or as a function.
