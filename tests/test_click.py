@@ -65,6 +65,20 @@ class HandlerTests(unittest.TestCase):
         number = run_handler(line, PAGES, "P300", {"nextpage": 0, "lastbook": "x.tbk"})
         self.assertEqual(number.page_id, "P300")
 
+    def test_a_handler_assigns_the_two_names_and_the_bare_form_follows_them(self):
+        variables: dict = {}
+        run_handler(SELECTION, PAGES, "P300", variables, "9e954d01.tbk")
+        self.assertEqual(variables, {"lastbook": "9e954d01.tbk", "nextpage": "P300"})
+        bare = "go to page nextpage of book lastbook\n"
+        back = run_handler(bare, ("P310", "P340"), "P340", variables, "nida81.tbk")
+        self.assertEqual((back.page_id, back.book), ("P300", "9e954d01.tbk"))
+        quoted = run_handler('nextpage = "p1300"\ngo to page nextpage\n', PAGES, "P300", {}, "a.tbk")
+        self.assertEqual((quoted.page_id, quoted.book), ("p1300", None))
+        empty = run_handler(bare, PAGES, "P300", {}, "a.tbk")
+        self.assertEqual((empty.page_id, empty.book), ("P300", None))
+        other = run_handler('nextpage = getNext()\ngo to page nextpage\n', PAGES, "P300", {}, "a.tbk")
+        self.assertEqual(other.page_id, "P300")
+
     def test_an_unquoted_call_does_not_change_the_page(self):
         stayed = run_handler("get notInTheBooks()\n", PAGES, "P300")
         self.assertEqual(stayed.page_id, "P300")
