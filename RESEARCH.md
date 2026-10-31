@@ -1571,7 +1571,11 @@ Source: OpenScript system properties (keyword list) and the handoff M5 note. `sy
 
 ## Preventing_Fraud.tbk (M3)
 
-Source: handoff M3. This environment has no `Preventing_Fraud.tbk` and no Instructor 8.1 sample folder (workspace search and Google Drive exact-name search returned nothing). Diagnosis of its format vs TB80 waits on that file.
+Source: handoff M3. This environment still has no `Preventing_Fraud.tbk` and no Instructor 8.1 sample folder (workspace search; Google Drive exact-name search again returned nothing on 2026-10-31). Diagnosis of its format vs TB80 waits on that file.
+
+## Viewer back leave/enter (M5)
+
+Source: handoff M5. Whether Viewer back should send `leavePage` / `enterPage` (and matching background messages) is not settled from a Bochs or TB80RTM capture in this tree. The window already pops history and paints the prior page without those messages. Need a ToolBook 8 capture of Viewer back before changing that path.
 
 ## TB80.INI startup keys
 

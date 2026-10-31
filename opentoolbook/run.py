@@ -144,6 +144,8 @@ class BookHost(Host):
         return False, None
 
     def dll(self, library: str, name: str, args: tuple) -> tuple[bool, object]:
+        from opentoolbook.dllshims import shim
+
         if name == "fileexists32":
             return True, 1 if self.find_file(text(args[0]) if args else "") is not None else 0
         if name == "getprivateprofileinta":
@@ -166,6 +168,9 @@ class BookHost(Host):
             return True, len(value)
         if name == "writeprivateprofilestringa":
             return True, 1
+        found = shim(library, name, args)
+        if found is not None:
+            return found
         return False, None
 
     def _ini(self, file: object, section: object, key: object) -> str | None:
