@@ -20,11 +20,12 @@ import struct
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from opentoolbook.enter import _enter_page, _norm
+from opentoolbook.enter import _enter_page
 from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
 from opentoolbook.script import book_handlers, quoted_go_to, resource_scripts
 from opentoolbook.shelf import find_file, open_book, search_roots
+from opentoolbook.walk import norm, reader_condition, walk
 
 _GET = re.compile(r"^get\s+([a-z_][a-z0-9_]*)\s*\((.*)\)\s*$")
 _ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$")
@@ -219,86 +220,41 @@ def _follow_enter(state: _State, source: str) -> None:
 
 
 def _walk(lines: list[str], state: _State) -> object:
-    index = 0
-    while index < len(lines):
-        if state.returning or state.breaking:
-            return state.return_value
-        raw = lines[index]
-        low = _norm(raw)
-        if not low or low.startswith("--"):
-            index += 1
-            continue
-        if low.startswith("to handle") or low.startswith("to get") or low.startswith("to set"):
-            index += 1
-            continue
-        if low.startswith("linkdll"):
-            index += 1
-            while index < len(lines) and not _norm(lines[index]).startswith("end linkdll"):
-                index += 1
-            index += 1
-            continue
-        if low in {"end", "end if"} or (
-            low.startswith("end ")
-            and not low.startswith("end if")
-            and not low.startswith("end step")
-            and not low.startswith("end conditions")
-            and not low.startswith("end link")
-        ):
-            return state.return_value if state.returning else None
-        if low == "forward":
-            index += 1
-            continue
-        if low == "break":
-            state.breaking = True
-            return None
-        if low.startswith("if "):
-            condition = low[3:-5].strip() if low.endswith(" then") else low[3:].strip()
-            index += 1
-            taken, skipped, index = _split_if(lines, index)
-            known = _condition(condition, state)
-            if known is True:
-                _walk(taken, state)
-            elif known is False:
-                _walk(skipped, state)
-            if state.returning or state.breaking:
-                return state.return_value
-            continue
-        found = quoted_go_to(raw)
-        if found is not None:
-            page, book = found
-            if book is None:
-                book, error = _book_from_call(raw, state)
-                if error:
-                    state.book_error = error
-            state.page_id = page
-            state.book_name = book
-            index += 1
-            continue
-        if low.startswith("return"):
-            state.return_value = _return_value(low, state)
-            state.returning = True
-            return state.return_value
-        call = _GET.match(low)
-        if call is not None:
-            state.it = _call(call.group(1), state)
-            index += 1
-            continue
-        if low in {"send next", "send previous"}:
-            step = 1 if low == "send next" else -1
-            current = state.page_id or (state.pages[0] if state.pages else "")
-            state.page_id = _step(state.pages, current, step)
-            state.book_name = None
-            index += 1
-            continue
-        assigned = _ASSIGN.match(raw.strip())
-        if assigned is not None:
-            value = _value(assigned.group(2).strip(), state)
-            if value is not None:
-                _assign(state, assigned.group(1), value)
-            index += 1
-            continue
-        index += 1
-    return state.return_value if state.returning else None
+    return walk(
+        lines,
+        state,
+        condition=lambda text: _condition(text, state),
+        statement=lambda raw, low: _statement(raw, low, state),
+        returns=lambda expr: _return_value(expr, state),
+    )
+
+
+def _statement(raw: str, low: str, state: _State) -> None:
+    found = quoted_go_to(raw)
+    if found is not None:
+        page, book = found
+        if book is None:
+            book, error = _book_from_call(raw, state)
+            if error:
+                state.book_error = error
+        state.page_id = page
+        state.book_name = book
+        return
+    call = _GET.match(low)
+    if call is not None:
+        state.it = _call(call.group(1), state)
+        return
+    if low in {"send next", "send previous"}:
+        step = 1 if low == "send next" else -1
+        current = state.page_id or (state.pages[0] if state.pages else "")
+        state.page_id = _step(state.pages, current, step)
+        state.book_name = None
+        return
+    assigned = _ASSIGN.match(raw.strip())
+    if assigned is not None:
+        value = _value(assigned.group(2).strip(), state)
+        if value is not None:
+            _assign(state, assigned.group(1), value)
 
 
 def _book_from_call(line: str, state: _State) -> tuple[str | None, str | None]:
@@ -328,11 +284,10 @@ def _call(name: str, state: _State) -> object:
 
 
 def _condition(text: str, state: _State) -> bool | None:
-    low = " ".join(text.lower().split())
-    if low in {'syslevel = reader', 'syslevel = "reader"'}:
-        return True
-    if low in {'syslevel <> reader', 'syslevel <> "reader"'}:
-        return False
+    low = norm(text)
+    reader = reader_condition(low)
+    if reader is not None:
+        return reader
     exists = _FILE_EXISTS.fullmatch(low)
     if exists is not None:
         return find_file(state.roots, exists.group(1)) is not None
@@ -388,41 +343,13 @@ def _value(expr: str, state: _State) -> object | None:
     return None
 
 
-def _return_value(low: str, state: _State) -> object:
-    expr = low[6:].strip()
-    if not expr:
-        return None
+def _return_value(expr: str, state: _State) -> object:
     if _known(state, expr):
         return _lookup(state, expr)
     value = _value(expr, state)
     if value is not None:
         return value
     return expr
-
-
-def _split_if(lines: list[str], index: int) -> tuple[list[str], list[str], int]:
-    taken: list[str] = []
-    skipped: list[str] = []
-    branch = taken
-    depth = 0
-    while index < len(lines):
-        low = _norm(lines[index])
-        if low.startswith("if "):
-            depth += 1
-            branch.append(lines[index])
-            index += 1
-            continue
-        if low == "else" and depth == 0:
-            branch = skipped
-            index += 1
-            continue
-        if low in {"end", "end if"} and depth == 0:
-            return taken, skipped, index + 1
-        if low in {"end", "end if"}:
-            depth -= 1
-        branch.append(lines[index])
-        index += 1
-    return taken, skipped, index
 
 
 def _step(pages: tuple[str, ...], page_id: str, step: int) -> str:
