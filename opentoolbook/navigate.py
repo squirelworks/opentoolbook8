@@ -22,6 +22,10 @@ regardless of case. A ``request`` the click runs is returned with the
 result, and the window shows it. Field text a click writes, and objects
 it hides or shows, stay that way on the page until the page changes.
 
+The navigator keeps the stack of ``(book, page)`` it has shown, apart from
+the stored page list. ``back`` pops that stack. A book button that says
+``send previous`` still uses the stored page list.
+
 The page a click lands on runs its ``enterPage`` the way the opening
 page does. A quoted ``go to page`` there moves the window again, to
 another book when it names one. Its field writes are in the display list.
@@ -85,17 +89,25 @@ class Navigator:
         # System variables a handler this runner executed assigned, by lower-case name.
         self.variables: dict[str, object] = {key.lower(): value for key, value in (variables or {}).items()}
         self._handlers: dict[Path | None, dict[str, str]] = {}
+        # The __ names this window's handlers read and write.
+        self.props = props if props is not None else UserProperties()
+        # Pages shown before this one, oldest first: (book, page id, book bytes).
+        self.history: list[tuple[Path | None, str, bytes]] = []
         # Field text a click wrote, by field name. Cleared when the page changes.
         self.fields: dict[str, str] = {}
         # Objects a click hid or showed, by (kind, name or id). Cleared when the page changes.
         self.visible: dict[tuple[str, str | int], bool] = {}
         self.letters: dict[tuple[str, str], str] = {}
-        # The ``__`` store a quiz click writes its response and score into.
-        self.props = props
 
     @property
     def book_name(self) -> str:
         return self.book.name if self.book is not None else ""
+
+    def title(self) -> str:
+        """The window title: the book file and the page id."""
+        if not self.book_name:
+            return self.page_id
+        return f"{self.book_name} - {self.page_id}"
 
     def roots(self) -> tuple[Path, ...]:
         """Where a quoted ``of book`` is looked for.
@@ -123,11 +135,32 @@ class Navigator:
         The page and book change in place. ``shown`` is the field text the
         page shows now. Field text the click writes is kept in ``fields``
         until the page changes.
+
+        The page shown before a click that moves is pushed on ``history``.
         """
+        before = (self.book, self.page_id, self.data)
+        result = self._click(button, shown)
+        if result.moved:
+            self.history.append(before)
+        return result
+
+    def back(self) -> bool:
+        """Pop the viewer's history. False when nothing was shown before."""
+        if not self.history:
+            return False
+        book, page_id, data = self.history.pop()
+        if data is not self.data:
+            self.pages = page_ids(data)
+        self.book, self.page_id, self.data = book, page_id, data
+        self.fields = {}
+        self.visible = {}
+        return True
+
+    def _click(self, button: str | None, shown: dict[str, str] | None) -> Clicked:
         acted = None
         if button:
             acted = follow_click(
-                self.data, self.page_id, button, self.pages, self.variables, self.book_name, shown
+                self.data, self.page_id, button, self.pages, self.variables, self.book_name, shown, call=self.call
             )
         if acted is None:
             acted = page_click(self.data, self.page_id, self.pages, self.variables, self.book_name, shown)
@@ -170,6 +203,17 @@ class Navigator:
         self.visible = {}
         self.enter()
         return Clicked(True, beep, asked)
+
+    def call(self, name: str) -> str | None:
+        """The page a ``get name()`` line in a click goes to, or None.
+
+        ``gotoMenuPage`` is the one call that opens a page.
+        """
+        from opentoolbook.menu import goto_menu_page
+
+        if name.lower() != "gotomenupage":
+            return None
+        return goto_menu_page(self.handlers(), self.pages, self.props)
 
     def display(self, view_width: int, view_height: int, props: UserProperties | None = None):
         """The display list of the page on screen, after its ``enterPage``."""

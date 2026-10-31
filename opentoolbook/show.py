@@ -4,7 +4,9 @@ One page unit is one twentieth of a point. One point is 96/72 pixels at
 96 dpi. The fit scale multiplies that pixel size once. Pattern 254 is a
 solid fill and pattern 253 is no fill. Another pattern byte is not drawn
 as a hatch. A draw object's fill is the color at ``+0x1B`` and its stroke
-is the color at ``+0x17``. A button draws the picture at byte ``0x15`` of
+is the color at ``+0x17``, drawn at the width the line-style byte at
+``+0x22`` names: 4, 5, 6, and 9 are 1, 2, 3, and 8 pixels, and 1 is no
+stroke. A button draws the picture at byte ``0x15`` of
 its graphics block, or the picture at byte ``0x4B`` when the button is
 checked. A button whose enabled bit, bit 0 of ``+0x26``, is 0 draws the
 picture at byte ``0x39`` when that word is not 0. The border byte at
@@ -127,6 +129,8 @@ class Paint:
     hotwords: tuple[tuple[int, int, str], ...] = ()
     sizes: tuple[tuple[int, int | None], ...] = ()
 
+    width: int = 1
+
 
 @dataclass(frozen=True)
 class DisplayList:
@@ -228,7 +232,10 @@ def open_page(
     ``lesson`` is the path the user passed when the window opens on
     another book. A click still searches beside it.
     ``variables`` are the system variables startup assigned.
-    previous page. The return is every click error the window printed,
+    The window's own "Viewer back" control returns to the page it showed
+    before, which is not the book's stored previous page. The title is the
+    book file and the page id, and it changes on every navigation,
+    including a book switch. The return is every click error the window printed,
     in order, so the caller can exit non-zero.
     """
     import tkinter as tk
@@ -241,7 +248,7 @@ def open_page(
         width, height = page_size(data)
         view_w = max(1, min(_pixels(width), root.winfo_screenwidth() - 48))
         view_h = max(1, min(_pixels(height), root.winfo_screenheight() - 96))
-        root.title(page_id)
+        root.title("")
         canvas = tk.Canvas(
             root,
             width=view_w,
@@ -251,13 +258,25 @@ def open_page(
         )
         if status:
             tk.Label(root, text=status, anchor="w").pack(side="bottom", fill="x")
-        canvas.pack(fill="both", expand=True)
         state = {
             "props": props if props is not None else UserProperties(),
             "view": (view_w, view_h),
         }
         nav = Navigator(data, page_id, book, home, lesson, variables, props=state["props"])
+        root.title(nav.title())
         errors: list[str] = []
+
+        def on_back() -> None:
+            if nav.back():
+                redraw()
+            else:
+                root.bell()
+
+        bar = tk.Frame(root)
+        bar.pack(fill="x")
+        # A viewer control, not a book button: it pops the pages this window showed.
+        tk.Button(bar, text="\u25c0 Viewer back", command=on_back).pack(side="left")
+        canvas.pack(fill="both", expand=True)
 
         def redraw() -> None:
             listed = nav.display(*state["view"], state["props"])
@@ -267,7 +286,7 @@ def open_page(
             canvas.delete("all")
             draw_page(canvas, listed)
             canvas.listed = listed
-            root.title(nav.page_id)
+            root.title(nav.title())
 
         def on_configure(event) -> None:
             view = (max(1, event.width), max(1, event.height))
@@ -648,22 +667,22 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
     if kind == _RECTANGLE and name.lower() == "correct":
         return None
     if kind in (_RECTANGLE, _ELLIPSE, _POLYGON):
-        fill, stroke = _colors(data, at)
+        fill, stroke, width = _stroked(data, at)
         points = _polygon_points(data, segment, at) if kind == _POLYGON else ()
-        return Paint(_DRAW[kind], object_id, name, bounds, fill, stroke, data[at + 0x25], points)
+        return Paint(_DRAW[kind], object_id, name, bounds, fill, stroke, data[at + 0x25], points, width=width)
     if kind == _CLASS_D:
-        fill, stroke = _colors(data, at)
-        return Paint("class 0xD", object_id, name, bounds, fill, stroke, data[at + 0x25])
+        fill, stroke, width = _stroked(data, at)
+        return Paint("class 0xD", object_id, name, bounds, fill, stroke, data[at + 0x25], width=width)
     if kind == _LINE:
-        _fill, stroke = _colors(data, at)
-        return Paint("line", object_id, name, bounds, None, stroke, None, _line_points(data, at))
+        _fill, stroke, width = _stroked(data, at)
+        return Paint("line", object_id, name, bounds, None, stroke, None, _line_points(data, at), width=width)
     if kind == _ANGLED:
-        _fill, stroke = _colors(data, at)
+        _fill, stroke, width = _stroked(data, at)
         try:
             points = _polyline(data, segment, at).points
         except ValueError:
             return None
-        return Paint("angled line", object_id, name, bounds, None, stroke, None, points)
+        return Paint("angled line", object_id, name, bounds, None, stroke, None, points, width=width)
     if kind == _FIELD:
         text, runs = _runs(data, trailer, base, known, at)
         sizes = _sizes(data, trailer, base, known, at)
@@ -852,6 +871,24 @@ def hotword_hit(canvas, x: float, y: float) -> str | None:
                 return name
     return None
 
+# The line-style byte at +0x22 and the export's LineStyle: 1 is none, 2 is
+# dotted, and 4, 5, 6, 9 are widths 1, 2, 3, 8. Dotted draws solid at 1.
+LINE_NONE = 1
+_LINE_WIDTHS = {2: 1, 4: 1, 5: 2, 6: 3, 9: 8}
+
+
+def line_width(data: bytes, at: int) -> int:
+    """The stroke width in pixels. 0 is no stroke. A byte not read yet is 1."""
+    style = data[at + 0x22]
+    if style == LINE_NONE:
+        return 0
+    return _LINE_WIDTHS.get(style, 1)
+
+
+def _stroked(data: bytes, at: int):
+    fill, stroke = _colors(data, at)
+    return fill, stroke, line_width(data, at)
+
 
 def _colors(data: bytes, at: int):
     stroke = (data[at + 0x17], data[at + 0x18], data[at + 0x19])
@@ -972,34 +1009,41 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list, make_photo=None)
     if item.kind == "background" and item.fill is not None and item.bounds is not None:
         canvas.create_rectangle(*_device_box(item.bounds, scale), fill=_rgb(item.fill), outline="")
         return
+    width = _device_width(item.width, scale)
+    outline = _rgb(item.stroke) if item.stroke is not None and item.width else ""
     if item.kind in ("rectangle", "class 0xD") and item.bounds is not None:
         canvas.create_rectangle(
             *_device_box(item.bounds, scale),
             fill=_rgb(item.fill) if item.fill is not None else "",
-            outline=_rgb(item.stroke) if item.stroke is not None else "",
+            outline=outline,
+            width=width,
         )
         return
     if item.kind == "ellipse" and item.bounds is not None:
         canvas.create_oval(
             *_device_box(item.bounds, scale),
             fill=_rgb(item.fill) if item.fill is not None else "",
-            outline=_rgb(item.stroke) if item.stroke is not None else "",
+            outline=outline,
+            width=width,
         )
+        return
+    if item.kind in ("line", "angled line") and item.width == 0:
         return
     if item.kind == "line" and len(item.points) == 2:
         flat = [unit_to_px(value, scale) for point in item.points for value in point]
-        canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000")
+        canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000", width=width)
         return
     if item.kind == "angled line" and len(item.points) >= 2:
         flat = [unit_to_px(value, scale) for point in item.points for value in point]
-        canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000")
+        canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000", width=width)
         return
     if item.kind == "polygon" and len(item.points) >= 2:
         flat = [unit_to_px(value, scale) for point in item.points for value in point]
         canvas.create_polygon(
             *flat,
             fill=_rgb(item.fill) if item.fill is not None else "",
-            outline=_rgb(item.stroke) if item.stroke is not None else "",
+            outline=outline,
+            width=width,
         )
         return
     if item.kind in ("button", "paint object") and item.picture is not None and item.bounds is not None:
@@ -1090,6 +1134,11 @@ def _spans_at(text: str, runs) -> tuple[tuple[int, str, str | None], ...]:
             continue
         found.append((offset, text[offset:max(offset, end)], face))
     return tuple(found) or ((0, text, None),)
+
+
+def _device_width(width: int, scale: float) -> int:
+    """A stored pixel width at the fit scale. At least 1, since Tk draws 0 as 1."""
+    return max(1, round(width * scale))
 
 
 def _device_box(bounds, scale: float) -> tuple[float, float, float, float]:

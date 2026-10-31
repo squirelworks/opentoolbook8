@@ -145,7 +145,7 @@ Words `+0x06` and `+0x08` are 65535. Words `+0x02`, `+0x20`, and `+0x26` are 0. 
 
 ### Class `0xE`, 53 bytes, 528 records
 
-Same length as class `0x10`, and a different record. Words `+0x06` and `+0x08` are 65535. Words `+0x02` and `+0x20` are 0. Word `+0x32` is 15 in every one of the 528. The four words at `+0x0F` have area in 12 of the 528. On the other 516 one side is equal. Two records:
+Same length as class `0x10`, and a different record. Words `+0x06` and `+0x08` are 65535. Words `+0x02` and `+0x20` are 0. Word `+0x32` is 15 in every one of the 528. Word `+0x32` is not the stroke width: two lines are `LineStyle="2"` in the export and still store 15. The width is the byte at `+0x22`, in `SETTLED.md`. The styles 3, 7, and 8 of that byte have no export pair yet. The four words at `+0x0F` have area in 12 of the 528. On the other 516 one side is equal. Two records:
 
 ```
 270000001400ffffffff0800001400fa05e10f6108e10ffffcf00080808000210000040000006108e10ffa05e10f00000f000f00a7
@@ -598,7 +598,7 @@ The two records use the same bytes at `+0x02` through `+0x0E`: `00 00 14 00 ff f
 
 The four signed words at `+0x0F` are the bounds. Pie id 0 is `(600, 600, 3000, 3000)`. Pie id 2 is `(-1400, 500, 2400, 500)`. Those two rectangles are not the same, so the slot is the one that changes with the object. The top and bottom of pie id 2 are both 500.
 
-The bytes at `+0x25` through `+0x35` are not the same in the two records. Pie id 0, drawn `from 1500,1500 to 3500,3500 to 1500,3500` and then given the bounds above, stores signed words `1500, 3500, 1500, 1500, 1500, 3500, 0, 2000` from `+0x25`. Pie id 2, drawn `from 2400,500 to 1500,2200 to 500,500`, stores `500, 500, 2400, 500, 500, 500, 1900, 0`. The second `to` point of pie id 2, `1500, 2200`, is not one of those words. That region is two examples, not a settled point list.
+The bytes at `+0x25` through `+0x35` are not the same in the two records. Pie id 0, drawn `from 1500,1500 to 3500,3500 to 1500,3500` and then given the bounds above, stores signed words `1500, 3500, 1500, 1500, 1500, 3500, 0, 2000` from `+0x25`. Pie id 2, drawn `from 2400,500 to 1500,2200 to 500,500`, stores `500, 500, 2400, 500, 500, 500, 1900, 0`. The second `to` point of pie id 2, `1500, 2200`, is not one of those words. That region is two examples, not a settled point list. Both examples store the third point, the first point, the third point again, and the per-axis distance from the first to the third (`SETTLED.md`, "Pie wedge refused"). A pie whose second point is not on an axis through the third, saved once and again after Reshape Pie, would show where the end of the wedge is stored.
 
 An ellipse in the same book is 41 bytes and puts its pattern byte at `+0x25`. A pie is longer, and `+0x25` is the first of the words above, not that pattern byte. Class `0x11` is 61 bytes and class `0x10` is 53. Neither length is 59.
 

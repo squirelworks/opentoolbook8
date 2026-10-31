@@ -81,12 +81,13 @@ class LessonScoreTests(unittest.TestCase):
         self.assertEqual(nav.record_answer(), 100)
         self.assertEqual(props.get("__quizResponse"), {1: "b"})
 
-    def test_no_props_store_writes_nothing(self):
+    def test_no_running_quiz_writes_nothing(self):
+        # With no __quizPass or __quizIndex the first block is skipped.
         nav = Navigator(self.data, "P10210")
         nav.click("C")
         clicked = nav.click("Next")
         self.assertTrue(clicked.moved)
-        self.assertIsNone(nav.props)
+        self.assertIsNone(nav.props.get("__quizResponse"))
 
 
 if __name__ == "__main__":
