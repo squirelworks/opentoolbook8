@@ -6,6 +6,8 @@ from pathlib import Path
 
 from opentoolbook.class17 import class_17_fields
 
+from lesson import companion
+
 
 class Class17Tests(unittest.TestCase):
     def test_the_pointer_names_a_text_field(self):
@@ -13,7 +15,7 @@ class Class17Tests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         logic = Path(path).read_bytes()
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         found = class_17_fields(logic)
         self.assertEqual(len(found), 5)
