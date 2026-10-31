@@ -207,7 +207,7 @@ def open_page(
         }
 
         def redraw() -> None:
-            listed = show_page(nav.data, nav.page_id, *state["view"], state["props"], fields=nav.fields)
+            listed = show_page(nav.data, nav.page_id, *state["view"], state["props"], fields=nav.fields, visible=nav.visible)
             paint(listed)
 
         def paint(listed: DisplayList) -> None:

@@ -48,5 +48,21 @@ class HideShowTests(unittest.TestCase):
         self.assertEqual([item for item in again.items if item.pattern == 253], unfilled)
 
 
+class NavigatorHideTests(unittest.TestCase):
+    def test_the_window_keeps_a_hidden_object_hidden_until_the_page_changes(self):
+        from unittest.mock import patch
+
+        from opentoolbook import navigate
+        from opentoolbook.click import Follow
+
+        nav = navigate.Navigator(FIXTURE.read_bytes(), "")
+        hid = Follow("", None, (), ((("rectangle", 0), False),))
+        with patch.object(navigate, "follow_click", return_value=hid):
+            clicked = nav.click("Hide")
+        self.assertEqual((clicked.moved, clicked.changed), (False, True))
+        listed = show_page(nav.data, nav.page_id, 800, 600, visible=nav.visible)
+        self.assertNotIn("rectangle", [item.kind for item in listed.items])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -7,7 +7,8 @@ parent, ``--home``, ``--home/courses``, and ``--home/Nida98/Lessons``,
 regardless of case. A file that search does not find is an error that
 names the file and the page. A quiz button on a page whose background
 calls ``handleQuizClick`` uses the stored page list. Field text a
-click writes stays on the page until the page changes.
+click writes, and objects it hides or shows, stay that way on the page
+until the page changes.
 """
 
 from __future__ import annotations
@@ -56,6 +57,7 @@ class Navigator:
         self.book = Path(book) if book else None
         self.home = Path(home) if home else None
         self.fields: dict[str, str] = {}
+        self.visible: dict[tuple[str, str | int], bool] = {}
 
     @property
     def book_name(self) -> str:
@@ -88,9 +90,11 @@ class Navigator:
                 return Clicked(False, result.beep)
             self.page_id = result.page_id
             return Clicked(True, result.beep)
-        changed = bool(acted.fields)
+        changed = bool(acted.fields or acted.visible)
         for name, text in acted.fields:
             self.fields[name] = text
+        for key, shown_now in acted.visible:
+            self.visible[key] = shown_now
         data, pages, book = self.data, self.pages, self.book
         if acted.book and acted.book.lower() != self.book_name.lower():
             book = self.find_book(acted.book, acted.page_id)
@@ -103,4 +107,5 @@ class Navigator:
         self.data, self.pages, self.book = data, pages, book
         self.page_id = acted.page_id
         self.fields = {}
+        self.visible = {}
         return Clicked(True)
