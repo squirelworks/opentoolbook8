@@ -101,6 +101,22 @@ class QuizOnTheEngineTests(unittest.TestCase):
         self.assertEqual(nav.page_id, "P10210")
         self.assertTrue(nav.checked_buttons()["a"])
 
+    def test_get_quiz_score_averages_with_div(self):
+        from opentoolbook.openscript.interp import Engine
+        from opentoolbook.openscript.values import Array
+        from opentoolbook.run import BookHost, chain_lookup
+
+        nav = self.nav
+        books = [handlers for _book, handlers in nav.chain().books]
+        for count, scores, expected in ((2, (100, 0), 50), (3, (100, 100), 66)):
+            stored = Array()
+            for index, score in enumerate(scores, 1):
+                stored.set((index,), score)
+            nav.props.set("__quizScore", stored)
+            nav.props.set("__quizCount", count)
+            engine = Engine(chain_lookup(lambda: books), BookHost(nav.pages, nav.book_name, nav.roots()), props=nav.props)
+            self.assertEqual(engine.get("getquizscore"), expected)
+
 
 if __name__ == "__main__":
     unittest.main()
