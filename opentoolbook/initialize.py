@@ -7,7 +7,8 @@ is local to the handler. Every other line is skipped and named: a
 ``linkDLL`` or ``linkDLL32`` block by its library, a call by the name it
 calls, ``set ... of this book`` by its property, and a ``conditions`` or
 ``while`` block, or a ``step`` whose bounds are not known, by its first
-line. ``__name[i]`` is one stored name per index. ``if sysLevel = reader``
+line. ``__name[i]`` is element ``i`` of one stored table, the same shape
+``setupQuizEx`` uses for ``__quizPages``. ``if sysLevel = reader``
 is taken. A condition on a value the handler holds is decided, and
 ``and`` joins two of them. Any other condition runs neither branch and
 is named. ``step i from 1 to 100`` with known bounds runs its body. A
@@ -73,10 +74,21 @@ def run_literals(
             return None
         return f"{indexed.group(1)}[{index}]"
 
+    def table(base: str) -> object:
+        return props.get(base) if UserProperties.owns(base) else local.get(base.lower())
+
     def known(name: str) -> bool:
+        base, index = _element(name)
+        if index is not None:
+            found = table(base)
+            return isinstance(found, dict) and index in found
         return name in props if UserProperties.owns(name) else name.lower() in local
 
     def lookup(name: str) -> object:
+        base, index = _element(name)
+        if index is not None:
+            found = table(base)
+            return found.get(index) if isinstance(found, dict) else None
         return props.get(name) if UserProperties.owns(name) else local.get(name.lower())
 
     def value(expr: str) -> tuple[bool, object]:
@@ -101,10 +113,16 @@ def run_literals(
         return False, None
 
     def assign(name: str, found: object) -> None:
-        if UserProperties.owns(name):
-            props.set(name, found)
+        base, index = _element(name)
+        stored: object = found
+        if index is not None:
+            current = table(base)
+            stored = dict(current) if isinstance(current, dict) else {}
+            stored[index] = found
+        if UserProperties.owns(base):
+            props.set(base, stored)
         else:
-            local[name.lower()] = found
+            local[base.lower()] = stored
         done.assigned.append((name, found))
 
     def skip_line(text: str) -> None:
@@ -218,6 +236,15 @@ def _parameters(lines: list[str]) -> list[str]:
             parts = line.replace(",", " ").split()
             return [part for part in parts[3:] if part.lower() not in _TYPES]
     return []
+
+
+def _element(name: str) -> tuple[str, object]:
+    """``("__x", 3)`` for ``__x[3]``. The index is None for a plain name."""
+    found = re.fullmatch(r"(.+)\[(.+)\]", name.strip())
+    if found is None:
+        return name.strip(), None
+    index = found.group(2).strip()
+    return found.group(1), int(index) if re.fullmatch(r"-?\d+", index) else index
 
 
 def _unwrap(text: str) -> str:
