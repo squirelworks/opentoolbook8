@@ -57,6 +57,7 @@ class Follow:
     beeps: int = 0
     fields: tuple[tuple[str, str], ...] = ()
     visible: tuple[tuple[tuple[str, str | int], bool], ...] = ()
+    inverts: tuple[tuple[str, bool], ...] = ()
 
 
 def follow_click(
@@ -109,8 +110,13 @@ def run_handler(
     fields: dict[str, str] | None = None,
     *,
     call: Callable[[str], str | None] | None = None,
+    objects: Callable[[str, str | int], bool] | None = None,
 ) -> Follow:
     """Run the assignment, ``go to page``, ``send next``, ``send previous``, and field text lines.
+
+    ``set invert of button "x" to true`` or ``false`` is recorded in
+    ``inverts``. ``objects(kind, name or id)`` answers ``isObject``; without
+    it that condition is unknown and neither branch runs.
 
     ``variables`` maps a lower-case system variable name to the value a
     handler this runner executed assigned it. This handler's assignments
@@ -127,8 +133,13 @@ def run_handler(
     texts = {name.lower(): text for name, text in (fields or {}).items()}
     written: list[tuple[str, str]] = []
     shown: list[tuple[tuple[str, str | int], bool]] = []
+    inverted: list[tuple[str, bool]] = []
 
     def statement(raw: str, low: str) -> None:
+        invert = _SET_INVERT.match(raw.strip())
+        if invert is not None:
+            inverted.append((invert.group(1), invert.group(2).lower() == "true"))
+            return
         changed = visibility(raw)
         if changed is not None:
             shown.append(changed)
@@ -183,10 +194,18 @@ def run_handler(
         settled = reader_condition(text)
         if settled is not None:
             return settled
+        found = _IS_OBJECT.match(text.strip())
+        if found is not None:
+            if objects is None:
+                return None
+            kind, name, number = found.group(1), found.group(2), found.group(3)
+            return objects(kind.lower(), int(number) if number is not None else name.lower())
         return text_condition(text, texts)
 
     walk(source.splitlines(), Flow(), condition=condition, statement=statement)
-    return Follow(landed["page"], landed["book"], tuple(asked), beeps[0], tuple(written), tuple(shown))
+    return Follow(
+        landed["page"], landed["book"], tuple(asked), beeps[0], tuple(written), tuple(shown), tuple(inverted)
+    )
 
 
 _FIELD = re.compile(r'^text\s+of\s+field\s+"([^"]*)"\s*', re.IGNORECASE)
@@ -199,6 +218,28 @@ _KINDS = ("field", "button", "rectangle", "ellipse", "line", "polygon")
 _TARGET = rf'({"|".join(_KINDS)})\s+(?:"([^"]*)"|id\s+(\d+))'
 _HIDE = re.compile(rf"^(hide|show)\s+{_TARGET}$", re.IGNORECASE)
 _SET_VISIBLE = re.compile(rf"^set\s+visible\s+of\s+{_TARGET}\s+to\s+(true|false)$", re.IGNORECASE)
+
+
+_SET_INVERT = re.compile(r'^set\s+invert\s+of\s+button\s+"([^"]*)"\s+to\s+(true|false)$', re.IGNORECASE)
+_IS_OBJECT = re.compile(rf"^isobject\s*\(\s*{_TARGET}\s*\)$", re.IGNORECASE)
+# The record class of an object whose inline script can hold a mouse message.
+_CLASS = {"button": 0x9, "field": 0xA}
+
+
+def object_handler(data: bytes, page_id: str, kind: str, name: str, message: str) -> str | None:
+    """The ``to handle message`` handler in the inline script of one object on a page."""
+    from opentoolbook.script import named_handler, object_scripts
+
+    wanted = _CLASS.get(kind.lower())
+    folded = name.lower()
+    for item in object_scripts(data):
+        if item.owner != page_id or item.kind != wanted or item.name.lower() != folded:
+            continue
+        text = item.source.replace("\r\n", "\n").replace("\n", "\r\n")
+        found = named_handler(text, message)
+        if found is not None:
+            return found.replace("\r\n", "\n")
+    return None
 
 
 def visibility(line: str) -> tuple[tuple[str, str | int], bool] | None:

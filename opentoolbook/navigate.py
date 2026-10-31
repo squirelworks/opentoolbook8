@@ -36,7 +36,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from opentoolbook.click import follow_click, page_click, quiz_background, quiz_setup_click
+from opentoolbook.click import follow_click, object_handler, page_click, quiz_background, quiz_setup_click, run_handler
 from opentoolbook.enter import _enter_page, page_source
 from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
@@ -98,6 +98,8 @@ class Navigator:
         # Objects a click hid or showed, by (kind, name or id). Cleared when the page changes.
         self.visible: dict[tuple[str, str | int], bool] = {}
         self.letters: dict[tuple[str, str], str] = {}
+        # Buttons a buttonDown or buttonUp handler set the invert of, by lower-case name.
+        self.inverted: dict[str, bool] = {}
 
     @property
     def book_name(self) -> str:
@@ -154,6 +156,7 @@ class Navigator:
         self.book, self.page_id, self.data = book, page_id, data
         self.fields = {}
         self.visible = {}
+        self.inverted = {}
         return True
 
     def _click(self, button: str | None, shown: dict[str, str] | None) -> Clicked:
@@ -181,9 +184,41 @@ class Navigator:
             self.page_id = result.page_id
             self.fields = {}
             self.visible = {}
+            self.inverted = {}
             return Clicked(True, result.beep, asked)
+        return self._apply(acted)
+
+    def message(self, kind: str, name: str, message: str, shown: dict[str, str] | None = None) -> Clicked | None:
+        """Send ``buttonDown`` or ``buttonUp`` to one object. None when its script has no such handler.
+
+        ``kind`` is ``button`` or ``field``. ``set invert of button`` lines
+        go to ``inverted``. ``isObject`` asks the page on screen.
+        """
+        source = object_handler(self.data, self.page_id, kind, name, message)
+        if source is None:
+            return None
+        from opentoolbook.show import show_page
+
+        listed = show_page(self.data, self.page_id, 1, 1, None)
+        present = {(item.kind, item.name.lower()) for item in listed.items if item.name}
+
+        def objects(kind_name: str, key: str | int) -> bool:
+            return isinstance(key, str) and (kind_name, key) in present
+
+        before = (self.book, self.page_id, self.data)
+        acted = run_handler(
+            source, self.pages, self.page_id, self.variables, self.book_name, shown, call=self.call, objects=objects
+        )
+        result = self._apply(acted)
+        if result.moved:
+            self.history.append(before)
+        return result
+
+    def _apply(self, acted) -> Clicked:
         beep, asked = acted.beeps > 0, acted.requests
-        changed = bool(acted.fields or acted.visible)
+        for button, inverted in acted.inverts:
+            self.inverted[button.lower()] = inverted
+        changed = bool(acted.fields or acted.visible or acted.inverts)
         for name, text in acted.fields:
             self.fields[name] = text
         for key, shown_now in acted.visible:
@@ -202,6 +237,7 @@ class Navigator:
         self.page_id = page
         self.fields = {}
         self.visible = {}
+        self.inverted = {}
         self.enter()
         return Clicked(True, beep, asked)
 
@@ -249,7 +285,13 @@ class Navigator:
         """The display list of the page on screen, after its ``enterPage``."""
         from opentoolbook.show import show_page
 
-        return show_page(self.data, self.page_id, view_width, view_height, props, fields=self.fields, visible=self.visible, checked=self.checked_buttons())
+        from opentoolbook.show import pressed
+
+        listed = show_page(self.data, self.page_id, view_width, view_height, props, fields=self.fields, visible=self.visible, checked=self.checked_buttons())
+        for name, inverted in self.inverted.items():
+            if inverted:
+                listed = pressed(self.data, listed, name)
+        return listed
 
     def checked_buttons(self) -> dict[str, bool]:
         """The letter states a click set on this page, for ``show_page``."""
