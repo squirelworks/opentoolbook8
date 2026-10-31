@@ -42,6 +42,9 @@ class Entry:
     sysbooks: tuple[str, ...] = ()
     # Properties the startup handlers set, by book path, then owner, then (kind, name).
     objects: dict = field(default_factory=dict)
+    # ``TB80.INI`` startup window size in pixels, when the INI names them.
+    startup_width: int | None = None
+    startup_height: int | None = None
 
 
 @dataclass
@@ -145,7 +148,17 @@ def opening_page(
             data=current_data,
             objects=objects.setdefault(str(found), {}),
         )
-    return Entry(page, current_path, current_data, props, variables, tuple(sysbooks), objects)
+    return Entry(
+        page,
+        current_path,
+        current_data,
+        props,
+        variables,
+        tuple(sysbooks),
+        objects,
+        settings.startup_width,
+        settings.startup_height,
+    )
 
 
 def choose_opening(

@@ -103,6 +103,23 @@ class StartupSysBooks(unittest.TestCase):
             entry = opening_page(book, ini=ini)
             self.assertEqual(entry.sysbooks, ("fromini.sbk",))
 
+    def test_startup_width_and_height_reach_the_entry(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            book = folder / "demo.tbk"
+            book.write_bytes(FIXTURE.read_bytes())
+            (folder / "TB80.INI").write_text("startupWidth=400\nstartupHeight=300\n", encoding="latin1")
+            entry = opening_page(book)
+            self.assertEqual((entry.startup_width, entry.startup_height), (400, 300))
+
+
+class StartupView(unittest.TestCase):
+    def test_ini_pixels_win_over_page_size(self):
+        from opentoolbook.show import startup_view
+
+        self.assertEqual(startup_view(9360, 6624, 1920, 1080, 400, 300), (400, 300))
+        self.assertEqual(startup_view(9360, 6624, 1920, 1080, None, None)[0], 624)
+
 
 if __name__ == "__main__":
     unittest.main()

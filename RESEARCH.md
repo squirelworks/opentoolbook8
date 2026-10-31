@@ -1579,7 +1579,7 @@ Source: handoff M5. Whether Viewer back should send `leavePage` / `enterPage` (a
 
 ## TB80.INI startup keys
 
-Source: handoff M4 and the TB80RTM startup note in that handoff. Search order is the book's folder, then `<windows>\asym\runtime`, then `<windows>`. With no INI every key is its default and no system book is named for the reader. `startupSysBooks` seeds `sysBooks` before the class-table bound books and before the book's own `push` lines. `startupBook` / `startupWidth` / `startupHeight` are parsed for later window sizing; they do not yet change the opening page or the window size in this push.
+Source: handoff M4 and the TB80RTM startup note in that handoff. Search order is the book's folder, then `<windows>\asym\runtime`, then `<windows>`. With no INI every key is its default and no system book is named for the reader. `startupSysBooks` seeds `sysBooks` before the class-table bound books and before the book's own `push` lines. `startupWidth` / `startupHeight` size the opening Tk canvas in pixels. `startupBook` is still parsed only; it does not yet choose the opening book.
 
 ## enterSystemBook / leaveSystemBook
 
