@@ -1,12 +1,14 @@
 """A ``buttonClick`` the reader already expanded.
 
 A quoted ``go to page`` opens that page. ``of book`` names the other
-file when the line quotes one. ``send next`` and ``send previous`` are
-the next and previous pages in the stored page list. ``if``, ``break``,
-and ``return`` are the shared walker in ``walk.py``. ``text of field
-"x" = ...`` and ``set text of field "x" to ...`` write a field's text,
-and a later condition reads that text. A line that is not
-one of those is not a page change.
+file when the line quotes one. ``go to page (name) of book(name)`` reads
+those two system variables when a handler this runner executed assigned
+them a string; otherwise the page stays. ``send next`` and
+``send previous`` are the next and previous pages in the stored page
+list. ``if``, ``break``, and ``return`` are the shared walker in
+``walk.py``. ``text of field "x" = ...`` and ``set text of field "x" to
+...`` write a field's text, and a later condition reads that text. A line
+that is not one of those is not a page change.
 """
 
 from __future__ import annotations
@@ -16,11 +18,17 @@ import struct
 from dataclasses import dataclass
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
-from opentoolbook.script import _script, button_clicks, quoted_go_to
+from opentoolbook.script import _button_click, _script, button_clicks, quoted_go_to
 from opentoolbook.walk import Flow, reader_condition, walk
 
 _PAGE = 5
 _BACKGROUND = 4
+# go to page (nextpage) of book(lastbook): two names in parentheses.
+_NAMED_GO_TO = re.compile(
+    r"^go\s+to\s+page\s*\(\s*([a-z_][a-z0-9_]*)\s*\)"
+    r"(?:\s*of\s+book\s*\(\s*([a-z_][a-z0-9_]*)\s*\))?\s*$",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -49,20 +57,41 @@ def follow_click(
     source = _handler(data, page_id, button)
     if source is None:
         return None
-    return run_handler(source, pages, page_id, fields)
+    return run_handler(source, pages, page_id, fields=fields)
+
+
+def page_click(
+    data: bytes,
+    page_id: str,
+    pages: tuple[str, ...],
+    variables=None,
+    fields: dict[str, str] | None = None,
+) -> Follow | None:
+    """The page's own ``buttonClick``, or None when the page script has none."""
+    from opentoolbook.enter import page_source
+
+    text = page_source(data, page_id)
+    source = _button_click(text.replace("\r\n", "\n").replace("\n", "\r\n")) if text else None
+    if source is None:
+        return None
+    return run_handler(source, pages, page_id, variables, fields)
 
 
 def run_handler(
     source: str,
     pages: tuple[str, ...],
     page_id: str,
+    variables: dict[str, object] | None = None,
     fields: dict[str, str] | None = None,
 ) -> Follow:
     """Run the ``go to page``, ``send next``, ``send previous``, and field text lines.
 
-    ``fields`` maps a field name to its text before the click. A write
-    changes that text for the lines after it.
+    ``variables`` maps a lower-case system variable name to the value a
+    handler this runner executed assigned it. ``fields`` maps a field name
+    to its text before the click. A write changes that text for the lines
+    after it.
     """
+    known = variables or {}
     landed = {"page": page_id, "book": None}
     texts = {name.lower(): text for name, text in (fields or {}).items()}
     written: list[tuple[str, str]] = []
@@ -71,6 +100,16 @@ def run_handler(
         found = quoted_go_to(raw)
         if found is not None:
             landed["page"], landed["book"] = found
+            return
+        named = _NAMED_GO_TO.match(raw.strip())
+        if named is not None:
+            page_value = known.get(named.group(1).lower())
+            book_value = known.get(named.group(2).lower()) if named.group(2) else None
+            if not isinstance(page_value, str) or not page_value:
+                return
+            if named.group(2) and (not isinstance(book_value, str) or not book_value):
+                return
+            landed["page"], landed["book"] = page_value, book_value
             return
         if low in {"send next", "send previous"}:
             landed["page"] = _step(pages, page_id, 1 if low == "send next" else -1)
@@ -85,9 +124,9 @@ def run_handler(
                 written.append((name, value))
 
     def condition(text: str) -> bool | None:
-        known = reader_condition(text)
-        if known is not None:
-            return known
+        settled = reader_condition(text)
+        if settled is not None:
+            return settled
         return text_condition(text, texts)
 
     walk(source.splitlines(), Flow(), condition=condition, statement=statement)

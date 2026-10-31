@@ -13,11 +13,15 @@ shape is painted in front of a shape that contains the label.
 The page walk names classes ``0x8``, ``0x9``, ``0xA``, ``0xB``, ``0xC``,
 ``0xD``, ``0xE``, ``0x10``, ``0x11``, ``0x13``, ``0x15``, and ``0x19``.
 Of those, the window paints rectangles, ellipses, lines, class ``0x10``
-polygons, class ``0x13`` angled lines, fields, and buttons, plus the
-class 4 background. An angled line is its stored points, stroked in the
-color at ``+0x17`` and not filled. A class ``0xD`` record stores its
-bounds and colors where class ``0x8`` does, and the window paints it as
-those bounds. It does not paint arcs (``0x11``), ``0x15``, or ``0x19``. A group is not a paint; its children are. Class ``0x12`` pies
+polygons, class ``0x13`` angled lines, fields, buttons, class ``0x15``
+paint objects, and class ``0x19`` pictures, plus the class 4 background.
+An angled line is its stored points, stroked in the color at ``+0x17``
+and not filled. A class ``0xD`` record stores its bounds and colors
+where class ``0x8`` does, and the window paints it as those bounds. A
+paint object is its stored bitmap drawn at the left and top of its
+bounds. A picture is its packed metafile drawn into its bounds, clear
+where the metafile leaves the page showing. It does not paint arcs
+(``0x11``). A group is not a paint; its children are. Class ``0x12`` pies
 and class ``0x17`` records are outside that walk, and they are not painted.
 """
 
@@ -42,6 +46,8 @@ from opentoolbook.field import (
     _u16,
 )
 from opentoolbook.page import _child_nears, _object_name, _objects
+from opentoolbook.paintobject import paint_object_rgb
+from opentoolbook.picture import picture_pixels
 from opentoolbook.props import UserProperties
 from opentoolbook.pixels import picture_rgb
 from opentoolbook.polyline import _read as _polyline
@@ -62,6 +68,8 @@ _CLASS_D = 0xD
 _LINE = 0xE
 _POLYGON = 0x10
 _ANGLED = 0x13
+_PAINT_OBJECT = 0x15
+_PICTURE = 0x19
 _SHAPE = {_RECTANGLE, _ELLIPSE, _LINE, _POLYGON}
 _DRAW = {
     _RECTANGLE: "rectangle",
@@ -90,6 +98,7 @@ class Paint:
     picture_id: int | None = None
     picture_role: str | None = None
     picture: tuple[int, int, bytes] | None = None
+    mask: bytes | None = None
 
 
 @dataclass(frozen=True)
@@ -154,7 +163,9 @@ def open_page(
     props: UserProperties | None = None,
     *,
     status: str | None = None,
-) -> None:
+    lesson: str | None = None,
+    variables: dict[str, object] | None = None,
+) -> tuple[str, ...]:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
     The page id is the one the caller passed. This function does not
@@ -172,8 +183,12 @@ def open_page(
     function returns. A click that raises prints the error and the window
     stays up. ``status`` is one line shown once under the page, such as
     ``MINSTB32.dll named, not shipped``. It does not stop the paint.
+    ``lesson`` is the path the user passed when the window opens on
+    another book. A click still searches beside it.
+    ``variables`` are the system variables startup assigned.
+    previous page. The return is every click error the window printed,
+    in order, so the caller can exit non-zero.
     """
-    import sys
     import tkinter as tk
 
     from opentoolbook.navigate import Navigator
@@ -195,11 +210,12 @@ def open_page(
         if status:
             tk.Label(root, text=status, anchor="w").pack(side="bottom", fill="x")
         canvas.pack(fill="both", expand=True)
-        nav = Navigator(data, page_id, book, home)
+        nav = Navigator(data, page_id, book, home, lesson, variables)
         state = {
             "props": props if props is not None else UserProperties(),
             "view": (view_w, view_h),
         }
+        errors: list[str] = []
 
         def redraw() -> None:
             listed = show_page(nav.data, nav.page_id, *state["view"], state["props"], fields=nav.fields)
@@ -226,12 +242,8 @@ def open_page(
             if listed is None:
                 return
             name = button_at(listed, event.x, event.y)
-            if not name:
-                return
-            try:
-                result = nav.click(name, field_texts(listed))
-            except ValueError as exc:
-                print(exc, file=sys.stderr)
+            result = click_reported(nav, name, errors, shown=field_texts(listed))
+            if result is None:
                 root.bell()
                 return
             if result.beep:
@@ -245,6 +257,7 @@ def open_page(
         root.report_callback_exception = _report_click_error
         redraw()
         root.mainloop()
+        return tuple(errors)
     finally:
         try:
             root.destroy()
@@ -265,6 +278,24 @@ def _report_click_error(kind, value, trace) -> None:
         print(value, file=sys.stderr)
         return
     traceback.print_exception(kind, value, trace, file=sys.stderr)
+
+
+def click_reported(nav, name: str | None, errors: list[str], stream=None, shown=None):
+    """Run one click. A reader error prints its one line and returns None.
+
+    The line is the same sentence the open prints, for example
+    ``nida81.tbk was not found; P310 of that book does not open``. The
+    page and book stay where they were. ``shown`` is the field text the
+    page shows now.
+    """
+    import sys
+
+    try:
+        return nav.click(name, shown)
+    except ValueError as exc:
+        print(exc, file=stream if stream is not None else sys.stderr)
+        errors.append(str(exc))
+        return None
 
 
 def button_at(listed: DisplayList, x: float, y: float) -> str | None:
@@ -440,6 +471,25 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
         return Paint("field", object_id, name, bounds, text=text, runs=runs)
     if kind == _BUTTON:
         return _button(data, segment, at, object_id, name, bounds)
+    if kind == _PAINT_OBJECT:
+        try:
+            picture = paint_object_rgb(data, segment, at)
+        except ValueError:
+            return None
+        return Paint("paint object", object_id, name, bounds, picture=picture)
+    if kind == _PICTURE:
+        try:
+            drawn = picture_pixels(data, at)
+        except ValueError:
+            return None
+        return Paint(
+            "picture",
+            object_id,
+            name,
+            bounds,
+            picture=(drawn.width, drawn.height, drawn.rgb),
+            mask=drawn.mask,
+        )
     return None
 
 
@@ -631,13 +681,21 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list) -> None:
             outline=_rgb(item.stroke) if item.stroke is not None else "",
         )
         return
-    if item.kind == "button" and item.picture is not None and item.bounds is not None:
+    if item.kind in ("button", "paint object") and item.picture is not None and item.bounds is not None:
         width, height, rgb = _scale_rgb(item.picture[0], item.picture[1], item.picture[2], scale)
         photo = tk.PhotoImage(data=_ppm(width, height, rgb))
         photos.append(photo)
         x = unit_to_px(item.bounds[0], scale)
         y = unit_to_px(item.bounds[1], scale)
         canvas.create_image(x, y, image=photo, anchor="nw")
+        return
+    if item.kind == "picture" and item.picture is not None and item.bounds is not None:
+        left, top, right, bottom = _device_box(item.bounds, scale)
+        width = max(1, round(right - left))
+        height = max(1, round(bottom - top))
+        photo = tk.PhotoImage(data=_png(*_stretch(item.picture, item.mask, width, height)))
+        photos.append(photo)
+        canvas.create_image(left, top, image=photo, anchor="nw")
         return
     if item.kind == "field" and item.text and item.bounds is not None:
         _draw_text(canvas, scale, item)
@@ -703,6 +761,38 @@ def _rgb(color: tuple[int, int, int]) -> str:
 
 def _ppm(width: int, height: int, rgb: bytes) -> bytes:
     return f"P6\n{width} {height}\n255\n".encode("ascii") + rgb
+
+
+def _stretch(picture, mask, width: int, height: int) -> tuple[int, int, bytes]:
+    """Nearest-pixel RGBA at the given size. A pixel the mask leaves out is clear."""
+    source_w, source_h, rgb = picture
+    out = bytearray(width * height * 4)
+    for y in range(height):
+        source_y = min(source_h - 1, y * source_h // height)
+        for x in range(width):
+            source_x = min(source_w - 1, x * source_w // width)
+            pixel = source_y * source_w + source_x
+            if mask is not None and not mask[pixel]:
+                continue
+            dest = (y * width + x) * 4
+            out[dest:dest + 3] = rgb[pixel * 3:pixel * 3 + 3]
+            out[dest + 3] = 255
+    return width, height, bytes(out)
+
+
+def _png(width: int, height: int, rgba: bytes) -> bytes:
+    import zlib
+
+    def chunk(kind: bytes, body: bytes) -> bytes:
+        return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body))
+
+    rows = b"".join(b"\x00" + rgba[y * width * 4:(y + 1) * width * 4] for y in range(height))
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(rows))
+        + chunk(b"IEND", b"")
+    )
 
 
 def _scale_rgb(width: int, height: int, rgb: bytes, scale: float) -> tuple[int, int, bytes]:
