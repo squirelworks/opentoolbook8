@@ -283,6 +283,10 @@ The window's close button ends the Tk loop. `open_page` returns, and `python3 -m
 
 With `__quizMode` 1, pass 1 ends on `P10301`. Its reader `enterPage` calls `getSkippedCount()` and writes field `stem` as `You skipped N question(s).  Do you want to _________` — the count, not a literal `X`. With four skips the stem reads `You skipped 4 questions.  Do you want to _________`. `OK` with `B` checked opens `P10303`.
 
+## Completion pass from `P10301`
+
+`okClicked` on `P10301` with button `A` checked runs `get startCompletionPass()` from `nc81test.sbk`. That sets `__quizIndex` to 0 and `__quizPass` to 2, then `get gotoNextQuestionEx()`. On pass 2, `gotoNextQuestionEx` skips question numbers that already have a response and opens the first unanswered one. After four skips in the pool with `random` at its lowest value, `OK` with `A` opens `P10210` again (question 110 was skipped), field `Index` reads `Question 1.`, and the window title is `9e954d01.tbk - P10210`.
+
 ## Page photos
 
 Drawing a page deletes the Tk images of the page drawn before it, then makes the new page's images. The window holds the photos of one page at a time. On `9e954d01.tbk` P300 has five button pictures and P400 has four, and P300, Next to P400, Back to P300, and so on keeps the window at five and four images, whether or not something else still holds a reference to an old photo. There is no bitmap cache across pages or books.
