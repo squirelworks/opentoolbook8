@@ -161,7 +161,7 @@ def open_page(
     status: str | None = None,
     lesson: str | None = None,
     variables: dict[str, object] | None = None,
-) -> None:
+) -> tuple[str, ...]:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
     The page id is the one the caller passed. This function does not
@@ -182,8 +182,9 @@ def open_page(
     ``lesson`` is the path the user passed when the window opens on
     another book. A click still searches beside it.
     ``variables`` are the system variables startup assigned.
+    previous page. The return is every click error the window printed,
+    in order, so the caller can exit non-zero.
     """
-    import sys
     import tkinter as tk
 
     from opentoolbook.navigate import Navigator
@@ -210,6 +211,7 @@ def open_page(
             "props": props if props is not None else UserProperties(),
             "view": (view_w, view_h),
         }
+        errors: list[str] = []
 
         def redraw() -> None:
             listed = show_page(nav.data, nav.page_id, *state["view"], state["props"])
@@ -236,10 +238,8 @@ def open_page(
             if listed is None:
                 return
             name = button_at(listed, event.x, event.y)
-            try:
-                result = nav.click(name)
-            except ValueError as exc:
-                print(exc, file=sys.stderr)
+            result = click_reported(nav, name, errors)
+            if result is None:
                 root.bell()
                 return
             if result.beep:
@@ -253,6 +253,7 @@ def open_page(
         root.report_callback_exception = _report_click_error
         redraw()
         root.mainloop()
+        return tuple(errors)
     finally:
         try:
             root.destroy()
@@ -273,6 +274,23 @@ def _report_click_error(kind, value, trace) -> None:
         print(value, file=sys.stderr)
         return
     traceback.print_exception(kind, value, trace, file=sys.stderr)
+
+
+def click_reported(nav, name: str, errors: list[str], stream=None):
+    """Run one click. A reader error prints its one line and returns None.
+
+    The line is the same sentence the open prints, for example
+    ``nida81.tbk was not found; P310 of that book does not open``. The
+    page and book stay where they were.
+    """
+    import sys
+
+    try:
+        return nav.click(name)
+    except ValueError as exc:
+        print(exc, file=stream if stream is not None else sys.stderr)
+        errors.append(str(exc))
+        return None
 
 
 def button_at(listed: DisplayList, x: float, y: float) -> str | None:

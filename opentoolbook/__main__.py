@@ -24,6 +24,7 @@ from opentoolbook.show import open_page
 from opentoolbook.shelf import (
     CALL_BOOKS,
     find_file,
+    missing_sentence,
     named_calls,
     open_book,
     parse_install_list,
@@ -68,9 +69,18 @@ def main(argv: list[str]) -> int:
             parser.print_usage(sys.stderr)
             return 2
         opened = Path(args.book)
+        try:
+            data = opened.read_bytes()
+        except OSError:
+            print(missing_sentence(opened.name, args.show), file=sys.stderr)
+            return 2
         home = Path(args.home) if args.home else None
-        open_page(opened.read_bytes(), args.show, str(opened), args.home, status=unshipped_dll(opened, home))
-        return 0
+        try:
+            errors = open_page(data, args.show, str(opened), args.home, status=unshipped_dll(opened, home))
+        except ValueError as exc:
+            print(exc, file=sys.stderr)
+            return 2
+        return 1 if errors else 0
     if args.book and not args.report:
         if any((args.catalog, args.cailt, args.keydisk)):
             code = _print_side(args)
@@ -82,7 +92,7 @@ def main(argv: list[str]) -> int:
         except ValueError as exc:
             print(exc, file=sys.stderr)
             return 2
-        open_page(
+        errors = open_page(
             entry.data,
             entry.page_id,
             str(entry.book),
@@ -92,7 +102,7 @@ def main(argv: list[str]) -> int:
             lesson=args.book,
             variables=entry.variables,
         )
-        return 0
+        return 1 if errors else 0
     if not any((args.book, args.catalog, args.cailt, args.keydisk, args.home)):
         parser.print_usage(sys.stderr)
         return 2

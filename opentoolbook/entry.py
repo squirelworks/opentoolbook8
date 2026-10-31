@@ -24,7 +24,7 @@ from opentoolbook.enter import _enter_page
 from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
 from opentoolbook.script import book_handlers, quoted_go_to, resource_scripts
-from opentoolbook.shelf import find_file, open_book, search_roots
+from opentoolbook.shelf import MissingBook, find_file, open_book, search_roots
 from opentoolbook.walk import norm, reader_condition, walk
 
 _GET = re.compile(r"^get\s+([a-z_][a-z0-9_]*)\s*\((.*)\)\s*$")
@@ -105,7 +105,7 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
     while other:
         found = find_file(roots, other)
         if found is None:
-            raise ValueError(f"{other} was not found; {page} of that book is the opening page")
+            raise MissingBook(other, page, roots)
         current_path = found
         current_data = found.read_bytes()
         current_pages = _pages(current_data)
@@ -173,9 +173,7 @@ def choose_opening(
                 raise ValueError(f"{state.page_id} is not a page of {book_name}")
             state.page_id = matched
     if state.book_error and not state.book_name:
-        raise ValueError(
-            f"{state.book_error} was not found; {state.page_id} of the book it names is the opening page"
-        )
+        raise MissingBook(state.book_error, state.page_id or "", state.roots)
     if state.book_name:
         return state.page_id or "", state.book_name
     scripts = page_scripts or {}
@@ -193,9 +191,7 @@ def choose_opening(
         before = matched
         _follow_enter(state, _script_for(scripts, matched))
         if state.book_error and not state.book_name:
-            raise ValueError(
-                f"{state.book_error} was not found; {state.page_id} of the book it names is the opening page"
-            )
+            raise MissingBook(state.book_error, state.page_id or "", state.roots)
         if state.book_name:
             return state.page_id or "", state.book_name
         if (state.page_id or "").lower() == before.lower():
