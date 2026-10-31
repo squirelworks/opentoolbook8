@@ -117,6 +117,30 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(engine.get("f"), "b.sbk,a.sbk")
         self.assertEqual(pushed, ["a.sbk", "b.sbk"])
 
+    def test_sysbooks_set_put_pop_and_clear(self):
+        changes = []
+        engine = _engine(
+            "to get f\n"
+            "  sysBooks = \"a.sbk, B.sbk\"\n"
+            "  put \"c.sbk\" after sysBooks\n"
+            "  pop sysBooks into first\n"
+            "  clear sysBooks\n"
+            "  return first\n"
+            "end\n"
+        )
+        engine.on_sysbooks_changed = lambda added, removed: changes.append((added, removed))
+        self.assertEqual(engine.get("f"), "a.sbk")
+        self.assertEqual(engine.sysbooks, [])
+        self.assertEqual(
+            changes,
+            [
+                (("a.sbk", "b.sbk"), ()),
+                (("c.sbk",), ()),
+                ((), ("a.sbk",)),
+                ((), ("b.sbk", "c.sbk")),
+            ],
+        )
+
     def test_go_to_hands_the_host_an_object_reference(self):
         class Recorder(Host):
             went = None

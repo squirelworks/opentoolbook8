@@ -175,6 +175,7 @@ class Engine:
         variables: dict | None = None,
         sysbooks: list | None = None,
         on_push_sysbook: Callable[[str], None] | None = None,
+        on_sysbooks_changed: Callable[[tuple[str, ...], tuple[str, ...]], None] | None = None,
         lenient: bool = True,
     ) -> None:
         self.lookup = lookup
@@ -184,6 +185,8 @@ class Engine:
         self.globals: dict = variables if variables is not None else {}
         self.sysbooks: list = sysbooks if sysbooks is not None else []
         self.on_push_sysbook = on_push_sysbook
+        # ``(added, removed)`` after a push, set, put, pop, or clear of ``sysBooks``.
+        self.on_sysbooks_changed = on_sysbooks_changed
         self.dll_functions: dict[str, str] = {}
         self.frames: list[Frame] = []
         self.steps = 0
@@ -322,6 +325,15 @@ class Engine:
         if node.mode == "into":
             self._assign(node.target, self.eval(node.value))
             return
+        if _is_sysbooks(node.target):
+            item = value.strip()
+            if not item:
+                return
+            if node.mode == "after":
+                self.replace_sysbooks(list(self.sysbooks) + [item])
+            else:
+                self.replace_sysbooks([item] + list(self.sysbooks))
+            return
         old = text(self.eval(node.target))
         self._assign(node.target, old + value if node.mode == "after" else value + old)
 
@@ -430,6 +442,15 @@ class Engine:
         self._assign(node.target, item if old == "" else item + "," + old)
 
     def _do_Pop(self, node: A.Pop) -> None:
+        if _is_sysbooks(node.source):
+            first = self.sysbooks.pop(0) if self.sysbooks else ""
+            if node.target is not None:
+                self._assign(node.target, first)
+            else:
+                self.frame.locals["it"] = first
+            if first:
+                self._notify_sysbooks((), (first,))
+            return
         old = text(self.eval(node.source))
         if old == "":
             first, rest = "", ""
@@ -448,7 +469,10 @@ class Engine:
 
     def _do_Clear(self, node: A.Clear) -> None:
         if _is_sysbooks(node.target):
+            removed = tuple(self.sysbooks)
             self.sysbooks.clear()
+            if removed:
+                self._notify_sysbooks((), removed)
             return
         self._assign(node.target, "")
 
@@ -496,11 +520,32 @@ class Engine:
 
     def push_sysbook(self, name: str) -> None:
         key = name.strip().lower()
-        if key in self.sysbooks:
+        already = key in self.sysbooks
+        if already:
             self.sysbooks.remove(key)
         self.sysbooks.insert(0, key)
-        if self.on_push_sysbook is not None:
-            self.on_push_sysbook(key)
+        if already:
+            # Order changed; still tell the host so it can rebuild the handler chain.
+            self._notify_sysbooks((), ())
+            return
+        self._notify_sysbooks((key,), ())
+
+    def replace_sysbooks(self, names: list[str]) -> None:
+        """Set ``sysBooks`` to ``names`` and notify for books that entered or left."""
+        new = [item.strip().lower() for item in names if item.strip()]
+        old = list(self.sysbooks)
+        self.sysbooks[:] = new
+        added = tuple(name for name in new if name not in old)
+        removed = tuple(name for name in old if name not in new)
+        if added or removed or old != new:
+            self._notify_sysbooks(added, removed)
+
+    def _notify_sysbooks(self, added: tuple[str, ...], removed: tuple[str, ...]) -> None:
+        if self.on_sysbooks_changed is not None:
+            self.on_sysbooks_changed(added, removed)
+        elif added and self.on_push_sysbook is not None:
+            for name in added:
+                self.on_push_sysbook(name)
 
     # built-ins -------------------------------------------------------------
 
@@ -569,7 +614,7 @@ class Engine:
         if isinstance(target, A.Name):
             name = target.name
             if name == "sysbooks":
-                self.sysbooks[:] = [item.strip().lower() for item in text(value).split(",") if item.strip()]
+                self.replace_sysbooks(text(value).split(","))
                 return
             if name in self.frame.system:
                 self._write_global(name, value)

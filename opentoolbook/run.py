@@ -203,8 +203,30 @@ def engine_for(state, host: Host) -> Engine:
             found.append(state.loaded[book])
         return found
 
-    def pushed(_name: str) -> None:
+    def run_book_message(book: str, message: str) -> None:
+        """Run ``message`` from ``book``'s own script when that book handles it."""
+        if book not in state.loaded:
+            state.loaded[book] = sysbook_handlers(state.roots, book)
+        source = state.loaded[book].get(message)
+        if not source:
+            return
+        handler = parsed(source).handlers.get(f"handle {message}")
+        if handler is None:
+            return
+        from opentoolbook.openscript.values import ScriptError
+
+        try:
+            engine._run(handler, message, "handle", 0, (), Ref("book", "name", book, None))
+        except ScriptError as exc:
+            engine.errors.append(f"{message}: {exc}")
+
+    def changed(added: tuple[str, ...], removed: tuple[str, ...]) -> None:
+        for name in removed:
+            run_book_message(name, "leavesystembook")
+            state.loaded.pop(name, None)
         _merge_sysbooks(state)
+        for name in added:
+            run_book_message(name, "entersystembook")
 
     engine = Engine(
         chain_lookup(books),
@@ -212,7 +234,7 @@ def engine_for(state, host: Host) -> Engine:
         props=state.props,
         variables=state.variables,
         sysbooks=state.sysbooks,
-        on_push_sysbook=pushed,
+        on_sysbooks_changed=changed,
     )
     host.engine = engine
     return engine

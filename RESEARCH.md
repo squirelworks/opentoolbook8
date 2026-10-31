@@ -1576,3 +1576,7 @@ Source: handoff M3. This environment has no `Preventing_Fraud.tbk` and no Instru
 ## TB80.INI startup keys
 
 Source: handoff M4 and the TB80RTM startup note in that handoff. Search order is the book's folder, then `<windows>\asym\runtime`, then `<windows>`. With no INI every key is its default and no system book is named for the reader. `startupSysBooks` seeds `sysBooks` before the class-table bound books and before the book's own `push` lines. `startupBook` / `startupWidth` / `startupHeight` are parsed for later window sizing; they do not yet change the opening page or the window size in this push.
+
+## enterSystemBook / leaveSystemBook
+
+Source: handoff M4. ToolBook sends those messages to a system book when it enters or leaves `sysBooks`. This reader runs the handler from that book's own script only (not the open book first). INI-seeded and class-table bound names that are present before startup handlers run do not get `enterSystemBook` in this push; only a script change of `sysBooks` does.
