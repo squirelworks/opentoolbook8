@@ -6,7 +6,7 @@ from pathlib import Path
 
 from opentoolbook.field import _segments
 from opentoolbook.page import page_records
-from opentoolbook.pie import PIE, pie_bounds
+from opentoolbook.pie import PIE, pie_bounds, pie_pairs
 from opentoolbook.show import show_page
 
 PIE_BOOK = Path(__file__).parent / "fixtures" / "otb-pie.tbk"
@@ -50,3 +50,46 @@ class LastObjectTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PieWedgeTests(unittest.TestCase):
+    """Both pies agree on how the words are stored, and neither names a wedge."""
+
+    DRAWN = {
+        0: ((1500, 1500), (3500, 3500), (1500, 3500)),
+        2: ((2400, 500), (1500, 2200), (500, 500)),
+    }
+
+    def test_the_words_are_the_third_point_the_first_point_and_the_reach(self):
+        page = page_records(PIE_BOOK.read_bytes(), "")
+        for obj in page.objects:
+            if obj.kind != PIE:
+                continue
+            first, second, third = self.DRAWN[obj.object_id]
+            pairs = pie_pairs(obj.words)
+            self.assertEqual(pairs.third, third)
+            self.assertEqual(pairs.first, first)
+            self.assertEqual(pairs.third_again, third)
+            self.assertEqual(pairs.reach, (abs(first[0] - third[0]), abs(first[1] - third[1])))
+            self.assertNotIn(second, (pairs.third, pairs.first, pairs.third_again, pairs.reach))
+            self.assertIn(0, pairs.reach)
+
+    def test_pie_id_0_words_did_not_follow_its_bounds(self):
+        data = PIE_BOOK.read_bytes()
+        segment = next(s for s in _segments(data) if s.key == 0x9000)
+        page = page_records(data, "")
+        for obj in page.objects:
+            if obj.kind != PIE:
+                continue
+            pairs = pie_pairs(obj.words)
+            box = (
+                pairs.third[0] - pairs.reach[0],
+                pairs.third[1] - pairs.reach[1],
+                pairs.third[0] + pairs.reach[0],
+                pairs.third[1] + pairs.reach[1],
+            )
+            stored = pie_bounds(data, segment.base + obj.near)
+            if obj.object_id == 2:
+                self.assertEqual(box, stored)
+            else:
+                self.assertNotEqual(box, stored)
