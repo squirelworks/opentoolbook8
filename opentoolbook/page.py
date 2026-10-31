@@ -7,6 +7,10 @@ are stored. A class ``0x0B`` group's children are the objects whose word
 at ``+0x04`` names the group, in the order of the 10-byte entries at
 ``+0x2E``.
 
+A class ``0x17`` hotword is 17 bytes, and its word at ``+0x04`` names a
+class ``0xA`` field. The walk returns a field's hotwords as that field's
+children, in stored order. A hotword is not on the page by itself.
+
 Class ``0x12`` pies are on the walk. A record whose end word is 1 is the
 last object in its directory record and runs to the end of that record;
 the pie fixture's second pie is one. A pie carries its stored words.
@@ -29,7 +33,9 @@ from opentoolbook.field import (
 from opentoolbook.pie import PIE, PIE_BYTES, pie_words
 
 PAGE = 5
+FIELD = 0x0A
 GROUP = 0x0B
+HOTWORD = 0x17
 # Class and length of a record the walk can name. Each length repeats.
 LAYER = 0x06
 LAYER_BYTES = 15
@@ -47,6 +53,7 @@ _BYTES = {
     PIE: PIE_BYTES,
     0x13: 55,
     0x15: 89,
+    HOTWORD: 17,
     0x19: 89,
 }
 
@@ -133,6 +140,12 @@ def _object(data, segment, trailer, by_near, at: int, kind: int) -> PageObject:
                 continue
             nested.append(_object(data, segment, trailer, by_near, child[0], child[1]))
         children = tuple(nested)
+    elif kind == FIELD:
+        children = tuple(
+            _object(data, segment, trailer, by_near, hot_at, hot_kind)
+            for hot_at, hot_kind in by_near.values()
+            if hot_kind == HOTWORD and _u16(data, hot_at + 4) == near
+        )
     words = pie_words(data, at) if kind == PIE else ()
     return PageObject(kind, _u16(data, at), _object_name(data, trailer, at), near, children, words)
 
