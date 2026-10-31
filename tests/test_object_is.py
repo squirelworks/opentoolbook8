@@ -74,6 +74,39 @@ class SkippedCountPageTests(unittest.TestCase):
         )
         self.assertIn("score is", score.lower())
 
+    def test_p10301_ok_with_a_starts_the_completion_pass(self):
+        from opentoolbook.entry import opening_page
+
+        path = logic_families_path()
+        entry = opening_page(path)
+        props = type(entry.props)(dict(entry.props.items()))
+        props.set("__quizMode", 1)
+        nav = Navigator(path.read_bytes(), "P10002", path, props=props, sysbooks=entry.sysbooks)
+        with patch.object(interp._random, "randint", lambda low, high: low):
+            self.assertTrue(nav.click("selection1").moved)
+            for index in range(15):
+                if nav.page_id.startswith("P103"):
+                    break
+                if index % 3 == 0:
+                    nav.ask = lambda prompt, buttons: "Yes"
+                    self.assertTrue(nav.click("Skip").moved)
+                else:
+                    nav.click("A")
+                    self.assertTrue(nav.click("OK").moved)
+        self.assertEqual(nav.page_id, "P10301")
+        nav.click("A")
+        self.assertTrue(nav.click("OK").moved)
+        self.assertEqual(nav.page_id, "P10210")
+        self.assertEqual(nav.props.get("__quizPass"), 2)
+        self.assertEqual(nav.props.get("__quizIndex"), 1)
+        self.assertEqual(nav.title(), "9e954d01.tbk - P10210")
+        texts = {
+            item.name: item.text
+            for item in nav.display(800, 600).items
+            if item.kind == "field"
+        }
+        self.assertEqual(texts.get("Index"), "Question 1.")
+
 
 if __name__ == "__main__":
     unittest.main()
