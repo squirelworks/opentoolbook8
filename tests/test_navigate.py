@@ -74,6 +74,27 @@ class ShelfTests(unittest.TestCase):
             self.assertEqual(alone.lesson, logo)
 
 
+class NidaRoundTripTests(unittest.TestCase):
+    def test_selection1_then_next_or_back_returns_to_the_lesson_page(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        logo = path.with_name("nida81.tbk")
+        nav = Navigator(path.read_bytes(), "P300", path)
+        nav.click("Selection1")
+        self.assertEqual((nav.book.name, nav.page_id), ("nida81.tbk", "P310"))
+        self.assertEqual(nav.variables, {"lastbook": path.name, "nextpage": "P300"})
+        self.assertTrue(nav.click("Next").moved)
+        self.assertEqual((nav.book, nav.page_id), (path, "P300"))
+        for button in ("Next", "Back"):
+            p340 = Navigator(logo.read_bytes(), "P340", logo, lesson=path, variables={"lastbook": path.name, "nextpage": "P300"})
+            self.assertTrue(p340.click(button).moved)
+            self.assertEqual((p340.book, p340.page_id), (path, "P300"))
+            unset = Navigator(logo.read_bytes(), "P340", logo, lesson=path)
+            self.assertFalse(unset.click(button).moved)
+            self.assertEqual(unset.page_id, "P340")
+
+
 class StartupVariableTests(unittest.TestCase):
     def test_enter_page_assignments_come_back_from_startup(self):
         from opentoolbook.entry import choose_opening

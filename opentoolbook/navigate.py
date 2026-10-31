@@ -87,9 +87,9 @@ class Navigator:
         """
         acted = None
         if button:
-            acted = follow_click(self.data, self.page_id, button, self.pages)
+            acted = follow_click(self.data, self.page_id, button, self.pages, self.variables, self.book_name)
         if acted is None:
-            acted = page_click(self.data, self.page_id, self.pages, self.variables)
+            acted = page_click(self.data, self.page_id, self.pages, self.variables, self.book_name)
         if acted is None:
             if not button or not quiz_background(self.data, self.page_id):
                 return Clicked(False)
