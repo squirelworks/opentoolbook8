@@ -249,6 +249,14 @@ Packed bytes are blocks. Each block is a word that counts its codes, then those 
 
 The window draws the bitmap at the left and top of the bounds, at one bitmap pixel per screen pixel times the fit scale. On `9e954d01.tbk`, `P450` draws object 2 at (0, 0, 9360, 6630), 624 by 442, 24 bits. The `Test` background draws object 16 at the top, 627 by 24, and object 20 at the bottom, 627 by 28, both 8 bits with a palette. On `nida81.tbk`, `P0` draws object 4, 554 by 390, 24 bits. A record whose bytes do not unpack to the pixel byte count is not painted.
 
+## Class `0x19` picture
+
+A class `0x19` record is 89 bytes. It is a picture: a Windows metafile with bounds. It is not a filled shape, so the window does not use the class `0x8` fill rule for it. The four signed words at `+0x0F` are the bounds. The byte at `+0x26` is 254. The dword at `+0x29` is the metafile byte count. The dword at `+0x2D` is the stored byte count when the metafile is packed, and 0 when it is stored as is. The word at `+0x4D` is a 1-based row of the huge table at header `+0x104`, and that row's third dword is the file offset of the stored bytes. All 39 records in `nida81.tbk` hold those reads. 33 are packed and 6 are not, and every one gives exactly its metafile byte count.
+
+Packed bytes are blocks. Each block is a word that counts its codes, then those codes. A code below `0xF6` repeats the next byte the code plus three times. A code of `0xF6` or more copies the next `code - 0xF5` bytes. A block does not start on the last byte of a 64 KB span of the packed bytes; that byte is skipped. Three of the 33 packed pictures need that skip.
+
+Every metafile plays `SaveDC`, `SetBkMode`, `SetWindowOrg`, `SetWindowExt`, `SetStretchBltMode`, `IntersectClipRect`, `SetPolyFillMode`, and `SetROP2`. Then it plays one or two `StretchDIB` records with 8-bit DIBs, then `SetROP2`, `RestoreDC`, and the end record. Two pictures play one `StretchDIB` with `SRCCOPY`. The other 37 play `SRCPAINT`, then `SRCAND` over the same rectangle. On every pixel of those 37, either the first DIB is black and the second is white, and the page shows through, or the result does not depend on the page and is the first AND the second. The reader draws the DIBs into the window extent, clipped, and returns that picture with a mask. The window stretches the picture to the bounds. Nine of the 39 bounds are not 15 units per window pixel, so a picture is resized with its bounds. On `P310` object 36 is a 372 by 397 picture in (1080, 945, 6645, 6900). On `P370` object 38 is under the group at `0x9C` and is drawn. A metafile with any other record list is not painted.
+
 ## Quiz page click
 
 The background a page names is painted under the page. Its fields and buttons use the same readers as the page. Class `0x15` paint objects on that background are painted, as the section "Class `0x15` paint object" says. On the `Test` background the buttons are `Back`, `OK`, `Help`, `Skip`, and `Next`, and each has an up picture. The book `enterPage` sets field `page#` to the name of the page when that field is on the background. On `P300` that field reads `P300`.
@@ -277,7 +285,7 @@ A book with no startup page and no stored page is an error. The error names the 
 
 `python3 -m opentoolbook path/to/book.tbk --report` prints the record count, the follow-up reads, the files the book names, and the startup call names. It does not open a window. `--report path/to/book.tbk` prints the same report. `--home` with a book and without `--report` opens the book and searches that install. It does not print the install list. `--home` without a book still prints the install folder.
 
-`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds classes `0x11` and `0x19`, and the window does not paint those. It paints class `0x13` as an angled line, class `0xD` as its bounds, and class `0x15` as its stored bitmap. Class `0x12` pies and class `0x17` records are outside that walk and are not painted.
+`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds class `0x11`, and the window does not paint it. It paints class `0x13` as an angled line, class `0xD` as its bounds, class `0x15` as its stored bitmap, and class `0x19` as its picture. Class `0x12` pies and class `0x17` records are outside that walk and are not painted.
 
 ## User properties
 
