@@ -277,6 +277,12 @@ The window's close button ends the Tk loop. `open_page` returns, and `python3 -m
 
 `send exit` is a message. When no `to handle exit` answers it, the click host takes it and marks the result exited. The window ends its Tk loop the same way Escape and the close button do. A synthetic `buttonClick` that only `send exit` leaves the page where it is and returns exited. On `9e954d01.tbk`, `Exit` on `P900` runs `send keyup keyF2 to this page`; the book's `keyUp` asks `Are you sure you want to Exit the Lesson?`, and with Yes it runs `EndExperiment`, `closeSession`, and `send exit`, so the click exits. With No the page stays and the click does not exit. `keyUp` for F2 with the same answers does the same.
 
+## Object reference `is` and `P10301` OK
+
+`target is button "OK"` and `target is button "OK" of parent of this page` compare as object references, not as their printed text. Two references match when they share kind and name (or id), ignoring case. An unqualified reference matches a qualified one of the same kind and name; when both sides name a container, the containers must match the same way. Different names do not match. On `9e954d01.tbk`, the `Test2` background's `buttonClick` is `if target is button "OK" of parent of this page then send okClicked to this page`. A click on background `OK` takes that branch and runs the page's `okClicked`.
+
+With `__quizMode` 1, pass 1 ends on `P10301`. Its reader `enterPage` calls `getSkippedCount()` and writes field `stem` as `You skipped N question(s).  Do you want to _________` — the count, not a literal `X`. With four skips the stem reads `You skipped 4 questions.  Do you want to _________`. `OK` with `B` checked opens `P10303`.
+
 ## Page photos
 
 Drawing a page deletes the Tk images of the page drawn before it, then makes the new page's images. The window holds the photos of one page at a time. On `9e954d01.tbk` P300 has five button pictures and P400 has four, and P300, Next to P400, Back to P300, and so on keeps the window at five and four images, whether or not something else still holds a reference to an old photo. There is no bitmap cache across pages or books.
