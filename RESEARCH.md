@@ -1612,3 +1612,7 @@ Source: handoff M8 keyboard. Tk `Prior`/`Next` map to OpenScript `keyPrior`/`key
 ## keyUp on the interpreter
 
 Source: handoff M8 keyboard; RESEARCH note that live `keyUp` was unwired. The window now sends `keyUp` after `keyDown` on the page path with the same OpenScript key constant. The static branch walker in `keys.py` remains as a fallback for Enter/Next/Back when live handlers do not move the page.
+
+## Menu Selection T to Begin
+
+Source: handoff M6 (MENU → Begin starts the quiz); driver on `9e954d01.tbk` with startup `__lessonMode` 2. `Menu` opens `P900`; `selectiont` opens `P10004`; `selection1` starts the Quiz and lands on `P10210`. Assessment menu `P10001` still needs `__lessonMode` 0.

@@ -148,6 +148,24 @@ class QuizOnTheEngineTests(unittest.TestCase):
             engine = Engine(chain_lookup(lambda: books), BookHost(nav.pages, nav.book_name, nav.roots()), props=nav.props)
             self.assertEqual(engine.get("getquizscore"), expected)
 
+    def test_menu_selection_t_then_begin_opens_the_first_question(self):
+        opened = _opened()
+        path = logic_families_path()
+        props = type(opened.props)(dict(opened.props.items()))
+        nav = Navigator(path.read_bytes(), "P450", path, props=props, sysbooks=opened.sysbooks)
+        self.assertEqual(opened.props.get("__lessonMode"), 2)
+        self.assertTrue(nav.click("Menu").moved)
+        self.assertEqual(nav.page_id, "P900")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P900")
+        self.assertTrue(nav.click("selectiont").moved)
+        self.assertEqual(nav.page_id, "P10004")
+        self.assertTrue(nav.click("selection1").moved)
+        self.assertEqual(nav.page_id, "P10210")
+        self.assertEqual(nav.props.get("__quizPass"), 1)
+        self.assertEqual(nav.props.get("__quizType"), 3)
+        self.assertEqual(nav.props.get("__quizIndex"), 1)
+        self.assertEqual(nav.title(), "9e954d01.tbk - P10210")
+
 
 if __name__ == "__main__":
     unittest.main()
