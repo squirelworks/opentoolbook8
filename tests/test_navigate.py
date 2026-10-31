@@ -7,6 +7,8 @@ from pathlib import Path
 
 from opentoolbook.navigate import MissingBook, Navigator
 
+from lesson import companion
+
 FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
 LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 
@@ -91,13 +93,13 @@ class LessonTests(unittest.TestCase):
         path = _lesson()
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        companion = path.with_name("nida81.tbk")
+        logo_book = companion(path, "nida81.tbk")
         with tempfile.TemporaryDirectory() as tmp:
             top = Path(tmp)
             (top / "LF").mkdir()
             lesson = top / "LF" / "9e954d01.tbk"
             lesson.symlink_to(path.resolve())
-            (top / "Nida81.TBK").symlink_to(companion.resolve())
+            (top / "Nida81.TBK").symlink_to(logo_book.resolve())
             nav = Navigator(lesson.read_bytes(), "P300", lesson)
             clicked = nav.click("Selection1")
             self.assertTrue(clicked.moved)
@@ -123,7 +125,7 @@ class LessonTests(unittest.TestCase):
         from opentoolbook.enter import page_source
         from opentoolbook.show import button_at, show_page
 
-        logo = path.with_name("nida81.tbk")
+        logo = companion(path, "nida81.tbk")
         data = logo.read_bytes()
         self.assertIn("go to page (nextpage) of book(lastbook)", page_source(data, "P0"))
         listed = show_page(data, "P0", 800, 600)
@@ -133,7 +135,7 @@ class LessonTests(unittest.TestCase):
         self.assertFalse(shown.click(None).moved)
         self.assertEqual((shown.page_id, shown.book), ("P0", logo))
         self.assertIsNone(page_click(data, "P310", shown.pages))
-        assigned = Navigator(data, "P0", logo, variables={"NextPage": "p10", "lastbook": "9e954d01.tbk"})
+        assigned = Navigator(data, "P0", logo, lesson=path, variables={"NextPage": "p10", "lastbook": "9e954d01.tbk"})
         self.assertTrue(assigned.click(None).moved)
         self.assertEqual((assigned.page_id, assigned.book.name), ("P10", path.name))
 
@@ -148,7 +150,7 @@ class LessonTests(unittest.TestCase):
             home = top / "home"
             (home / "courses").mkdir(parents=True)
             for name in ("nida81.tbk", "nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk"):
-                (home / "courses" / name).symlink_to(path.with_name(name).resolve())
+                (home / "courses" / name).symlink_to(companion(path, name).resolve())
             lesson = top / "discs" / "LF" / "9e954d01.tbk"
             lesson.parent.mkdir(parents=True)
             lesson.symlink_to(path.resolve())
@@ -169,7 +171,7 @@ class LessonTests(unittest.TestCase):
             home = top / "home"
             (home / "courses").mkdir(parents=True)
             for name in ("nida81.tbk", "nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk"):
-                (home / "courses" / name).symlink_to(path.with_name(name).resolve())
+                (home / "courses" / name).symlink_to(companion(path, name).resolve())
             lesson = top / "discs" / "LF" / "9e954d01.tbk"
             lesson.parent.mkdir(parents=True)
             lesson.symlink_to(path.resolve())
