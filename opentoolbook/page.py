@@ -6,6 +6,10 @@ page's near offset. Those objects are returned in the order the records
 are stored. A class ``0x0B`` group's children are the objects whose word
 at ``+0x04`` names the group, in the order of the 10-byte entries at
 ``+0x2E``.
+
+A class ``0x17`` hotword is 17 bytes, and its word at ``+0x04`` names a
+class ``0xA`` field. The walk returns a field's hotwords as that field's
+children, in stored order. A hotword is not on the page by itself.
 """
 
 from __future__ import annotations
@@ -24,8 +28,13 @@ from opentoolbook.field import (
 )
 
 PAGE = 5
+FIELD = 0x0A
 GROUP = 0x0B
+HOTWORD = 0x17
 # Class and length of a record the walk can name. Each length repeats.
+LAYER = 0x06
+LAYER_BYTES = 15
+
 _BYTES = {
     0x08: 41,
     0x09: 43,
@@ -38,6 +47,7 @@ _BYTES = {
     0x11: 61,
     0x13: 55,
     0x15: 89,
+    HOTWORD: 17,
     0x19: 89,
 }
 
@@ -119,7 +129,46 @@ def _object(data, segment, trailer, by_near, at: int, kind: int) -> PageObject:
                 continue
             nested.append(_object(data, segment, trailer, by_near, child[0], child[1]))
         children = tuple(nested)
+    elif kind == FIELD:
+        children = tuple(
+            _object(data, segment, trailer, by_near, hot_at, hot_kind)
+            for hot_at, hot_kind in by_near.values()
+            if hot_kind == HOTWORD and _u16(data, hot_at + 4) == near
+        )
     return PageObject(kind, _u16(data, at), _object_name(data, trailer, at), near, children)
+
+
+def layer_nears(data: bytes, segment, trailer, parent: int) -> tuple[int, ...]:
+    """The nears of a page's or background's objects, back to front.
+
+    A class ``0x06`` record of 15 bytes whose word at ``+0x08`` is the
+    parent near holds the count at ``+0x02`` and, at ``+0x0C``, a trailer
+    handle. The handle's item is that many near words. Empty when no such
+    record or item is stored.
+    """
+    if trailer is None:
+        return ()
+    end = segment.file_at + segment.size
+    at = segment.base + 0x18
+    while at + LAYER_BYTES <= end and at >= 4:
+        if (
+            _u16(data, at - 2) == LAYER
+            and _u16(data, at - 4) - (at - segment.base) == LAYER_BYTES
+            and _u16(data, at + 0x08) == parent
+        ):
+            return _handle_words(trailer, _u16(data, at + 0x0C), _u16(data, at + 0x02))
+        at += 1
+    return ()
+
+
+def _handle_words(trailer, handle: int, count: int) -> tuple[int, ...]:
+    if handle >= len(trailer.slots):
+        return ()
+    heap_id, offset, _one, _two = trailer.slots[handle]
+    blob = trailer.heaps.get(heap_id)
+    if blob is None or offset + 2 * count > len(blob):
+        return ()
+    return tuple(_u16(blob, offset + 2 * index) for index in range(count))
 
 
 def _child_nears(data: bytes, segment, record: int) -> tuple[int, ...]:
