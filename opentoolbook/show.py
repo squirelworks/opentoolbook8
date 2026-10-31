@@ -269,7 +269,7 @@ def open_page(
             "props": props if props is not None else UserProperties(),
             "view": (view_w, view_h),
         }
-        nav = Navigator(data, page_id, book, home, lesson, variables, state["props"])
+        nav = Navigator(data, page_id, book, home, lesson, variables, props=state["props"])
         root.title(nav.title())
         errors: list[str] = []
 

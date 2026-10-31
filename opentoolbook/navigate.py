@@ -13,7 +13,11 @@ that hits no button, or a button with no ``buttonClick``, goes to the
 page's own ``buttonClick``. A quiz button on a page whose background
 calls ``handleQuizClick`` uses the stored page list. A letter button on
 that page, ``A`` through ``E``, is ``manageQuizButtons``: the letter is
-checked and every other letter on the page is unchecked. The page stays. A page id matches
+checked and every other letter on the page is unchecked. The page stays.
+With a ``props`` store, ``OK`` and ``Next`` there run the first block of
+``gotoNextQuestionEx`` before the page changes: the checked letter and its
+score go into ``__quizResponse`` and ``__quizScore`` at ``__quizIndex``.
+A page id matches
 regardless of case. A ``request`` the click runs is returned with the
 result, and the window shows it. Field text a click writes, and objects
 it hides or shows, stay that way on the page until the page changes.
@@ -57,6 +61,9 @@ class Clicked:
 # ``initializeTest`` sets ``__quizMaxResponse`` to 5, and
 # ``manageQuizButtons`` walks ``ansiToChar(96 + i)`` up to it.
 LETTERS = ("a", "b", "c", "d", "e")
+# ``handleQuizClick`` calls ``gotoNextQuestionEx`` for these. ``Skip`` with a
+# checked letter asks first, and without one stores nothing here.
+_NEXT_QUESTION = ("ok", "next")
 
 
 class Navigator:
@@ -165,6 +172,8 @@ class Navigator:
             if name in LETTERS:
                 self.letters[self._key()] = name
                 return Clicked(False, checked=True)
+            if name in _NEXT_QUESTION and self.props is not None:
+                self.record_answer()
             result = quiz_click(self.pages, self.page_id, button, checked=self.letters.get(self._key()))
             asked = (result.request,) if result.request else ()
             if result.page_id == self.page_id:
@@ -219,6 +228,33 @@ class Navigator:
         if letter is None:
             return {}
         return {name: name == letter for name in LETTERS}
+
+    def letter_states(self) -> dict[str, bool]:
+        """``checked of button`` for each letter: the click state, else the stored bit."""
+        from opentoolbook.show import show_page
+
+        listed = show_page(self.data, self.page_id, 1, 1, None, checked=self.checked_buttons())
+        return {
+            item.name.lower(): item.picture_role == "checked"
+            for item in listed.items
+            if item.kind == "button" and item.name.lower() in LETTERS
+        }
+
+    def record_answer(self) -> int | None:
+        """Store this page's checked letter and score. None when nothing is stored."""
+        from opentoolbook.quiz import questions
+        from opentoolbook.quizscore import record_answer
+
+        question = next((item for item in questions(self.data) if item.page_id == self.page_id), None)
+        if question is None:
+            return None
+        return record_answer(
+            self.props,
+            self.letter_states(),
+            question.answer,
+            question.test_no,
+            question.question_no,
+        )
 
     def _key(self) -> tuple[str, str]:
         return (str(self.book or ""), self.page_id)
