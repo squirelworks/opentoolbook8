@@ -225,6 +225,10 @@ Resizing the window refits the page. The canvas fills the window. A `Configure` 
 
 The window's close button ends the Tk loop. `open_page` returns, and `python3 -m opentoolbook --show PAGE book.tbk` exits 0. Before this, closing the window raised `TclError` from the destroyed root. A click whose handler raises `ValueError` or `OSError` prints that error's one line on stderr and the window stays up on the same page. Any other exception keeps its traceback and the window also stays up. The smoke test opens `otb-line-rect.tbk` and presses close. It is skipped with a message when `DISPLAY` is unset or the Python has no `tkinter`.
 
+## Export DLL in the window
+
+The book's PE export directory names `MINSTB32.dll`. When the shelf search the open uses does not find a file of that name, ignoring case, the window shows one line under the page: `MINSTB32.dll named, not shipped`. The line is shown once, for `--show` and for the bare command. It is not loaded, it does not stop the open, and the page still paints. On `9e954d01.tbk` with no DLL on disk the bare command still opens `P0` of `nida81.tbk`. A `MINSTB32.DLL` that the search finds removes the line.
+
 ## Enter page greeting
 
 On `P10` of `9e954d01.tbk` the `enterPage` handler sets the text of field `First` to `"Hello" && getFirst() & ", this lesson is about:"` when `sysLevel` is `reader`, and to `"Hello, this lesson is about:"` otherwise. The field's stored name is `first`. A missing `sysLevel` is `reader`. `getFirst` in `nc81recs.sbk` returns `__studentFirst`. The reader strips the ends of that variable, and returns `Student` when it is empty. `&&` is one operator and is recognized before `&`. `&&` concatenates with a space. `&` concatenates. The display list for `P10` shows `Hello Student, this lesson is about:`. The one style run at offset 0, face `Arial`, covered the stored string and covers the new string. The field `Text` stays `LOGIC FAMILIES`.

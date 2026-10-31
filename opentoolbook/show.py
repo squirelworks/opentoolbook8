@@ -147,6 +147,8 @@ def open_page(
     page_id: str,
     book: str | None = None,
     props: UserProperties | None = None,
+    *,
+    status: str | None = None,
 ) -> None:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
@@ -160,7 +162,8 @@ def open_page(
     scale is computed again from the page size and the new view. The
     close button ends the Tk loop and this
     function returns. A click that raises prints the error and the window
-    stays up.
+    stays up. ``status`` is one line shown once under the page, such as
+    ``MINSTB32.dll named, not shipped``. It does not stop the paint.
     """
     import tkinter as tk
     from pathlib import Path
@@ -179,6 +182,8 @@ def open_page(
             highlightthickness=0,
             background="#ffffff",
         )
+        if status:
+            tk.Label(root, text=status, anchor="w").pack(side="bottom", fill="x")
         canvas.pack(fill="both", expand=True)
         state = {
             "data": data,
