@@ -115,6 +115,23 @@ class QuizOnTheEngineTests(unittest.TestCase):
         self.assertEqual(nav.page_id, "P10210")
         self.assertTrue(nav.checked_buttons()["a"])
 
+    def test_skip_with_a_letter_asks_and_no_keeps_the_answer(self):
+        # Skip is enabled when __quizMode is not 0.
+        nav = self.nav
+        nav.props.set("__quizMode", 1)
+        nav.click("selection1")
+        nav.click("A")
+        asked = []
+        nav.ask = lambda prompt, buttons: asked.append((prompt, buttons)) or "No"
+        clicked = nav.click("Skip")
+        self.assertEqual(asked, [("Do you want to discard your answer?", ("Yes", "No"))])
+        self.assertEqual((clicked.moved, clicked.beep, nav.page_id), (False, True, "P10210"))
+        self.assertTrue(nav.checked_buttons()["a"])
+        nav.ask = lambda prompt, buttons: "Yes"
+        self.assertTrue(nav.click("Skip").moved)
+        self.assertEqual(nav.page_id, "P10211")
+        self.assertEqual(_cells(nav.props, "__quizResponse"), {})
+
     def test_get_quiz_score_averages_with_div(self):
         from opentoolbook.openscript.interp import Engine
         from opentoolbook.openscript.values import Array

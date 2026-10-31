@@ -210,6 +210,31 @@ def show_page(
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
 
 
+def ask_dialog(root, title: str, prompt: str, buttons: tuple[str, ...]) -> str:
+    """``request``: a modal box with the prompt and one button per choice. Returns the choice."""
+    import tkinter
+
+    choices = buttons or ("OK",)
+    box = tkinter.Toplevel(root)
+    box.title(title)
+    box.transient(root)
+    chosen = {"value": ""}
+    tkinter.Label(box, text=prompt, wraplength=360, justify="left").pack(padx=16, pady=12)
+    row = tkinter.Frame(box)
+    row.pack(pady=(0, 12))
+
+    def pick(value: str) -> None:
+        chosen["value"] = value
+        box.destroy()
+
+    for choice in choices:
+        tkinter.Button(row, text=choice, width=8, command=lambda value=choice: pick(value)).pack(side="left", padx=4)
+    box.protocol("WM_DELETE_WINDOW", lambda: pick(""))
+    box.grab_set()
+    root.wait_window(box)
+    return chosen["value"]
+
+
 def refit(listed: DisplayList, view_width: int, view_height: int) -> DisplayList:
     """The same display list in a view of another size. Only the scale changes."""
     scale = fit_scale(listed.width, listed.height, view_width, view_height)
@@ -282,6 +307,7 @@ def open_page(
             "view": (view_w, view_h),
         }
         nav = Navigator(data, page_id, book, home, lesson, variables, props=state["props"], sysbooks=sysbooks)
+        nav.ask = lambda prompt, buttons: ask_dialog(root, nav.book_name or "ToolBook", prompt, buttons)
         root.title(nav.title())
         errors: list[str] = []
 

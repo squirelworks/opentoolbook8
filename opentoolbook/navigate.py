@@ -94,6 +94,9 @@ class Navigator:
         # Properties scripts set while the window is open: by book, then owner
         # (a page id or a background key), then (kind, lower-case name).
         self.state: dict[str, dict[str, dict[tuple[str, str], dict[str, object]]]] = {}
+        # ``ask(prompt, buttons)`` answers a ``request`` while the handler runs. None returns
+        # the prompt in ``Clicked.requests`` and the handler reads an empty answer.
+        self.ask = None
         # Buttons a buttonDown or buttonUp handler set the invert of, by lower-case name.
         self.inverted: dict[str, bool] = {}
 
@@ -207,6 +210,7 @@ class Navigator:
             sysbooks=list(self.sysbooks),
             fields=shown,
             state=self._book_state(),
+            ask=getattr(self, "ask", None),
             message=message,
             groups=groups,
         )

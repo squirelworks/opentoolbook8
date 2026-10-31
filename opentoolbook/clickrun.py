@@ -67,6 +67,8 @@ class ClickHost(BookHost):
         self.asked: list = []
         self.inverts: list = []
         self.beeps = 0
+        # ``ask(prompt, buttons)`` answers ``request`` while the handler runs.
+        self.ask = None
         self._page_props: dict | None = None
         self._listed: dict = {}
 
@@ -248,6 +250,9 @@ class ClickHost(BookHost):
         return False, None
 
     def request(self, prompt: str, buttons: tuple[str, ...]) -> str:
+        """The window's answer when it has an ``ask``; otherwise the prompt is returned to show later."""
+        if self.ask is not None:
+            return self.ask(prompt, buttons)
         self.asked.append(prompt)
         return ""
 
@@ -273,6 +278,7 @@ def send_click(
     groups: tuple[str, ...] = (),
     beyond_page: bool = True,
     state: dict | None = None,
+    ask=None,
 ) -> Follow | None:
     """Send ``message`` to ``button`` (kind, name), or to the page when None.
 
@@ -310,6 +316,7 @@ def send_click(
         return None
     working = {owner: {key: dict(values) for key, values in objects.items()} for owner, objects in (state or {}).items()}
     host = ClickHost(pages, book_file, roots, page_id, fields, present or set(), data, groups, working)
+    host.ask = ask
     engine = Engine(lookup, host, props=props, variables=variables, sysbooks=sysbooks)
     host.engine = engine
     target = Ref(button[0], "name", button[1], None) if button is not None else Ref("page", "this", None, None)
