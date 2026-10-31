@@ -32,6 +32,25 @@ CALL_BOOKS = {
 }
 
 
+class MissingBook(ValueError):
+    """A book a handler names that the shelf search does not find.
+
+    Opening a book and clicking a button raise this same error, so the
+    sentence is the same: the file, then the page of that book.
+    """
+
+    def __init__(self, name: str, page_id: str, roots: tuple[Path, ...] = ()) -> None:
+        self.name = name
+        self.page_id = page_id
+        self.roots = roots
+        super().__init__(missing_sentence(name, page_id))
+
+
+def missing_sentence(name: str, page_id: str) -> str:
+    """``nida81.tbk was not found; P310 of that book does not open``."""
+    return f"{name} was not found; {page_id} of that book does not open"
+
+
 @dataclass(frozen=True)
 class InstallFile:
     name: str
