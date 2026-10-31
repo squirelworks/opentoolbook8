@@ -13,9 +13,10 @@ shape is painted in front of a shape that contains the label.
 The page walk names classes ``0x8``, ``0x9``, ``0xA``, ``0xB``, ``0xC``,
 ``0xD``, ``0xE``, ``0x10``, ``0x11``, ``0x13``, ``0x15``, and ``0x19``.
 Of those, the window paints rectangles, ellipses, lines, class ``0x10``
-polygons, fields, and buttons, plus the class 4 background. It does not
-paint ``0xD``, arcs (``0x11``), class ``0x13`` point lists, ``0x15``, or
-``0x19``. A group is not a paint; its children are. Class ``0x12`` pies
+polygons, fields, buttons, and class ``0x15`` paint objects, plus the
+class 4 background. A paint object is its stored bitmap drawn at the
+left and top of its bounds. It does not paint ``0xD``, arcs (``0x11``),
+class ``0x13`` point lists, or ``0x19``. A group is not a paint; its children are. Class ``0x12`` pies
 and class ``0x17`` records are outside that walk, and they are not painted.
 """
 
@@ -42,6 +43,7 @@ from opentoolbook.field import (
 from opentoolbook.click import follow_click, quiz_background
 from opentoolbook.quiznav import quiz_click
 from opentoolbook.page import _child_nears, _object_name, _objects
+from opentoolbook.paintobject import paint_object_rgb
 from opentoolbook.pixels import picture_rgb
 from opentoolbook.size import page_size
 
@@ -58,6 +60,7 @@ _GROUP = 0xB
 _ELLIPSE = 0xC
 _LINE = 0xE
 _POLYGON = 0x10
+_PAINT_OBJECT = 0x15
 _SHAPE = {_RECTANGLE, _ELLIPSE, _LINE, _POLYGON}
 _DRAW = {
     _RECTANGLE: "rectangle",
@@ -347,6 +350,12 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
         return Paint("field", object_id, name, bounds, text=text, runs=runs)
     if kind == _BUTTON:
         return _button(data, segment, at, object_id, name, bounds)
+    if kind == _PAINT_OBJECT:
+        try:
+            picture = paint_object_rgb(data, segment, at)
+        except ValueError:
+            return None
+        return Paint("paint object", object_id, name, bounds, picture=picture)
     return None
 
 
@@ -534,7 +543,7 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list) -> None:
             outline=_rgb(item.stroke) if item.stroke is not None else "",
         )
         return
-    if item.kind == "button" and item.picture is not None and item.bounds is not None:
+    if item.kind in ("button", "paint object") and item.picture is not None and item.bounds is not None:
         width, height, rgb = _scale_rgb(item.picture[0], item.picture[1], item.picture[2], scale)
         photo = tk.PhotoImage(data=_ppm(width, height, rgb))
         photos.append(photo)
