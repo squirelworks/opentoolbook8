@@ -26,7 +26,7 @@ Companion books such as `nida81.tbk` and `nc81*.sbk` are looked up, for the repo
 - The background, rectangles, ellipses, lines, class `0x10` polygons, fields, and button pictures are painted. The page walk also finds classes `0xD`, `0x11`, `0x13`, `0x15`, and `0x19`, and the window does not paint those. A group is not a paint; its children are. Class `0x12` pies and class `0x17` records are outside that walk and are not painted. Pattern 254 is a solid fill. Pattern 253 paints no fill. Another pattern byte is not drawn as a hatch.
 - The OpenScript that runs is the subset in `SETTLED.md`: some `enterPage` field writes, a quoted `go to page`, `send next`, `send previous`, and the quiz-button cases. Opening the book follows that quoted `go to page` in the startup handlers and in the entry page's `enterPage`. `forward` has no body here. A `linkDLL` line is not called.
 
-Also in this tree, and named in `SETTLED.md`: the object directory and the two-byte follow-up, the class-slot lookup for message `0xE` (index 0, not a DLL call), the NIDA menu export (`nida:m3search`), the disc table (`CAILT.DAT`), the install list (`toolbook.lst`), the system books a lesson names, and one key-disk rating folder. There is no authoring path.
+Also in this tree, and named in `SETTLED.md`: the object directory and the two-byte follow-up, the class-slot lookup for message `0xE` (index 0, not a DLL call), the install list (`toolbook.lst`), and the system books a book binds and pushes onto `sysBooks`. There is no authoring path.
 
 ## Notes
 
@@ -67,21 +67,17 @@ python3 -m opentoolbook --help
 
 `source .venv/bin/activate` is what makes `python3` see this install. Each new terminal starts without it. From `~/FU/opentoolbook8`, run `source .venv/bin/activate` again before the commands below.
 
-The commands below take a book or a NIDA folder that is already on your computer. Put its path in the command. The first command opens the book on its opening page. `--report` prints the report and does not open a window. `--show` opens the page id written in that command. The other flags print a menu, a disc row, an install folder, or a key-disk rating.
+The commands below take a book that is already on your computer. Put its path in the command. The first command opens the book on its opening page. `--report` prints the report and does not open a window. `--show` opens the page id written in that command. `--home` names a ToolBook install folder to search and report.
 
 ```bash
 python3 -m opentoolbook path/to/book.tbk
 python3 -m opentoolbook path/to/book.tbk --report
 python3 -m opentoolbook --show P300 path/to/book.tbk
-python3 -m opentoolbook --catalog path/to/courses.xml
-python3 -m opentoolbook --catalog path/to/TBK
-python3 -m opentoolbook --cailt path/to/CAILT.DAT 9E954D01
 python3 -m opentoolbook --home path/to/TBK path/to/book.tbk
-python3 -m opentoolbook --keydisk path/to/rating
 python3 -m unittest discover -s tests
 ```
 
-The tests use synthetic books and a synthetic menu. `OPENTOOLBOOK_TBK` points the extra tests at a lesson book.
+The tests use synthetic books. `OPENTOOLBOOK_TBK` points the extra tests at a lesson book.
 
 ```bash
 OPENTOOLBOOK_TBK=path/to/book.tbk python3 -m unittest discover -s tests
@@ -130,11 +126,7 @@ A new PowerShell window needs `.\.venv\Scripts\Activate.ps1` from the repo folde
 python -m opentoolbook path\to\book.tbk
 python -m opentoolbook path\to\book.tbk --report
 python -m opentoolbook --show P300 path\to\book.tbk
-python -m opentoolbook --catalog path\to\courses.xml
-python -m opentoolbook --catalog path\to\TBK
-python -m opentoolbook --cailt path\to\CAILT.DAT 9E954D01
 python -m opentoolbook --home path\to\TBK path\to\book.tbk
-python -m opentoolbook --keydisk path\to\rating
 python -m unittest discover -s tests
 ```
 

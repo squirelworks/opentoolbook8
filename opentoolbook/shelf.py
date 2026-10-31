@@ -17,8 +17,6 @@ from opentoolbook.record import Book
 _FILE = re.compile(rb"(?<![A-Za-z0-9_.])[A-Za-z0-9_]{3,16}\.(?:sbk|tbk|dll|exe)", re.I)
 _INIT = re.compile(rb"initialize[A-Za-z]+", re.I)
 _ENTRY = ("opensession", "gotopagelist", "entersystem", "enterapplication")
-# These belong to a key disk, not to a book report.
-KEYDISK_NAMES = frozenset({"class.s3", "id.s3", "criteria.s4", "m00001.s3", "login.m3"})
 
 
 class MissingBook(ValueError):
@@ -49,7 +47,6 @@ class InstallFile:
 def named_files(data: bytes) -> tuple[str, ...]:
     """File names a book mentions, in lower case, without the version fragment."""
     found = {match.group().decode("latin1").lower() for match in _FILE.finditer(data)}
-    found -= KEYDISK_NAMES
     return tuple(sorted(found))
 
 
@@ -60,7 +57,7 @@ def lesson_names(data: bytes) -> tuple[str, ...]:
     for match in _FILE.finditer(data):
         name = match.group().decode("latin1")
         key = name.lower()
-        if key in KEYDISK_NAMES or key in seen:
+        if key in seen:
             continue
         seen.add(key)
         found.append(name)
@@ -131,8 +128,6 @@ def search_roots(book: Path | None, home: Path | None) -> tuple[Path, ...]:
 def find_file(roots: tuple[Path, ...], name: str) -> Path | None:
     """First file whose name matches ``name`` regardless of case."""
     target = name.lower()
-    if target in KEYDISK_NAMES:
-        return None
     for root in roots:
         if not root.is_dir():
             continue

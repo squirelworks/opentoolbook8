@@ -261,10 +261,6 @@ The book record stores the page width at `+0x20` and the page height at `+0x1E`.
 
 An inline type-1 picture stores a `BM` file eight bytes after `01 02 01 00`. On `9e954d01.tbk` that marker is at byte 18 of all 63 inline pictures. On `nida81.tbk` it is at byte 18 of 21 pictures and at byte 36 of the other 2. A huge-table picture keeps the `BM` file after the 8-byte prefix.
 
-## Opening a catalog lesson
-
-`python3 -m opentoolbook --catalog path/to/courses.xml --open 9E954D01` opens one lesson the catalog lists. `--catalog` may also be the folder that holds `courses.xml`. The lesson file is the id in lower case plus `.tbk`, `9e954d01.tbk`. It is found with the shelf rules: the catalog's folder, its parent, `--home`, regardless of case. That file then opens the way the bare command opens a book, on its opening page. The id match ignores case. An id the catalog does not list prints `9E954D01 is not a lesson in the catalog` and exits 2. A lesson file the search does not find prints `9e954d01.tbk was not found; lesson 9E954D01 does not open` and exits 2, and no window opens. `--open` without `--catalog`, or with a book, `--show`, or `--report`, prints the usage and exits 2. Without `--open` the catalog printout is unchanged.
-
 ## Window resize
 
 Resizing the window refits the page. The canvas fills the window. A `Configure` event with a new canvas size computes the fit scale again from the stored page size and that view: 9360 by 6624 on the lesson, 9000 by 6000 on the fixtures. The paint list is unchanged and only the scale moves. A 600 by 400 view of `otb-line-rect.tbk` is scale 1, and a 300 by 400 view of the same page is scale 0.5. There are no scroll bars.
@@ -292,10 +288,6 @@ Opening a book and clicking a button raise the same error when the shelf search 
 ## nida71.tbk stays missing
 
 `nida81.tbk` quotes `go to page "P12060" of book "nida71.tbk"` in the `Retry` button of pages `P12000`, `P12001`, `P12002`, and `P12003`. The file is not shipped and is not vendored. The shelf search does not find it, so a click that reaches that line is the missing-book error: `nida71.tbk was not found; P12060 of that book does not open`. The window prints it and stays on the page. That holds for `Retry` on all four pages. The runner skips the `if ntries = 4 then` branch it cannot decide, as the Statement walker section says, so the first quoted `go to page` before `break` is the `nida71.tbk` line on each page. `verifyswitches130a`, whose result picks the branch, has no body in the lesson or the four system books, so the branch ToolBook takes is not known.
-
-## A missing lesson names its disc
-
-When `--catalog ... --open` does not find the lesson file, the same shelf search looks for `CAILT.DAT`, regardless of case. When it finds the table, the error adds the disc codes the table maps for that lesson id, with the most specific pattern winning as in `--cailt`. Against a table whose lines are `9E954??* DIE??V03` and `9E954D0?* DIE-EXACT`, lesson `9E954D01` prints `9e954d01.tbk was not found; lesson 9E954D01 does not open; CAILT.DAT puts it on disc DIE-EXACT` and exits 2. Two codes print as `discs` with a comma. A table with no line for the lesson adds `CAILT.DAT names no disc for it`. With no table on the shelf the error is unchanged. No window opens, and no zip is fetched.
 
 ## Arrow keys
 
@@ -423,6 +415,10 @@ A handler whose body has a `linkDLL`, `linkDLL32`, or `unlinkDLL` line returns f
 A book stores one class table object. Its bytes start `3a 00 02 00 3c 00 3d 00 3c 00`. The next word is the count of bound books, and the word after it is a near pointer to that many near pointers, each to an upper-case file name and a NUL. A near pointer counts from six bytes before the first byte of the record that holds the object. The layout and the open-time merge are read from `FUN_1278_124e`, `FUN_1278_1454`, `FUN_1278_1366`, and the Author's `FUN_1108_0000` / `CDBADDBOUNDSYSBOOKS`, in `knowledge/claude/system_book_loading_2026-10-21.md`. The same object reads on 54 of the 58 Instructor 8.1 files, the lesson, `nida81.tbk`, and the `nc81*` and `tb80*` system books, and the names it gives are the only `.SBK` names in each book record.
 
 When the reader opens a book, `sysBooks` starts as that book's bound names in stored order, in lower case. A bound book the shelf finds adds its own bound names that `sysBooks` lacks, at the end. Then startup runs, and its `push` lines go in front. `9e954d01.tbk` is bound to `TB80ANM.SBK` and `TB80R.SBK`, and `tb80anm.sbk` is bound to `TB80R.SBK`. Its script never pushes `tb80anm.sbk`. After startup `sysBooks` is `nc81trnr.sbk`, `nc81recs.sbk`, `nc81test.sbk`, `nc81base.sbk`, `tb80anm.sbk`, `tb80r.sbk`: `enterSystem` does not push `tb80r.sbk` again, because it is already in the list. The Instructor 8.1 `Walkthrough.tbk` opens with `tb80actr.sbk`, `tb80r.sbk`, `tb80hyp.sbk`, and `quiz1.tbk` with none. `linkSysBook` is not sent.
+
+## No NIDA shell in the reader
+
+The reader has no `--catalog`, `--open`, `--cailt`, or `--keydisk`, and no key-disk file names. Those read NIDA's launcher (`courses.xml` menus, the `CAILT.DAT` disc table, key-disk rating folders), which runs outside ToolBook. A NIDA course opens like any book: its own startup handlers push its system books onto `sysBooks`, and those books, dropped beside the course, define how it reads.
 
 ## The shelf
 

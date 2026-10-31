@@ -1,4 +1,4 @@
-"""Open a book, or print a report, a NIDA menu, or an install folder.
+"""Open a book, or print a report or an install folder.
 
 ``python3 -m opentoolbook book.tbk`` opens the book on the page its
 startup handlers name, or on the first stored page when they do not
@@ -8,8 +8,7 @@ names, and the startup call names, and does not open a window.
 
 A ``linkDLL`` line is not called. ``forward`` is not executed.
 ``gotoPageList`` names pages that are not quoted, so a resumed session
-is not the page the window opens on. Record text is not printed. A menu
-run prints course ids, titles, and counts.
+is not the page the window opens on. Record text is not printed.
 """
 
 from __future__ import annotations
@@ -19,7 +18,6 @@ import sys
 from pathlib import Path
 
 from opentoolbook.entry import opening_page
-from opentoolbook.nida import catalog_lesson, discs_for, parse_cailt, parse_catalog, read_keydisk, zip_names_for
 from opentoolbook.send import handler_chain
 from opentoolbook.show import open_page
 from opentoolbook.shelf import (
@@ -46,19 +44,6 @@ def main(argv: list[str]) -> int:
         action="store_true",
         help="print the book report and do not open a window",
     )
-    parser.add_argument("--catalog", help="courses.xml, or a folder that contains it")
-    parser.add_argument(
-        "--open",
-        metavar="LESSON",
-        help="with --catalog, open this lesson id's .tbk, found with the shelf search",
-    )
-    parser.add_argument(
-        "--cailt",
-        nargs=2,
-        metavar=("TABLE", "LESSON"),
-        help="CAILT.DAT and a lesson id; print that lesson's disc codes",
-    )
-    parser.add_argument("--keydisk", help="one rating folder from the key-disk creator")
     parser.add_argument(
         "--home",
         help="a ToolBook install directory. With a book, also search it for named files",
@@ -69,11 +54,6 @@ def main(argv: list[str]) -> int:
         help="open a Tk window on this page id. Does not follow startup handlers",
     )
     args = parser.parse_args(argv[1:])
-    if args.open:
-        if not args.catalog or args.book or args.show or args.report:
-            parser.print_usage(sys.stderr)
-            return 2
-        return _open_lesson(args)
     if args.show:
         if not args.book:
             parser.print_usage(sys.stderr)
@@ -99,10 +79,6 @@ def main(argv: list[str]) -> int:
             return 2
         return 1 if errors else 0
     if args.book and not args.report:
-        if any((args.catalog, args.cailt, args.keydisk)):
-            code = _print_side(args)
-            if code:
-                return code
         home = Path(args.home) if args.home else None
         try:
             entry = opening_page(Path(args.book), home)
@@ -121,24 +97,10 @@ def main(argv: list[str]) -> int:
             sysbooks=entry.sysbooks,
         )
         return 1 if errors else 0
-    if not any((args.book, args.catalog, args.cailt, args.keydisk, args.home)):
+    if not any((args.book, args.home)):
         parser.print_usage(sys.stderr)
         return 2
 
-    if args.catalog:
-        courses, programs = _catalog_paths(Path(args.catalog))
-        if courses is None and programs is None:
-            print(f"no courses.xml in {args.catalog}", file=sys.stderr)
-            return 2
-        if courses is None:
-            _print_programs(programs)
-        else:
-            _print_catalogs(courses, programs)
-    if args.cailt:
-        table, lesson = args.cailt
-        _print_discs(Path(table).read_text(encoding="latin1"), lesson, ())
-    if args.keydisk:
-        _print_keydisk(Path(args.keydisk))
     if args.home:
         _print_home(Path(args.home), Path(args.book) if args.book else None)
     elif args.book:
@@ -146,41 +108,8 @@ def main(argv: list[str]) -> int:
     return 0
 
 
-def _open_lesson(args) -> int:
-    """Open one catalog lesson id on its opening page."""
-    courses, _programs = _catalog_paths(Path(args.catalog))
-    if courses is None:
-        print(f"no courses.xml in {args.catalog}", file=sys.stderr)
-        return 2
-    home = Path(args.home) if args.home else None
-    try:
-        catalog = parse_catalog(courses.read_text(encoding="latin1"))
-        lesson = catalog_lesson(catalog, courses.parent, args.open, home)
-        entry = opening_page(lesson, home)
-    except ValueError as exc:
-        print(exc, file=sys.stderr)
-        return 2
-    open_page(entry.data, entry.page_id, str(entry.book), args.home)
-    return 0
 
 
-def _print_side(args) -> int:
-    """Print a catalog, a disc row, or a key disk. ``--home`` is not a report here."""
-    if args.catalog:
-        courses, programs = _catalog_paths(Path(args.catalog))
-        if courses is None and programs is None:
-            print(f"no courses.xml in {args.catalog}", file=sys.stderr)
-            return 2
-        if courses is None:
-            _print_programs(programs)
-        else:
-            _print_catalogs(courses, programs)
-    if args.cailt:
-        table, lesson = args.cailt
-        _print_discs(Path(table).read_text(encoding="latin1"), lesson, ())
-    if args.keydisk:
-        _print_keydisk(Path(args.keydisk))
-    return 0
 
 
 def _print_book(path: Path, home: Path | None) -> None:
@@ -210,9 +139,6 @@ def _print_book(path: Path, home: Path | None) -> None:
     if home is not None:
         roots = search_roots(path, home)
         _print_shipped(home, roots)
-        table = _find(home, "CAILT.DAT")
-        if table is not None:
-            _print_discs(table.read_text(encoding="latin1"), path.stem, roots)
 
 
 def _startup_sysbooks(path: Path, home: Path | None) -> tuple[str, ...]:
@@ -223,44 +149,12 @@ def _startup_sysbooks(path: Path, home: Path | None) -> tuple[str, ...]:
         return ()
 
 
-def _print_catalogs(courses: Path, programs: Path | None) -> None:
-    catalog = parse_catalog(courses.read_text(encoding="latin1"))
-    lessons = catalog.lessons()
-    course_ids = set(catalog.lesson_ids())
-    print(f"courses {len(catalog.courses)}")
-    print(f"lessons {len(lessons)}")
-    print(f"courses.xml unique lesson ids {len(course_ids)}")
-    for course in catalog.courses:
-        print(f"{course.course_id}\t{course.title}\t{len(course.lessons())}")
-    if programs is None:
-        return
-    program_ids = set(parse_catalog(programs.read_text(encoding="latin1")).lesson_ids())
-    print(f"programs.xml unique lesson ids {len(program_ids)}")
-    _print_id_diff("courses.xml", course_ids - program_ids)
-    _print_id_diff("programs.xml", program_ids - course_ids)
 
 
-def _print_programs(programs: Path) -> None:
-    program_ids = set(parse_catalog(programs.read_text(encoding="latin1")).lesson_ids())
-    print(f"programs.xml unique lesson ids {len(program_ids)}")
 
 
-def _print_id_diff(label: str, ids: set[str]) -> None:
-    ordered = tuple(sorted(ids))
-    print(f"only in {label} {len(ordered)}")
-    for lesson_id in ordered:
-        print(f"  {lesson_id}")
 
 
-def _print_keydisk(folder: Path) -> None:
-    disk = read_keydisk(folder)
-    print(disk.info)
-    if disk.shift is not None:
-        print(f"shift {disk.shift.shift} {disk.shift.start}-{disk.shift.end}")
-        print(f"closed days {len(disk.shift.closed)}")
-    print(f"settings {len(disk.settings)}")
-    for name, version, size in disk.records:
-        print(f"{name} version {version} bytes {size}")
 
 
 def _print_home(folder: Path, book: Path | None) -> None:
@@ -275,9 +169,6 @@ def _print_home(folder: Path, book: Path | None) -> None:
         data = apps.read_bytes()
         print(f"stdapps.lst {len(data)} bytes")
         print("  " + " ".join(f"{byte:02x}" for byte in data[:32]))
-    courses, programs = _catalog_paths(folder)
-    if courses is not None:
-        _print_catalogs(courses, programs)
     if book is not None:
         _print_book(book, folder)
     else:
@@ -304,25 +195,8 @@ def _print_shipped(folder: Path, roots: tuple[Path, ...]) -> None:
         print(f"  {item.name}")
 
 
-def _print_discs(text: str, lesson: str, roots: tuple[Path, ...]) -> None:
-    rules = parse_cailt(text)
-    discs = discs_for(rules, lesson)
-    print(f"lesson {lesson}")
-    print("discs " + (", ".join(discs) if discs else "none"))
-    for name in zip_names_for(rules, lesson):
-        found = find_file(roots, name)
-        if found is not None:
-            print(f"  {name}  {found}")
 
 
-def _catalog_paths(path: Path) -> tuple[Path | None, Path | None]:
-    if path.is_dir():
-        return _find(path, "courses.xml"), _find(path, "programs.xml")
-    folder = path.parent
-    if path.name.lower() == "programs.xml":
-        return _find(folder, "courses.xml"), path
-    programs = _find(folder, "programs.xml")
-    return path, programs
 
 
 def _find(folder: Path, name: str) -> Path | None:
