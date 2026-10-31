@@ -32,7 +32,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from opentoolbook.click import follow_click, page_click, quiz_background
+from opentoolbook.click import follow_click, page_click, quiz_background, quiz_setup_click
 from opentoolbook.enter import _enter_page, page_source
 from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
@@ -152,6 +152,7 @@ class Navigator:
     def _click(self, button: str | None, shown: dict[str, str] | None) -> Clicked:
         acted = None
         if button:
+            quiz_setup_click(self.data, self.page_id, button, self.pages, self.handlers(), self.props)
             acted = follow_click(
                 self.data, self.page_id, button, self.pages, self.variables, self.book_name, shown, call=self.call
             )
