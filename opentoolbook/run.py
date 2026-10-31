@@ -156,7 +156,14 @@ class BookHost(Host):
             except Exception:
                 return True, default
         if name == "getprivateprofilestringa":
-            return True, 0
+            # (section, key, default, buffer, size, file): the INI value, else the default,
+            # copied into the buffer argument and cut to size - 1 characters.
+            found = self._ini(args[5] if len(args) > 5 else "", args[0] if args else "", args[1] if len(args) > 1 else "")
+            value = text(found if found is not None else (args[2] if len(args) > 2 else ""))
+            size = int(as_number(args[4])) if len(args) > 4 and text(args[4]).strip() else len(value) + 1
+            value = value[: max(size - 1, 0)]
+            self.dll_out = {3: value}
+            return True, len(value)
         if name == "writeprivateprofilestringa":
             return True, 1
         return False, None

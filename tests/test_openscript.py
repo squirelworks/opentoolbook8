@@ -156,6 +156,22 @@ class ReferenceTests(unittest.TestCase):
         self.assertEqual(engine.get("f"), 7)
 
 
+class DllBufferTests(unittest.TestCase):
+    def test_get_private_profile_string_fills_the_buffer_with_the_default(self):
+        from opentoolbook.run import BookHost
+
+        engine = _engine(
+            'to get f\n  system string __first\n  linkDLL32 "kernel32.dll"\n'
+            "    INT GetPrivateProfileStringA(STRING, STRING, STRING, STRING, INT, STRING)\n  end linkDLL32\n"
+            '  __first = "First                   "\n'
+            '  n = GetPrivateProfileStringA("Student", "First", "Student", __first, 21, "NIDAREC.INI")\n'
+            '  return n & ":" & __first\nend\n',
+            host=BookHost((), "book.tbk", ()),
+            props=UserProperties(),
+        )
+        self.assertEqual(engine.get("f"), "7:Student")
+
+
 class ChunkTests(unittest.TestCase):
     def test_get_and_put(self):
         self.assertEqual(get_chunk("a,b,c", "item", 2, 2), "b")

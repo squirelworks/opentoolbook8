@@ -181,6 +181,8 @@ class Engine:
         self.errors: list[str] = []
         # The last function no handler, built-in, or DLL answered.
         self.unanswered: str | None = None
+        # Arguments a DLL function wrote, by position, from the last call.
+        self.dll_out: dict[int, object] = {}
 
     # entry points ---------------------------------------------------------
 
@@ -488,7 +490,9 @@ class Engine:
             return value
         library = self.dll_functions.get(name)
         if library is not None:
+            self.host.dll_out = {}
             answered, value = self.host.dll(library, name, args)
+            self.dll_out = dict(getattr(self.host, "dll_out", {}) or {})
             return value if answered else ""
         handled, value = self.host.dll("", name, args)
         if handled:
@@ -612,9 +616,15 @@ class Engine:
             args = tuple(self.eval(arg) for arg in node.args)
             target = self.eval(node.of) if node.of is not None else None
             self.unanswered = None
+            self.dll_out = {}
             value = self.get(node.name, args, target)
             if self.unanswered == node.name:
                 self.unanswered = node.spelling or node.name
+            out, self.dll_out = self.dll_out, {}
+            for position, written in out.items():
+                # A STRING argument is the variable's buffer; the DLL's text comes back into it.
+                if position < len(node.args) and isinstance(node.args[position], (A.Name, A.Index)):
+                    self._assign(node.args[position], written)
             return value
         if kind is A.Index:
             base = self.eval(node.base)
