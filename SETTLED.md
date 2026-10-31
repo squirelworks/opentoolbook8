@@ -315,7 +315,7 @@ On `P10` of `9e954d01.tbk` the `enterPage` handler sets the text of field `First
 
 `get setSection("Intro")` calls `setSection` in `nc81base.sbk`. That handler writes through `kernel32.dll`. The reader does not call the DLL, and the greeting does not use the return. `forward` has no handler body in the lesson or the four system books. The reader does not invent one.
 
-On `PINFO` and `PQINFO` the handler sets field `version` to `"Version: " & __nidaVersion of this book`. That value still contains `__` and `of this book`, so it is not written. The stored line `Version: 2.003.0001` stays.
+On `PINFO` and `PQINFO` the handler sets field `version` to `"Version: " & __nidaVersion of this book`. The book stores that user property (see "Stored user properties"), so the field reads `Version: 2.003.0001` from the property. A value that still contains `__` and `of this book` because the book stores no such property is not written, and the stored line stays.
 
 ## Class `0x15` paint object
 
@@ -403,7 +403,7 @@ A page whose byte at `+0x30` has low bits 0 stores its script inline. The word a
 
 ## Send to the system books
 
-`send name` looks for that handler in the open book, then in `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk`, in that order. The first book that has the name wins. The system books are found with the same search as the book report. On `9e954d01.tbk` no handler name is in more than one of the four system books. The lesson and `nida81.tbk` share `enterPage`, `keyUp`, `enterApplication`, `author`, and `enterBook`, and the open book's copy wins. A handler whose body has a `linkDLL` or `linkDLL32` line returns without running, so no DLL is called. 75 handlers in the lesson, `nida81.tbk`, and the four system books link a DLL this way, among them `initializeBase`, `openSession`, `setSection`, `setupQuizEx`, `initializeTest`, and `initializeTrnr`. Every other handler runs with the same statement walker as startup. `send getLogoBook` runs the handler in `nc81base.sbk` and returns `nida81.tbk`, or `logo81.tbk` / `mrj81.tbk` when the search finds that file, the same book the window opens. Startup builds its handler map in this order too. `get name()` is unchanged and still runs a handler that links a DLL without calling the DLL.
+`send name` looks for that handler in the open book, then in `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk`, in that order. The first book that has the name wins. The system books are found with the same search as the book report. On `9e954d01.tbk` no handler name is in more than one of the four system books. The lesson and `nida81.tbk` share `enterPage`, `keyUp`, `enterApplication`, `author`, and `enterBook`, and the open book's copy wins. A handler whose body has a `linkDLL`, `linkDLL32`, or `unlinkDLL` line returns without running, so no DLL is called. 76 handlers in the lesson, `nida81.tbk`, and the four system books link or unlink a DLL this way, among them `initializeBase`, `openSession`, `setSection`, `setupQuizEx`, `initializeTest`, and `initializeTrnr`. Every other handler runs with the same statement walker as startup. `send getLogoBook` runs the handler in `nc81base.sbk` and returns `nida81.tbk`, or `logo81.tbk` / `mrj81.tbk` when the search finds that file, the same book the window opens. Startup builds its handler map in this order too. `get name()` is unchanged and still runs a handler that links a DLL without calling the DLL.
 
 
 ## fileExists32
@@ -439,6 +439,29 @@ In a click, `hide field "name"` and `show field "name"` change whether that obje
 ## initializeBase literals
 
 `initializeBase(cmdLine)` in `nc81base.sbk` runs its literal assignments only. An assignment runs when its right side is a whole or decimal number, a quoted string, `true`, `false`, the `cmdLine` parameter, or a name the handler or the store already holds. A `__` name goes to the in-memory store, and any other name is local to the handler. Every other line is skipped, and the skip is named: `linkDLL tbfile32.dll`, `linkDLL32 kernel32.dll`, and `linkDLL32 user32.dll` by library, a call by the name it calls (`clearMenuFlags`, `specifyMenuColors`, `clearExperimentFlags`, `WritePrivateProfileStringA`, `GetPrivateProfileIntA`, `placeLesson`), `set saveOnClose of this book` and `set sysChangesDB` by property, and the `/Quester` `conditions` block under `if wordcount(__cmdline) >= 2` by its condition. `setSection` is not called. With an empty command line the store holds `__pageIndex` 0, `__pageListCleared` 0, `__quizDisableMenuKey` 0, and `__cmdLine` empty. `__lessonMode` comes from `GetPrivateProfileIntA` on `NIDAREC.INI`, so it stays unset, and `if __lessonMode = 5` and `= 6` run neither branch. `__nidaVersion` is not assigned there. `if sysLevel = reader` is taken. A condition on a value the handler holds is decided, and any other condition runs neither branch and is named. The walker skips a whole `conditions`, `step`, or `while` block when its caller asks, as this one does. Startup does not call this yet: `enterSystem` guards `get initializebase(cmdLine)` with `if "nc81base.sbk" is not in sysBooks`, and the reader does not decide `sysBooks`.
+
+## Stored user properties
+
+A book stores its user properties in one run of tagged blocks. Each block starts with three words: a link word, the block id, and 0. A name block holds the name and a NUL. A value block holds a word `n` and then `n` bytes: either a type word (4 or 9), a length word, the characters, and a NUL, or the characters and a NUL alone (`<BookPath>`). Block id 1 opens the run. Block id 2 closes it and is the property table: a word, the entry count, and 0, then one eight-byte entry per property: value id, name id, a hash word, and 0. The run holds the name block `:HDMEDIAPATH`, and the reader finds the run from it. The same layout is in `9e954d01.tbk`, `nida81.tbk`, `otb-line-rect.tbk`, `otb-pie.tbk`, `new2-withcompression.tbk`, `new3_a.tbk`, and `new3_b.tbk`. Every one of those stores `:HDMEDIAPATH` = `<BookPath>`, `_ASYM_EA_Version` = `8.0`, and `ASYM_DeploymentMethod` = `Native`. A value whose bytes are neither form, such as `_oldSaveOnClose` with type word `0x1F` in the lesson, is not read. The four system books store no such table.
+
+`9e954d01.tbk` stores `__nidaVersion` = `2.003.0001` and `__beenToP1` = `true`. `nida81.tbk` stores no `__nidaVersion`. No handler in the lesson or the four system books assigns `__nidaVersion`; `initializeBase` does not name it. `name of this book` in an `enterPage` field write reads the stored property, so the `version` field on `PINFO` and `PQINFO` is `Version: 2.003.0001` from the book.
+
+## initializeTest literals
+
+`initializeTest` in `nc81test.sbk` runs the same way as `initializeBase`. The store gets `__embeddedTries`, `__quizAssessment`, `__quizPreTest`, `__quizAttempts`, `__quizTimerId`, `__experimentNumber`, `__quizHelp`, and `__quizCheckTestAndQuestion` as 0, and `__quizObjectiveCount` and `__quizMaxResponse` as 5. The skipped lines, in order, are `linkDLL32 kernel32.dll`, `sysTime`, `format time seedNum as "seconds"`, `get seedNum mod 32768`, `seed It`, and eleven `GetPrivateProfileIntA` calls. The eleven names those calls would set stay unset, and the run lists them: `__quizMode`, `__quizMaxAttempts`, `__quizReview`, `__quizCritique`, `__quizObjectiveLevel`, `__quizTimed`, `__quizTimeType`, `__quizTimeLimit`, `__quizShowPageNumbers`, `__quizMarkers`, and `__showSpecial`. `initializeTest` does not call `timerNotify`, `clearRandomSetX`, or the pool functions, and the run does not touch them.
+
+## initializeTrnr literals
+
+`initializeTrnr` in `nc81trnr.sbk` runs the same way as `initializeBase`. The store gets `__experimentActive`, `__trainerAddress`, `__trainerAc1`, `__trainerDc1`, `__trainerAc2`, `__trainerDc2`, `__trainerSp3`, `__trainerDc3`, and `__trainerFilament` as 0, and `__trainerNlv` and `__trainerPlv` as 0.0. It skips `linkDLL32 kernel32.dll` and six `GetPrivateProfileIntA` calls, so `__trainerType`, `__trainerPort`, `__plcType`, `__plcPort`, `__205Type`, and `__205Port` stay unset.
+
+A handler outside the four `initialize*` handlers runs only when it reaches no DLL and its body is only assignments. A handler reaches a DLL when it links or unlinks one, or calls a handler in the send chain that does. The skipped names are:
+
+- `linkMemFunctions32` links `kernel32.dll`.
+- `unlinkMemFunctions32` runs `unlinkDLL "kernel32.dll"`.
+- `sendFaults130(string faults)` calls `sendFaultsTd2000`, which links a DLL.
+- `getExternalValue(string exname)` in `nc81base.sbk` links `kernel32.dll` and calls `GetPrivateProfileStringA`. Its body starts on the blank line after the header, and that body is not only assignments.
+
+`unlinkDLL` now counts as a DLL line for `send` too.
 
 ## initializeRecs and GetVar
 

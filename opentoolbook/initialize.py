@@ -9,7 +9,8 @@ calls, ``set ... of this book`` by its property, and a ``conditions`` or
 ``while`` block, or a ``step`` whose bounds are not known, by its first
 line. ``__name[i]`` is element ``i`` of one stored table, the same shape
 ``setupQuizEx`` uses for ``__quizPages``. ``if sysLevel = reader``
-is taken. A condition on a value the handler holds is decided, and
+is taken. A ``__`` name whose right side was skipped is listed as
+unset. A condition on a value the handler holds is decided, and
 ``and`` joins two of them. Any other condition runs neither branch and
 is named. ``step i from 1 to 100`` with known bounds runs its body. A
 ``return`` of a value the handler holds is the handler's value. No DLL
@@ -45,6 +46,7 @@ class Initialized:
     assigned: list[tuple[str, object]] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)
     value: object = None
+    unset: list[str] = field(default_factory=list)
 
 
 def run_literals(
@@ -141,6 +143,9 @@ def run_literals(
                 assign(named, found)
             else:
                 skip_line(assigned.group(2))
+                target = assigned.group(1)
+                if UserProperties.owns(target) and target not in done.unset:
+                    done.unset.append(target)
             return
         put = _SET.match(text)
         if put is not None:
@@ -229,6 +234,36 @@ def initialize(chain, name: str, props: UserProperties, args: tuple[object, ...]
     return run_literals(source, props, args, book_name=book)
 
 
+def assignments_only(source: str) -> bool:
+    """True when every statement of the handler is an assignment of a literal or a name."""
+    lines = source.splitlines()
+    for raw in lines[1:]:
+        low = norm(raw)
+        if not low or low.startswith("--") or low.startswith(_DECLARE):
+            continue
+        if low == "end" or low.startswith("end "):
+            continue
+        if low.startswith("return"):
+            continue
+        assigned = _ASSIGN.match(raw.strip())
+        if assigned is None or _CALL.search(assigned.group(2)):
+            return False
+    return True
+
+
+def run_if_assignments(chain, name: str, props: UserProperties, args: tuple[object, ...] = ()) -> Initialized | None:
+    """Run ``name`` when it reaches no DLL and its body is only assignments. None when it is skipped."""
+    from opentoolbook.send import reaches_dll
+
+    found = chain.find(name)
+    if found is None:
+        raise ValueError(f"{name} is not in {', '.join(book for book, _ in chain.books) or 'any book'}")
+    book, source = found
+    if reaches_dll(chain, name) is not None or not assignments_only(source):
+        return None
+    return run_literals(source, props, args, book_name=book)
+
+
 def _parameters(lines: list[str]) -> list[str]:
     for line in lines:
         low = norm(line)
@@ -274,4 +309,4 @@ def _compare(left: object, operator: str, right: object) -> bool | None:
     return {">": a > b, "<": a < b, ">=": a >= b, "<=": a <= b}[operator]
 
 
-__all__ = ["Initialized", "initialize", "run_literals"]
+__all__ = ["Initialized", "assignments_only", "initialize", "run_if_assignments", "run_literals"]
