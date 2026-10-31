@@ -136,6 +136,43 @@ class LessonTests(unittest.TestCase):
             self.assertIn("P310", str(caught.exception))
             self.assertEqual((missing.page_id, missing.book), ("P300", lesson))
 
+    def test_next_from_p300_runs_the_book_enter_page_for_p400(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+
+        def page_number(nav):
+            listed = nav.display(400, 300)
+            self.assertEqual(listed.page_id, nav.page_id)
+            return [item.text for item in listed.items if item.kind == "field" and item.name.lower() == "page#"]
+
+        nav = Navigator(path.read_bytes(), "P300", path)
+        self.assertEqual(page_number(nav), ["P300"])
+        self.assertTrue(nav.click("Next").moved)
+        self.assertEqual(nav.page_id, "P400")
+        self.assertEqual(page_number(nav), ["P400"])
+        back = Navigator(path.read_bytes(), "P100", path)
+        self.assertTrue(back.click("Back").moved)
+        self.assertEqual(back.page_id, "P10")
+        first = [item.text for item in back.display(400, 300).items if item.kind == "field" and item.name.lower() == "first"]
+        self.assertEqual(first, ["Hello Student, this lesson is about:"])
+        switched = Navigator(path.read_bytes(), "P300", path)
+        switched.click("Selection1")
+        self.assertEqual((switched.book.name, switched.page_id), ("nida81.tbk", "P310"))
+        self.assertEqual(page_number(switched), ["P310"])
+
+    def test_landing_on_lesson_p0_follows_its_enter_page_to_the_logo_book(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        nav = Navigator(path.read_bytes(), "P0", path)
+        nav.enter()
+        self.assertEqual((nav.book.name, nav.page_id), ("nida81.tbk", "P0"))
+        self.assertEqual(nav.variables["lastbook"], path.name)
+        self.assertEqual(nav.variables["nextpage"], "p10")
+        stays = Navigator(path.read_bytes(), "P10", path)
+        stays.enter()
+        self.assertEqual((stays.book, stays.page_id), (path, "P10"))
     def test_logo_p0_has_no_button_and_its_page_click_reads_two_variables(self):
         path = _lesson()
         if path is None:
