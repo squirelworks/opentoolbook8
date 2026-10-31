@@ -3,8 +3,8 @@
 ToolBook sends ``enterSystem``, then ``enterApplication``, then shows a
 page. A quoted ``go to page`` in a branch this reader takes is that page.
 The reader takes ``sysLevel = reader`` because a missing ``sysLevel`` is
-``reader``. ``__studentRecords`` that has not been set is 0, so
-``openSession`` returns 0 and ``gotoPageList`` does not run. The names in
+``reader``. ``it`` is the value of the last ``get``. ``__studentRecords``
+that has not been set is 0, so ``openSession`` returns 0 and ``gotoPageList`` does not run. The names in
 ``gotoPageList`` are not quoted. ``forward`` is not executed. A
 ``linkDLL`` line is not called. ``fileExists32`` is not called; a quoted
 name in that check is looked up with the same search as the book report.
@@ -24,14 +24,15 @@ from opentoolbook.enter import _enter_page
 from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
 from opentoolbook.script import book_handlers, quoted_go_to, resource_scripts
-from opentoolbook.shelf import find_file, open_book, search_roots
+from opentoolbook.shelf import MissingBook, find_file, open_book, search_roots
 from opentoolbook.walk import norm, reader_condition, this_name, walk
 
 _GET = re.compile(r"^get\s+([a-z_][a-z0-9_]*)\s*\((.*)\)\s*$")
 _ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$")
 _BOOK_CALL = re.compile(r"of\s+book\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", re.IGNORECASE)
 _FILE_EXISTS = re.compile(r'^fileexists32\("([^"]*)"\) = 1$')
-_IT_IS = re.compile(r"^it is (\d+)$")
+_GET_VALUE = re.compile(r"^get\s+(.+)$")
+_IT_IS = re.compile(r'^it (?:is|=) (-?\d+|true|false|"[^"]*")$')
 _COMPARE = re.compile(r"^([a-z_][a-z0-9_]*) = (false|true|\d+)$")
 _MESSAGES = ("entersystem", "enterapplication")
 _OTHER_STARTUP = ("opensession", "gotopagelist", "entersystem", "enterapplication")
@@ -45,6 +46,8 @@ class Entry:
     book: Path
     data: bytes
     props: UserProperties = field(default_factory=UserProperties)
+    # System variables the startup handlers assigned, by lower-case name.
+    variables: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass
@@ -69,10 +72,13 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
     """The page ``path`` opens on, after the startup handlers and ``enterPage``.
 
     The ``__`` names those handlers assign are kept in ``props`` and
-    returned on the entry, so the window reads the same values.
+    returned on the entry, so the window reads the same values. The
+    system variables those handlers assigned come back on the entry too,
+    so a click in the window reads the same ``lastbook`` and ``nextpage``.
     """
     if props is None:
         props = UserProperties()
+    variables: dict[str, object] = {}
     try:
         data = path.read_bytes()
     except OSError as exc:
@@ -92,6 +98,7 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
         roots=roots,
         book_name=path.name,
         props=props,
+        variables=variables,
     )
     current_path = path
     current_data = data
@@ -99,7 +106,7 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
     while other:
         found = find_file(roots, other)
         if found is None:
-            raise ValueError(f"{other} was not found; {page} of that book is the opening page")
+            raise MissingBook(other, page, roots)
         current_path = found
         current_data = found.read_bytes()
         current_pages = _pages(current_data)
@@ -121,8 +128,9 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
             startup=False,
             page_id=page,
             props=props,
+            variables=variables,
         )
-    return Entry(page, current_path, current_data, props)
+    return Entry(page, current_path, current_data, props, variables)
 
 
 def choose_opening(
@@ -135,17 +143,21 @@ def choose_opening(
     startup: bool = True,
     page_id: str | None = None,
     props: UserProperties | None = None,
+    variables: dict[str, object] | None = None,
 ) -> tuple[str, str | None]:
     """``(page id, other book or None)`` after startup and this book's ``enterPage``.
 
     ``handlers`` maps a lower-case handler name to its source. ``page_scripts``
     maps a page id to that page's script. An other book is a file name, not
     a path. The caller resolves it. ``props`` keeps the ``__`` names the
-    handlers assign.
+    handlers assign. ``variables`` is filled with the system
+    variables the handlers assign.
     """
     state = _State(pages, {key.lower(): value for key, value in handlers.items()}, roots, book_name)
     if props is not None:
         state.props = props
+    if variables is not None:
+        state.variables = variables
     state.page_id = page_id
     if startup:
         _run_startup(state)
@@ -162,9 +174,7 @@ def choose_opening(
                 raise ValueError(f"{state.page_id} is not a page of {book_name}")
             state.page_id = matched
     if state.book_error and not state.book_name:
-        raise ValueError(
-            f"{state.book_error} was not found; {state.page_id} of the book it names is the opening page"
-        )
+        raise MissingBook(state.book_error, state.page_id or "", state.roots)
     if state.book_name:
         return state.page_id or "", state.book_name
     scripts = page_scripts or {}
@@ -182,9 +192,7 @@ def choose_opening(
         before = matched
         _follow_enter(state, _script_for(scripts, matched))
         if state.book_error and not state.book_name:
-            raise ValueError(
-                f"{state.book_error} was not found; {state.page_id} of the book it names is the opening page"
-            )
+            raise MissingBook(state.book_error, state.page_id or "", state.roots)
         if state.book_name:
             return state.page_id or "", state.book_name
         if (state.page_id or "").lower() == before.lower():
@@ -244,6 +252,10 @@ def _statement(raw: str, low: str, state: _State) -> None:
     if call is not None:
         state.it = _call(call.group(1), state)
         return
+    got = _GET_VALUE.match(raw.strip())
+    if got is not None:
+        state.it = _get_value(got.group(1).strip(), state)
+        return
     if low in {"send next", "send previous"}:
         step = 1 if low == "send next" else -1
         current = state.page_id or (state.pages[0] if state.pages else "")
@@ -293,7 +305,10 @@ def _condition(text: str, state: _State) -> bool | None:
         return find_file(state.roots, exists.group(1)) is not None
     compared = _IT_IS.fullmatch(low)
     if compared is not None:
-        return str(state.it) == compared.group(1)
+        expected = compared.group(1)
+        if expected.startswith('"'):
+            return str(state.it if state.it is not None else "").lower() == expected[1:-1]
+        return _same(state.it, _literal(expected))
     named = _COMPARE.fullmatch(low)
     if named is not None:
         expected = _literal(named.group(2))
@@ -320,6 +335,24 @@ def _lookup(state: _State, name: str) -> object:
     if UserProperties.owns(name):
         return state.props.get(name)
     return state.variables.get(name.lower())
+
+
+def _get_value(expr: str, state: _State) -> object:
+    """The value ``get expr`` stores in ``it``: a literal, a name, or nothing."""
+    value = _value(expr, state)
+    if value is not None:
+        return value
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", expr) and _known(state, expr):
+        return _lookup(state, expr)
+    return None
+
+
+def _same(found: object, expected: object) -> bool:
+    if found is None:
+        return expected in (False, 0)
+    if isinstance(expected, bool) or isinstance(found, bool):
+        return str(found).lower() == str(expected).lower()
+    return str(found) == str(expected)
 
 
 def _literal(text: str) -> object:
