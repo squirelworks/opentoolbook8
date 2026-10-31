@@ -234,8 +234,6 @@ def open_page(
             if listed is None:
                 return
             name = button_at(listed, event.x, event.y)
-            if not name:
-                return
             try:
                 result = nav.click(name)
             except ValueError as exc:
