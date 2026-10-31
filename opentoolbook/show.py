@@ -216,6 +216,7 @@ def open_page(
     status: str | None = None,
     lesson: str | None = None,
     variables: dict[str, object] | None = None,
+    sysbooks: tuple[str, ...] = (),
 ) -> tuple[str, ...]:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
@@ -239,6 +240,8 @@ def open_page(
     ``lesson`` is the path the user passed when the window opens on
     another book. A click still searches beside it.
     ``variables`` are the system variables startup assigned.
+    ``sysBooks`` is the list startup left. A click looks up a handler in
+    the book on screen, then in those books.
     The window's own "Viewer back" control returns to the page it showed
     before, which is not the book's stored previous page. The title is the
     book file and the page id, and it changes on every navigation,
@@ -269,7 +272,7 @@ def open_page(
             "props": props if props is not None else UserProperties(),
             "view": (view_w, view_h),
         }
-        nav = Navigator(data, page_id, book, home, lesson, variables, props=state["props"])
+        nav = Navigator(data, page_id, book, home, lesson, variables, props=state["props"], sysbooks=sysbooks)
         root.title(nav.title())
         errors: list[str] = []
 

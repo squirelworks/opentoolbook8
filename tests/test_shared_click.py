@@ -24,7 +24,10 @@ class SharedScriptClickTests(unittest.TestCase):
         self.data = self.path.read_bytes()
 
     def _nav(self, props):
-        return Navigator(self.data, "P10210", self.path, props=props)
+        from opentoolbook.entry import opening_page
+
+        sysbooks = opening_page(self.path).sysbooks
+        return Navigator(self.data, "P10210", self.path, props=props, sysbooks=sysbooks)
 
     def test_script_103_button_click_is_one_get_line(self):
         source = next(item.source for item in shared_scripts(self.data) if item.resource_id == 103)

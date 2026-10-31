@@ -516,20 +516,6 @@ def _script_for(scripts: dict[str, str], page_id: str) -> str:
     return ""
 
 
-def _companion_handlers(opened) -> dict[str, str]:
-    found: dict[str, str] = {}
-    for item in opened.files:
-        if item.path is None or item.path.suffix.lower() not in {".tbk", ".sbk"}:
-            continue
-        try:
-            data = item.path.read_bytes()
-        except OSError:
-            continue
-        for name, body in _handler_map(data).items():
-            found.setdefault(name, body)
-    return found
-
-
 def _handler_map(data: bytes) -> dict[str, str]:
     found: dict[str, str] = {}
     try:

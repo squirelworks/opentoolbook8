@@ -78,8 +78,11 @@ class Navigator:
         lesson: Path | str | None = None,
         variables: dict[str, object] | None = None,
         props: UserProperties | None = None,
+        sysbooks: tuple[str, ...] = (),
     ) -> None:
         self.data = data
+        # ``sysBooks`` startup left, first item first. Their handlers follow the book's.
+        self.sysbooks = tuple(sysbooks)
         self.pages = page_ids(data)
         self.page_id = page_id
         self.book = Path(book) if book else None
@@ -369,16 +372,13 @@ class Navigator:
             self.data, self.pages, self.book, self.page_id = data, pages, book, matched
 
     def handlers(self) -> dict[str, str]:
-        """Handler bodies this book and the books it names define, by lower-case name."""
-        from opentoolbook.entry import _companion_handlers, _handler_map
+        """Handler bodies by lower-case name: this book's, then each ``sysBooks`` book's."""
+        from opentoolbook.send import handler_chain
 
         key = self.book
         if key not in self._handlers:
-            found: dict[str, str] = {}
-            if self.book is not None:
-                found.update(_companion_handlers(open_book(self.book, self.home)))
-            found.update(_handler_map(self.data))
-            self._handlers[key] = found
+            chain = handler_chain(self.data, self.book_name, self.roots(), self.sysbooks)
+            self._handlers[key] = chain.merged()
         return self._handlers[key]
 
 

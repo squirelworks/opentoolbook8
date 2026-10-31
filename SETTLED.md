@@ -418,6 +418,10 @@ A page whose byte at `+0x30` has low bits 0 stores its script inline. The word a
 A handler whose body has a `linkDLL`, `linkDLL32`, or `unlinkDLL` line returns from `send` without running, so no DLL is called. Every other handler runs with the same statement walker as startup. `send getLogoBook` runs the handler in `nc81base.sbk` once that book is in `sysBooks`, and returns `nida81.tbk`, or `logo81.tbk` / `mrj81.tbk` when the search finds that file. `get name()` still runs a handler that links a DLL without calling the DLL.
 
 
+## Click handlers and sysBooks
+
+The window looks up a click's handlers in the book on screen, then in each book of the `sysBooks` that startup left, in order. It no longer adds the handlers of every `.tbk` or `.sbk` the book's bytes mention. `--show PAGE` runs the book's startup handlers only to learn `sysBooks`. It still draws the page given and keeps no other startup state. On `9e954d01.tbk` with no `sysBooks`, `handleQuizClick` is not a click handler of `P10210` and the lesson's own `enterSystem` is. With the `sysBooks` startup leaves, `handleQuizClick` (`nc81test.sbk`) and `getLogoBook` (`nc81base.sbk`) are.
+
 ## fileExists32
 
 `fileExists32("name")` is the shelf. It is 1 when the book report's search finds that name, ignoring case, and 0 when it does not: the book's directory, its parent, `--home`, `--home/courses`, then `--home/Nida98/Lessons`. `tbfile32.dll`, the library `initializeBase` links it from, is not called. The same function answers `fileExists32("x") = 1`, `fileExists32("x") <> 1`, a bare `if fileExists32("x")`, `found = fileExists32("x")`, and `get fileExists32("x")`, so `getLogoBook` and the search cannot disagree. A lesson folder with `nc81base.sbk` and `nida81.tbk` beside it, and neither `logo81.tbk` nor `mrj81.tbk`, opens `P0` of `nida81.tbk`. Add `mrj81.tbk` and the same lesson opens `P0` of `mrj81.tbk`. Add `logo81.tbk` and `getLogoBook` returns `logo81.tbk`.

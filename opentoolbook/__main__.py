@@ -86,7 +86,14 @@ def main(argv: list[str]) -> int:
             return 2
         home = Path(args.home) if args.home else None
         try:
-            errors = open_page(data, args.show, str(opened), args.home, status=unshipped_dll(opened, home))
+            errors = open_page(
+                data,
+                args.show,
+                str(opened),
+                args.home,
+                status=unshipped_dll(opened, home),
+                sysbooks=_startup_sysbooks(opened, home),
+            )
         except ValueError as exc:
             print(exc, file=sys.stderr)
             return 2
@@ -111,6 +118,7 @@ def main(argv: list[str]) -> int:
             status=unshipped_dll(entry.book, home),
             lesson=args.book,
             variables=entry.variables,
+            sysbooks=entry.sysbooks,
         )
         return 1 if errors else 0
     if not any((args.book, args.catalog, args.cailt, args.keydisk, args.home)):

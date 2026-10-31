@@ -215,11 +215,28 @@ class LessonTests(unittest.TestCase):
         self.assertEqual((switched.book.name, switched.page_id), ("nida81.tbk", "P310"))
         self.assertEqual(page_number(switched), ["P310"])
 
+    def test_click_handlers_are_the_book_then_its_sysbooks(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from opentoolbook.entry import opening_page
+
+        # A book the lesson only mentions adds no handler.
+        alone = Navigator(path.read_bytes(), "P10210", path)
+        self.assertNotIn("handlequizclick", alone.handlers())
+        self.assertIn("entersystem", alone.handlers())
+        pushed = Navigator(path.read_bytes(), "P10210", path, sysbooks=opening_page(path).sysbooks)
+        self.assertIn("handlequizclick", pushed.handlers())
+        self.assertIn("getlogobook", pushed.handlers())
+
     def test_landing_on_lesson_p0_follows_its_enter_page_to_the_logo_book(self):
         path = _lesson()
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        nav = Navigator(path.read_bytes(), "P0", path)
+        from opentoolbook.entry import opening_page
+
+        # The lesson's own startup pushes nc81base.sbk, which holds getLogoBook.
+        nav = Navigator(path.read_bytes(), "P0", path, sysbooks=opening_page(path).sysbooks)
         nav.enter()
         self.assertEqual((nav.book.name, nav.page_id), ("nida81.tbk", "P0"))
         self.assertEqual(nav.variables["lastbook"], path.name)

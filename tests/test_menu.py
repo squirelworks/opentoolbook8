@@ -99,7 +99,9 @@ class LessonTests(unittest.TestCase):
         from opentoolbook.navigate import Navigator
 
         path = Path(LESSON)
-        nav = Navigator(path.read_bytes(), "P450", path)
+        from opentoolbook.entry import opening_page
+
+        nav = Navigator(path.read_bytes(), "P450", path, sysbooks=opening_page(path).sysbooks)
         self.assertTrue(nav.click("Menu").moved)
         self.assertEqual(nav.page_id, "P10001")
         self.assertEqual(nav.props.get("__quizDisableMenuKey"), 1)
