@@ -10,10 +10,8 @@ bytes. The word at ``+0x4F`` is the palette color count. The word at
 ``+0x51`` is a near pointer to a 40-byte bitmap info header, and the
 palette follows it.
 
-Packed pixels start with a word that counts the codes. A code byte below
-``0xF6`` repeats the next byte that many times plus three. A code byte
-of ``0xF6`` or more copies the next ``code - 0xF5`` bytes. The unpacked
-bytes are the bottom-up rows of the info header.
+Packed pixels are read by ``packed.unpack``. The unpacked bytes are the
+bottom-up rows of the info header.
 """
 
 from __future__ import annotations
@@ -21,13 +19,13 @@ from __future__ import annotations
 import struct
 
 from opentoolbook.bitmap import _huge_offset, _u16, _u32
+from opentoolbook.packed import unpack
 from opentoolbook.pixels import _decode_bmp
 from opentoolbook.record import Book
 
 PAINT_OBJECT = 0x15
 PAINT_OBJECT_BYTES = 89
 _INFO_BYTES = 40
-_LITERAL = 0xF6
 
 
 def paint_object_bounds(data: bytes, at: int) -> tuple[int, int, int, int]:
@@ -67,30 +65,3 @@ def paint_object_rgb(data: bytes, segment, at: int) -> tuple[int, int, bytes]:
     """Width, height, and top-down RGB."""
     return _decode_bmp(paint_object_bmp(data, segment, at))
 
-
-def unpack(stored: bytes) -> bytes:
-    """Expand packed paint-object pixels."""
-    if len(stored) < 2:
-        raise ValueError("packed pixels are empty")
-    codes = _u16(stored, 0)
-    out = bytearray()
-    at = 2
-    for _ in range(codes):
-        if at >= len(stored):
-            raise ValueError("packed pixels end early")
-        code = stored[at]
-        at += 1
-        if code >= _LITERAL:
-            count = code - (_LITERAL - 1)
-            if at + count > len(stored):
-                raise ValueError("packed pixels end early")
-            out += stored[at:at + count]
-            at += count
-        else:
-            if at >= len(stored):
-                raise ValueError("packed pixels end early")
-            out += bytes((stored[at],)) * (code + 3)
-            at += 1
-    if at != len(stored):
-        raise ValueError("packed pixels have bytes past the last code")
-    return bytes(out)

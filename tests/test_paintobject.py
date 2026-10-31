@@ -7,7 +7,7 @@ from pathlib import Path
 
 from opentoolbook.field import _segments
 from opentoolbook.page import _objects
-from opentoolbook.paintobject import PAINT_OBJECT, paint_object_bmp, unpack
+from opentoolbook.paintobject import PAINT_OBJECT, paint_object_bmp
 from opentoolbook.show import show_page
 
 LESSON = os.environ.get("OPENTOOLBOOK_TBK")
@@ -24,20 +24,6 @@ def _records(data):
         for at, kind in _objects(data, segment):
             if kind == PAINT_OBJECT:
                 yield segment, at
-
-
-class UnpackTests(unittest.TestCase):
-    def test_a_code_below_0xf6_repeats_the_next_byte_three_more_times(self):
-        self.assertEqual(unpack(bytes((1, 0, 9, 0xA4))), b"\xa4" * 12)
-
-    def test_a_code_from_0xf6_copies_that_many_bytes_minus_0xf5(self):
-        self.assertEqual(unpack(bytes((2, 0, 0xF6, 0x62, 0xF8, 1, 2, 3))), bytes((0x62, 1, 2, 3)))
-
-    def test_the_first_word_counts_the_codes(self):
-        with self.assertRaises(ValueError):
-            unpack(bytes((2, 0, 9, 0xA4)))
-        with self.assertRaises(ValueError):
-            unpack(bytes((1, 0, 9, 0xA4, 0)))
 
 
 class LessonPaintObjectTests(unittest.TestCase):
