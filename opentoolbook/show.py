@@ -6,7 +6,8 @@ solid fill and pattern 253 is no fill. Another pattern byte is not drawn
 as a hatch. A draw object's fill is the color at ``+0x1B`` and its stroke
 is the color at ``+0x17``. A button draws the picture at byte ``0x15`` of
 its graphics block, or the picture at byte ``0x4B`` when the button is
-checked. The invert and disabled pictures are not drawn. A field that
+checked. A letter click on a quiz page checks that letter and unchecks
+the other letters, and the page is drawn again with those states. The invert and disabled pictures are not drawn. A field that
 contains a shape is painted under that shape. A label that contains no
 shape is painted in front of a shape that contains the label.
 
@@ -28,6 +29,7 @@ and class ``0x17`` records are outside that walk, and they are not painted.
 from __future__ import annotations
 
 import struct
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 
 from opentoolbook.background import background
@@ -99,6 +101,8 @@ class Paint:
     picture_role: str | None = None
     picture: tuple[int, int, bytes] | None = None
     mask: bytes | None = None
+    up_id: int | None = None
+    checked_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -134,14 +138,19 @@ def show_page(
     view_width: int,
     view_height: int,
     props: UserProperties | None = None,
+    checked: Mapping[str, bool] | None = None,
 ) -> DisplayList:
     """The display list for one page. It does not open a window.
 
     ``props`` holds the ``__`` names the page's ``enterPage`` reads.
+    ``checked`` maps a button name, in any case, to the checked state a
+    click gave it. It wins over bit 4 of that button's ``+0x26``.
     """
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
     items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props)
+    if checked:
+        items = _checked(data, items, checked)
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
 
 
@@ -207,7 +216,13 @@ def open_page(
         }
 
         def redraw() -> None:
-            listed = show_page(nav.data, nav.page_id, *state["view"], state["props"])
+            listed = show_page(
+                nav.data,
+                nav.page_id,
+                *state["view"],
+                state["props"],
+                nav.checked_buttons(),
+            )
             paint(listed)
 
         def paint(listed: DisplayList) -> None:
@@ -241,7 +256,7 @@ def open_page(
                 return
             if result.beep:
                 root.bell()
-            if result.moved:
+            if result.moved or result.checked:
                 redraw()
 
         canvas.bind("<Button-1>", on_click)
@@ -449,6 +464,33 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
     return None
 
 
+def _checked(data: bytes, items: tuple[Paint, ...], checked: Mapping[str, bool]) -> tuple[Paint, ...]:
+    """Buttons drawn with the checked state a click set, not the stored bit."""
+    wanted = {name.lower(): on for name, on in checked.items()}
+    out = list(items)
+    for index, item in enumerate(out):
+        on = wanted.get(item.name.lower()) if item.kind == "button" else None
+        if on is None:
+            continue
+        if on and item.checked_id:
+            picture_id, role = item.checked_id, "checked"
+        else:
+            picture_id, role = item.up_id, "up" if item.up_id else None
+        if picture_id == item.picture_id:
+            continue
+        out[index] = replace(item, picture_id=picture_id, picture_role=role, picture=_picture(data, picture_id))
+    return tuple(out)
+
+
+def _picture(data: bytes, picture_id: int | None):
+    if not picture_id:
+        return None
+    try:
+        return picture_rgb(data, picture_id)
+    except ValueError:
+        return None
+
+
 def _button(data, segment, at: int, object_id: int, name: str, bounds) -> Paint:
     up = _graphic_word(data, segment, at, 0x15)
     checked_id = _graphic_word(data, segment, at, 0x4B)
@@ -459,12 +501,6 @@ def _button(data, segment, at: int, object_id: int, name: str, bounds) -> Paint:
     else:
         picture_id = up
         role = "up" if up else None
-    picture = None
-    if picture_id:
-        try:
-            picture = picture_rgb(data, picture_id)
-        except ValueError:
-            picture = None
     return Paint(
         "button",
         object_id,
@@ -472,7 +508,9 @@ def _button(data, segment, at: int, object_id: int, name: str, bounds) -> Paint:
         bounds,
         picture_id=picture_id,
         picture_role=role,
-        picture=picture,
+        picture=_picture(data, picture_id),
+        up_id=up or None,
+        checked_id=checked_id or None,
     )
 
 

@@ -6,7 +6,9 @@ is found with the same search as opening a book: the book directory, its
 parent, ``--home``, ``--home/courses``, and ``--home/Nida98/Lessons``,
 regardless of case. A file that search does not find is an error that
 names the file and the page. A quiz button on a page whose background
-calls ``handleQuizClick`` uses the stored page list.
+calls ``handleQuizClick`` uses the stored page list. A letter button on
+that page, ``A`` through ``E``, is ``manageQuizButtons``: the letter is
+checked and every other letter on the page is unchecked. The page stays.
 """
 
 from __future__ import annotations
@@ -18,6 +20,11 @@ from opentoolbook.click import follow_click, quiz_background
 from opentoolbook.field import page_ids
 from opentoolbook.quiznav import quiz_click
 from opentoolbook.shelf import find_file, search_roots
+
+
+# ``initializeTest`` sets ``__quizMaxResponse`` to 5, and
+# ``manageQuizButtons`` walks ``ansiToChar(96 + i)`` up to it.
+LETTERS = ("a", "b", "c", "d", "e")
 
 
 class MissingBook(ValueError):
@@ -36,6 +43,7 @@ class Clicked:
 
     moved: bool
     beep: bool = False
+    checked: bool = False
 
 
 class Navigator:
@@ -53,6 +61,7 @@ class Navigator:
         self.page_id = page_id
         self.book = Path(book) if book else None
         self.home = Path(home) if home else None
+        self.letters: dict[tuple[str, str], str] = {}
 
     @property
     def book_name(self) -> str:
@@ -70,13 +79,27 @@ class Navigator:
             raise MissingBook(name, page_id, roots)
         return found
 
+    def checked_buttons(self) -> dict[str, bool]:
+        """The letter states a click set on this page, for ``show_page``."""
+        letter = self.letters.get(self._key())
+        if letter is None:
+            return {}
+        return {name: name == letter for name in LETTERS}
+
+    def _key(self) -> tuple[str, str]:
+        return (str(self.book or ""), self.page_id)
+
     def click(self, button: str) -> Clicked:
         """Run the named button's click. The page and book change in place."""
         acted = follow_click(self.data, self.page_id, button, self.pages)
         if acted is None:
             if not quiz_background(self.data, self.page_id):
                 return Clicked(False)
-            result = quiz_click(self.pages, self.page_id, button)
+            name = button.strip().lower()
+            if name in LETTERS:
+                self.letters[self._key()] = name
+                return Clicked(False, checked=True)
+            result = quiz_click(self.pages, self.page_id, button, checked=self.letters.get(self._key()))
             if result.page_id == self.page_id:
                 return Clicked(False, result.beep)
             self.page_id = result.page_id
