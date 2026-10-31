@@ -173,7 +173,8 @@ def open_page(
     and the page, and the window stays. A quiz page with no quiz running
     still uses OK, Next, and Skip for the next page and Back for the
     previous page. The Right key runs the page's ``Next`` button and the
-    Left key its ``Back`` button. Escape closes the window. ``props`` is the ``__`` store every page in
+    Left key its ``Back`` button. Enter runs the branch the book's
+    ``keyUp`` handler quotes for ``keyEnter``. Escape closes the window. ``props`` is the ``__`` store every page in
     this window reads. Resizing the window refits the page: the
     scale is computed again from the page size and the new view. The
     close button ends the Tk loop and this
@@ -275,6 +276,8 @@ def open_page(
         canvas.bind("<Button-1>", on_click)
         root.bind("<Right>", on_key)
         root.bind("<Left>", on_key)
+        root.bind("<Return>", on_key)
+        root.bind("<KP_Enter>", on_key)
         root.bind("<Escape>", lambda _event: root.quit())
         canvas.bind("<Configure>", on_configure)
         root.protocol("WM_DELETE_WINDOW", root.quit)
@@ -337,11 +340,31 @@ def key_button(listed: DisplayList, key: str) -> str | None:
 
 
 def press_key(nav, listed: DisplayList, key: str):
-    """Run the click of the button ``key`` presses. None when the page has no such button."""
+    """Run the click of the button ``key`` presses. None when the page has no such button.
+
+    Right and Left are the viewer's keys. Another key runs only when the
+    book's ``keyUp`` handler quotes it and that branch sends ``buttonClick``
+    to a button this page has.
+    """
     name = key_button(listed, key)
+    if name is None:
+        name = _book_key_button(nav, listed, key)
     if name is None:
         return None
     return nav.click(name)
+
+
+def _book_key_button(nav, listed: DisplayList, key: str) -> str | None:
+    from opentoolbook.keys import key_handler
+
+    handler = key_handler(nav.data, nav.page_id, key)
+    if handler is None or handler.button is None:
+        return None
+    wanted = handler.button.lower()
+    for item in listed.items:
+        if item.kind == "button" and item.name.lower() == wanted:
+            return item.name
+    return None
 
 
 def button_at(listed: DisplayList, x: float, y: float) -> str | None:
