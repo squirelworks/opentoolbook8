@@ -8,6 +8,8 @@ from pathlib import Path
 from opentoolbook.background import background
 from opentoolbook.ellipse import ellipses_on_page, stored_ellipses
 
+from lesson import companion
+
 
 class EllipseTests(unittest.TestCase):
     def test_colors_match_a_second_page(self):
@@ -15,7 +17,7 @@ class EllipseTests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         logic = Path(path).read_bytes()
-        nida_path = Path(path).with_name("nida81.tbk")
+        nida_path = companion(path, "nida81.tbk")
         self.assertTrue(nida_path.is_file())
         nida = nida_path.read_bytes()
         first = self._background_pair(logic, "P410")
