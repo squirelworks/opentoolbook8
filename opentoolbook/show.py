@@ -232,7 +232,8 @@ def open_page(
     ``lesson`` is the path the user passed when the window opens on
     another book. A click still searches beside it.
     ``variables`` are the system variables startup assigned.
-    previous page. The return is every click error the window printed,
+    The title is the book file and the page id, and it changes on every
+    navigation, including a book switch. The return is every click error the window printed,
     in order, so the caller can exit non-zero.
     """
     import tkinter as tk
@@ -245,7 +246,7 @@ def open_page(
         width, height = page_size(data)
         view_w = max(1, min(_pixels(width), root.winfo_screenwidth() - 48))
         view_h = max(1, min(_pixels(height), root.winfo_screenheight() - 96))
-        root.title(page_id)
+        root.title("")
         canvas = tk.Canvas(
             root,
             width=view_w,
@@ -257,6 +258,7 @@ def open_page(
             tk.Label(root, text=status, anchor="w").pack(side="bottom", fill="x")
         canvas.pack(fill="both", expand=True)
         nav = Navigator(data, page_id, book, home, lesson, variables)
+        root.title(nav.title())
         state = {
             "props": props if props is not None else UserProperties(),
             "view": (view_w, view_h),
@@ -271,7 +273,7 @@ def open_page(
             canvas.delete("all")
             draw_page(canvas, listed)
             canvas.listed = listed
-            root.title(nav.page_id)
+            root.title(nav.title())
 
         def on_configure(event) -> None:
             view = (max(1, event.width), max(1, event.height))

@@ -482,3 +482,7 @@ A handler outside the four `initialize*` handlers runs only when it reaches no D
 ## initializeRecs and GetVar
 
 `initializeRecs` in `nc81recs.sbk` runs the same way as `initializeBase`. `error = getStudentInfo()` is skipped by name, because `getStudentInfo` links `kernel32.dll` and reads `NIDAREC.INI`, so `__studentFirst` stays unset and `getFirst` still gives `Student`. `step i from 1 to 100` has known bounds, so its body runs. `__lessonVars[i] = "1"` stores `1` at elements 1 through 100 of the one stored name `__lessonVars`. An array is one name whose value is a table by index, the same shape `setupQuizEx` uses for `__quizPages`. `initializeRecs` returns 0. `GetVar vNumber` links no DLL. It runs with the same rules, decides `(vNumber > 0) and (vNumber <= 100)`, and returns `__lessonVars[vNumber]`, so `GetVar(42)` is `1`. `GetVar(0)` and `GetVar(101)` are empty. A parameter's type word, such as `int` in `to get GetVar int vNumber`, is not a parameter name. A `step` whose bounds are not known is skipped by its first line.
+
+## Window title
+
+The window title is the book file name, a dash, and the page id, such as `nida81.tbk - P0`. It changes on every navigation, including a book switch. The bare command on `9e954d01.tbk` opens with `nida81.tbk - P0`. `Next` from `P300` of the lesson shows `9e954d01.tbk - P400`, and `Selection1` from `P300` shows `nida81.tbk - P310`. A window opened without a book file shows the page id alone.

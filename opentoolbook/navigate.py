@@ -87,6 +87,12 @@ class Navigator:
     def book_name(self) -> str:
         return self.book.name if self.book is not None else ""
 
+    def title(self) -> str:
+        """The window title: the book file and the page id."""
+        if not self.book_name:
+            return self.page_id
+        return f"{self.book_name} - {self.page_id}"
+
     def roots(self) -> tuple[Path, ...]:
         """Where a quoted ``of book`` is looked for.
 
