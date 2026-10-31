@@ -126,6 +126,7 @@ def open_page(
     page_id: str,
     book: str | None = None,
     home: str | None = None,
+    lesson: str | None = None,
 ) -> None:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
@@ -137,7 +138,8 @@ def open_page(
     book that search does not find is reported on stderr with the file
     and the page, and the window stays. A quiz page with no quiz running
     still uses OK, Next, and Skip for the next page and Back for the
-    previous page.
+    previous page. ``lesson`` is the path the user passed when the
+    window opens on another book. A click still searches beside it.
     """
     import sys
     import tkinter as tk
@@ -159,7 +161,7 @@ def open_page(
             background="#ffffff",
         )
         canvas.pack()
-        nav = Navigator(data, page_id, book, home)
+        nav = Navigator(data, page_id, book, home, lesson)
 
         def redraw() -> None:
             listed = show_page(nav.data, nav.page_id, view_w, view_h)

@@ -51,6 +51,29 @@ class SearchTests(unittest.TestCase):
             self.assertIsInstance(caught.exception, ValueError)
 
 
+class ShelfTests(unittest.TestCase):
+    def test_a_click_from_the_logo_book_still_searches_beside_the_lesson(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            top = Path(tmp)
+            home = top / "home"
+            (home / "courses").mkdir(parents=True)
+            logo = home / "courses" / "nida81.tbk"
+            logo.write_bytes(FIXTURE.read_bytes())
+            lesson = top / "discs" / "LF" / "9e954d01.tbk"
+            lesson.parent.mkdir(parents=True)
+            lesson.write_bytes(FIXTURE.read_bytes())
+            (lesson.parent / "93954302.TBK").write_bytes(b"")
+            nav = Navigator(logo.read_bytes(), "", logo, home, lesson)
+            self.assertEqual(nav.find_book("93954302.tbk", "P0"), lesson.parent / "93954302.TBK")
+            self.assertEqual(nav.find_book("9E954D01.tbk", "P400"), lesson)
+            self.assertEqual(nav.roots()[:2], (lesson.parent, lesson.parent.parent))
+            self.assertIn(home / "courses", nav.roots())
+            alone = Navigator(logo.read_bytes(), "", logo, home)
+            with self.assertRaises(MissingBook):
+                alone.find_book("93954302.tbk", "P0")
+            self.assertEqual(alone.lesson, logo)
+
+
 class LessonTests(unittest.TestCase):
     def test_selection1_on_p300_opens_p310_of_nida81_in_the_parent(self):
         path = _lesson()
@@ -79,6 +102,27 @@ class LessonTests(unittest.TestCase):
             self.assertIn("nida81.tbk", str(caught.exception))
             self.assertIn("P310", str(caught.exception))
             self.assertEqual((missing.page_id, missing.book), ("P300", lesson))
+
+    def test_the_opening_window_on_the_logo_book_finds_the_lesson(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from opentoolbook.entry import opening_page
+
+        with tempfile.TemporaryDirectory() as tmp:
+            top = Path(tmp)
+            home = top / "home"
+            (home / "courses").mkdir(parents=True)
+            for name in ("nida81.tbk", "nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk"):
+                (home / "courses" / name).symlink_to(path.with_name(name).resolve())
+            lesson = top / "discs" / "LF" / "9e954d01.tbk"
+            lesson.parent.mkdir(parents=True)
+            lesson.symlink_to(path.resolve())
+            entry = opening_page(lesson, home)
+            self.assertEqual((entry.page_id, entry.book.name), ("P0", "nida81.tbk"))
+            nav = Navigator(entry.data, entry.page_id, entry.book, home, lesson)
+            self.assertEqual(nav.find_book("9e954d01.tbk", "P400"), lesson)
+            self.assertEqual(nav.home, home)
 
 
 if __name__ == "__main__":
