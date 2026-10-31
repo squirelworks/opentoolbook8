@@ -93,7 +93,9 @@ class Navigator:
         # the prompt in ``Clicked.requests`` and the handler reads an empty answer.
         self.ask = None
         # Buttons a buttonDown or buttonUp handler set the invert of, by lower-case name.
+        # Kept in object state for the open book so a page change does not clear it.
         self.inverted: dict[str, bool] = {}
+        self._load_inverted()
 
     @property
     def book_name(self) -> str:
@@ -148,7 +150,7 @@ class Navigator:
         if data is not self.data:
             self.pages = page_ids(data)
         self.book, self.page_id, self.data = book, page_id, data
-        self.inverted = {}
+        self._load_inverted()
         return True
 
     def _click(self, button: str | None, shown: dict[str, str] | None) -> Clicked:
@@ -221,7 +223,7 @@ class Navigator:
                 checked = checked or prop == "checked"
                 changed = changed or prop != "checked"
         for button, inverted in acted.inverts:
-            self.inverted[button.lower()] = inverted
+            self._set_invert(button, inverted)
         changed = changed or bool(acted.inverts)
         data, pages, book = self.data, self.pages, self.book
         before_book = book
@@ -236,7 +238,7 @@ class Navigator:
             return Clicked(False, beep, asked, changed, checked)
         self.data, self.pages, self.book = data, pages, book
         self.page_id = page
-        self.inverted = {}
+        self._load_inverted()
         if book != before_book:
             # A go within the book sent leavePage and enterPage while the handler ran.
             self._enter_book()
@@ -298,6 +300,21 @@ class Navigator:
 
     def _book_state(self) -> dict:
         return self.state.setdefault(str(self.book or ""), {})
+
+    def _set_invert(self, button: str, inverted: bool) -> None:
+        """Keep ``invert`` of a button in the open book's object state for this page."""
+        name = button.lower()
+        self.inverted[name] = inverted
+        owner = self.page_id
+        self._book_state().setdefault(owner, {}).setdefault(("button", name), {})["invert"] = inverted
+
+    def _load_inverted(self) -> None:
+        """Rebuild the on-screen invert map from object state for this page and book."""
+        found: dict[str, bool] = {}
+        for (kind, name), values in self._overlay().items():
+            if kind == "button" and "invert" in values:
+                found[name] = values["invert"] is True
+        self.inverted = found
 
     def _owners(self) -> tuple[str, str]:
         """The background key and the page id whose properties the page on screen shows."""

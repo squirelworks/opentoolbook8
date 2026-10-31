@@ -1556,3 +1556,7 @@ Source: ToolBook OpenScript `idle` message (keyword list) and the handoff M5 not
 ## mouseEnter and mouseLeave
 
 Source: handler_sites on Logic Families and nida81 (SETTLED hover counts) and the handoff M5 note. The books use those messages on field scripts, not enterButton/leaveButton. The window now dispatches them on Motion and Leave.
+
+## invert persists in object state
+
+Source: the handoff M5 note that invert from buttonDown/buttonUp must persist (SETTLED previously cleared it on page change). ToolBook keeps object properties for the open book; invert is one of them. The on-screen invert map is rebuilt from that state for the page on screen.

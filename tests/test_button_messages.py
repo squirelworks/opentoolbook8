@@ -1,6 +1,7 @@
 """``buttonDown``, ``buttonUp``, ``mouseEnter``, and ``mouseLeave`` on the pointer."""
 
 import unittest
+from pathlib import Path
 
 from engine_run import run
 from opentoolbook.navigate import Navigator
@@ -10,6 +11,7 @@ from opentoolbook.show import object_at, unit_to_px
 from lesson import SKIP, companion, logic_families_path
 
 PAGES = ("P1", "P2", "P3")
+FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
 
 
 class FixtureTests(unittest.TestCase):
@@ -27,6 +29,19 @@ class FixtureTests(unittest.TestCase):
         self.assertEqual(entered.page_id, "P2")
         left = run('to handle mouseLeave\n\tgo to page "P3"\nend\n', PAGES, "P1")
         self.assertEqual(left.page_id, "P3")
+
+    def test_invert_stays_in_object_state_across_a_page_change(self):
+        nav = Navigator(FIXTURE.read_bytes(), "", FIXTURE)
+        nav._set_invert("Go", True)
+        self.assertEqual(nav.inverted.get("go"), True)
+        nav.history.append((nav.book, nav.page_id, nav.data))
+        nav.page_id = "OTHER"
+        nav._load_inverted()
+        self.assertEqual(nav.inverted, {})
+        self.assertEqual(nav.state[str(nav.book)][""][("button", "go")]["invert"], True)
+        self.assertTrue(nav.back())
+        self.assertEqual(nav.page_id, "")
+        self.assertEqual(nav.inverted.get("go"), True)
 
 
 @unittest.skipIf(logic_families_path() is None, SKIP)
@@ -84,11 +99,21 @@ class LessonTests(unittest.TestCase):
         left = nav.message("field", "Selection1", "mouseLeave")
         self.assertIsNotNone(left)
 
-    def test_a_page_change_drops_the_invert(self):
+    def test_a_page_change_keeps_the_invert_in_object_state(self):
         nav = Navigator(self.data, "P300", self.path)
         nav.message("field", "Selection1", "buttonDown")
+        self.assertEqual(nav.inverted.get("selection1"), True)
         nav.click("Next")
+        self.assertEqual(nav.page_id, "P400")
+        # P400 does not show selection1, so the on-screen map is empty.
         self.assertEqual(nav.inverted, {})
+        # The invert stays in the open book's object state for P300.
+        stored = nav.state[str(nav.book)]["P300"][("button", "selection1")]
+        self.assertEqual(stored.get("invert"), True)
+        nav.back()
+        self.assertEqual(nav.page_id, "P300")
+        self.assertEqual(nav.inverted.get("selection1"), True)
+        self.assertEqual(self._button(nav.display(800, 600), "selection1").picture_role, "invert")
 
 
 if __name__ == "__main__":
