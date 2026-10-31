@@ -246,6 +246,47 @@ class CatalogOpenTests(unittest.TestCase):
             self.assertEqual(calls[0][2], str(home / "Nida98" / "Lessons" / "9e954d01.tbk"))
             self.assertEqual(calls[0][3], str(home))
 
+    def test_a_missing_lesson_names_its_cailt_disc(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "courses"
+            root.mkdir()
+            catalog = root / "courses.xml"
+            catalog.write_text(ONE_LESSON, encoding="latin1")
+            code, calls, _out, err = _main(["--catalog", str(catalog), "--open", "9E954D01"])
+            self.assertEqual((code, calls), (2, []))
+            self.assertEqual(err, "9e954d01.tbk was not found; lesson 9E954D01 does not open\n")
+            home = Path(tmp) / "home"
+            home.mkdir()
+            (home / "Cailt.dat").write_text(CAILT, encoding="latin1")
+            code, calls, out, err = _main(
+                ["--catalog", str(catalog), "--open", "9E954D01", "--home", str(home)]
+            )
+            self.assertEqual((code, calls, out), (2, [], ""))
+            self.assertEqual(
+                err,
+                "9e954d01.tbk was not found; lesson 9E954D01 does not open; "
+                "CAILT.DAT puts it on disc DIE-EXACT\n",
+            )
+            (home / "Cailt.dat").write_text("9E954??* DIE??V03, STX00V03\n", encoding="latin1")
+            code, calls, _out, err = _main(
+                ["--catalog", str(catalog), "--open", "9E954D01", "--home", str(home)]
+            )
+            self.assertEqual((code, calls), (2, []))
+            self.assertTrue(err.endswith("; CAILT.DAT puts it on discs DIE??V03, STX00V03\n"))
+            (home / "Cailt.dat").write_text("93951??* DCX??V03\n", encoding="latin1")
+            code, calls, _out, err = _main(
+                ["--catalog", str(catalog), "--open", "9E954D01", "--home", str(home)]
+            )
+            self.assertTrue(err.endswith("; CAILT.DAT names no disc for it\n"))
+            # Beside the catalog the table is on the shelf without --home.
+            (home / "Cailt.dat").rename(root / "CAILT.DAT")
+            (root / "CAILT.DAT").write_text(CAILT, encoding="latin1")
+            code, calls, _out, err = _main(["--catalog", str(root), "--open", "9e954d01"])
+            self.assertEqual((code, calls), (2, []))
+            self.assertTrue(err.endswith("; CAILT.DAT puts it on disc DIE-EXACT\n"))
+
     def test_an_id_the_catalog_does_not_list_is_an_error(self):
         import tempfile
 
