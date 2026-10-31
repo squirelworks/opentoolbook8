@@ -12,7 +12,8 @@ file and the page, in the same sentence as the open:
 that hits no button, or a button with no ``buttonClick``, goes to the
 page's own ``buttonClick``. A quiz button on a page whose background
 calls ``handleQuizClick`` uses the stored page list. A page id matches
-regardless of case.
+regardless of case. A ``request`` the click runs is returned with the
+result, and the window shows it.
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ class Clicked:
 
     moved: bool
     beep: bool = False
+    requests: tuple[str, ...] = ()
 
 
 class Navigator:
@@ -94,10 +96,12 @@ class Navigator:
             if not button or not quiz_background(self.data, self.page_id):
                 return Clicked(False)
             result = quiz_click(self.pages, self.page_id, button)
+            asked = (result.request,) if result.request else ()
             if result.page_id == self.page_id:
-                return Clicked(False, result.beep)
+                return Clicked(False, result.beep, asked)
             self.page_id = result.page_id
-            return Clicked(True, result.beep)
+            return Clicked(True, result.beep, asked)
+        beep, asked = acted.beeps > 0, acted.requests
         data, pages, book = self.data, self.pages, self.book
         if acted.book and acted.book.lower() != self.book_name.lower():
             book = self.find_book(acted.book, acted.page_id)
@@ -105,12 +109,12 @@ class Navigator:
             pages = page_ids(data)
         page = _match(pages, acted.page_id)
         if page is None:
-            return Clicked(False)
+            return Clicked(False, beep, asked)
         if book == self.book and page == self.page_id:
-            return Clicked(False)
+            return Clicked(False, beep, asked)
         self.data, self.pages, self.book = data, pages, book
         self.page_id = page
-        return Clicked(True)
+        return Clicked(True, beep, asked)
 
 
 def _match(pages: tuple[str, ...], page_id: str) -> str | None:

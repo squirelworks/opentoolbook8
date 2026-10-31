@@ -9,6 +9,8 @@ stays. A handler line ``name = "text"``, ``name = name of this book``, or
 ``send previous`` are the next and previous pages in the stored page
 list. ``if``, ``break``, and ``return`` are the shared walker in
 ``walk.py``. A line that is not one of those is not a page change.
+``beep`` does nothing and returns. ``request "..."`` records its text and
+does not change the page.
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ from dataclasses import dataclass
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
 from opentoolbook.script import _button_click, _script, button_clicks, quoted_go_to
-from opentoolbook.walk import Flow, reader_condition, walk
+from opentoolbook.walk import Flow, is_beep, reader_condition, request_text, walk
 
 _PAGE = 5
 _BACKGROUND = 4
@@ -43,6 +45,8 @@ class Follow:
 
     page_id: str
     book: str | None
+    requests: tuple[str, ...] = ()
+    beeps: int = 0
 
 
 def follow_click(
@@ -96,8 +100,17 @@ def run_handler(
     """
     known = variables if variables is not None else {}
     landed = {"page": page_id, "book": None}
+    asked: list[str] = []
+    beeps = [0]
 
     def statement(raw: str, low: str) -> None:
+        if is_beep(raw):
+            beeps[0] += 1
+            return
+        asked_text = request_text(raw)
+        if asked_text is not None:
+            asked.append(asked_text)
+            return
         text = raw.strip()
         found = quoted_go_to(raw)
         if found is not None:
@@ -124,7 +137,7 @@ def run_handler(
             landed["book"] = None
 
     walk(source.splitlines(), Flow(), condition=reader_condition, statement=statement)
-    return Follow(landed["page"], landed["book"])
+    return Follow(landed["page"], landed["book"], tuple(asked), beeps[0])
 
 
 def _assigned(expression: str, page_id: str, book_name: str) -> str | None:
