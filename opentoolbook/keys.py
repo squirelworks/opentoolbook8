@@ -126,7 +126,11 @@ def key_handler(data: bytes, page_id: str, keysym: str) -> KeyHandler | None:
     key = KEYSYMS.get(keysym)
     if key is None:
         return None
-    scripts = {item.resource_id: item.source for item in resource_scripts(data)}
+    try:
+        scripts = {item.resource_id: item.source for item in resource_scripts(data)}
+    except ValueError:
+        # A fixture or truncated book with no resource directory answers no keyUp.
+        return None
     own = page_script_id(data, page_id)
     if own is not None and own in scripts:
         body = key_up(scripts[own])
