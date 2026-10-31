@@ -174,7 +174,7 @@ class Navigator:
                 return Clicked(False, checked=True)
             if name in _NEXT_QUESTION and self.props is not None:
                 self.record_answer()
-            result = quiz_click(self.pages, self.page_id, button, checked=self.letters.get(self._key()))
+            result = self.quiz_click(button)
             asked = (result.request,) if result.request else ()
             if result.page_id == self.page_id:
                 return Clicked(False, result.beep, asked)
@@ -204,6 +204,35 @@ class Navigator:
         self.visible = {}
         self.enter()
         return Clicked(True, beep, asked)
+
+    def quiz_click(self, button: str):
+        """``get handleQuizClick(target)``, the one line of shared script 103's ``buttonClick``.
+
+        ``__quizPass`` comes from the store. On a running pass the store and
+        each question page's ``QuestionNo`` go to ``gotoNextQuestionEx``.
+        """
+        from opentoolbook.quiz import questions
+
+        quiz_pass = self.props.get("__quizPass")
+        if not isinstance(quiz_pass, int) or isinstance(quiz_pass, bool):
+            quiz_pass = None
+        numbers = None
+        if quiz_pass in (1, 2, 3):
+            numbers = {
+                item.page_id: int(item.question_no)
+                for item in questions(self.data)
+                if item.question_no.strip().isdigit()
+            }
+        return quiz_click(
+            self.pages,
+            self.page_id,
+            button,
+            quiz_pass=quiz_pass,
+            checked=self.letters.get(self._key()),
+            props=self.props if numbers is not None else None,
+            question_numbers=numbers,
+            script=self.handlers().get("handlequizclick", ""),
+        )
 
     def call(self, name: str) -> str | None:
         """The page a ``get name()`` line in a click goes to, or None.
