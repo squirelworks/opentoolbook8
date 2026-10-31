@@ -198,7 +198,7 @@ class CommandTests(unittest.TestCase):
     def test_the_bare_command_opens_the_viewer_and_does_not_print_the_report(self):
         from opentoolbook.__main__ import main
 
-        with patch("opentoolbook.__main__.open_page") as open_page:
+        with patch("opentoolbook.__main__.open_page", return_value=()) as open_page:
             code = main(["opentoolbook", str(FIXTURE)])
         self.assertEqual(code, 0)
         self.assertEqual(open_page.call_args.args[1], "")
