@@ -8,6 +8,8 @@ from pathlib import Path
 
 from opentoolbook.polygon import stored_polygon_colors
 
+from lesson import companion
+
 
 class PolygonColorTests(unittest.TestCase):
     def test_colors_follow_the_pattern_byte(self):
@@ -15,7 +17,7 @@ class PolygonColorTests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         self._colors(Path(path).read_bytes(), uniform=True)
-        nida = Path(path).with_name("nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         self.assertTrue(nida.is_file())
         self._colors(nida.read_bytes(), uniform=False)
 
