@@ -131,6 +131,10 @@ A class `0x0E` line is 53 bytes. The endpoints are the signed pairs at `+0x26`. 
 
 The word at byte 2 of a style run is 1, or a near pointer in the list at the book record's `+0x28`. The first word of that list is a count of the pointers. When the run word is one of those pointers, the bytes there are a C string and the reader returns it. When the word is 1, the reader returns no string. On `9e954d01.tbk` more than one of those strings occurs, the same pointer is the same string, and 1 is not in the list. The same shape holds on `nida81.tbk`.
 
+## Stroke width
+
+The byte at `+0x22` of a class `0x8`, `0xC`, `0xD`, `0xE`, `0x10`, or `0x13` record is the line style. Against the export's `LineStyle` on `9e954d01.tbk` it is one value per style on every record of each class: 4 is `1` (516 lines, 221 rectangles, 43 ellipses, 62 angled lines, 649 polygons), 5 is `2` (2 lines, 2 ellipses), 6 is `3` (2 rectangles, 4 angled lines), 9 is `8` (20 rectangles), 2 is `dotted` (10 lines), and 1 is `none` (5 polygons). Every class `0xE` line in both books stores one of those bytes: 4 on 516, 2 on 10, and 5 on 2 in the lesson; 4 on 11, 1 on 6, 5 on 4, and 6 on 3 in `nida81.tbk`. The window strokes 4, 5, 6, and 9 at 1, 2, 3, and 8 pixels times the fit scale, at least 1. 1 is no stroke: a line is not drawn and a shape has no outline. 2 is drawn solid at 1 pixel; dotted is not drawn. A byte not in that list, such as 7 on four `nida81.tbk` rectangles, is 1 pixel. The color at `+0x17` is still the stroke color the reader returns. On `P1110` the red line and ellipse are 2 pixels. On `nida81.tbk` `P12000` a line is 3 pixels, and on `P22100` the 14 class `0xD` records have no outline.
+
 ## Class `0x0B`
 
 A class `0x0B` record is 49 bytes. The four signed words at `+0x0F` are a rectangle. It is the union of the rectangles at `+0x0F` of the objects whose word at `+0x04` names the record. The reader returns that rectangle. On `9e954d01.tbk` the two records in `FINDINGS.md` are (2557, 105, 6322, 1005) and (3202, 360, 6142, 765). The same read holds for every such record in `nida81.tbk`.

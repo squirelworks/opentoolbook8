@@ -145,7 +145,7 @@ Words `+0x06` and `+0x08` are 65535. Words `+0x02`, `+0x20`, and `+0x26` are 0. 
 
 ### Class `0xE`, 53 bytes, 528 records
 
-Same length as class `0x10`, and a different record. Words `+0x06` and `+0x08` are 65535. Words `+0x02` and `+0x20` are 0. Word `+0x32` is 15 in every one of the 528. The four words at `+0x0F` have area in 12 of the 528. On the other 516 one side is equal. Two records:
+Same length as class `0x10`, and a different record. Words `+0x06` and `+0x08` are 65535. Words `+0x02` and `+0x20` are 0. Word `+0x32` is 15 in every one of the 528. Word `+0x32` is not the stroke width: two lines are `LineStyle="2"` in the export and still store 15. The width is the byte at `+0x22`, in `SETTLED.md`. The styles 3, 7, and 8 of that byte have no export pair yet. The four words at `+0x0F` have area in 12 of the 528. On the other 516 one side is equal. Two records:
 
 ```
 270000001400ffffffff0800001400fa05e10f6108e10ffffcf00080808000210000040000006108e10ffa05e10f00000f000f00a7
