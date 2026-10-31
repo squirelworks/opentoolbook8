@@ -126,7 +126,7 @@ def open_page(
     page_id: str,
     book: str | None = None,
     home: str | None = None,
-) -> None:
+) -> tuple[str, ...]:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
     The page id is the one the caller passed. This function does not
@@ -137,9 +137,9 @@ def open_page(
     book that search does not find is reported on stderr with the file
     and the page, and the window stays. A quiz page with no quiz running
     still uses OK, Next, and Skip for the next page and Back for the
-    previous page.
+    previous page. The return is every click error the window printed,
+    in order, so the caller can exit non-zero.
     """
-    import sys
     import tkinter as tk
 
     from opentoolbook.navigate import Navigator
@@ -160,6 +160,7 @@ def open_page(
         )
         canvas.pack()
         nav = Navigator(data, page_id, book, home)
+        errors: list[str] = []
 
         def redraw() -> None:
             listed = show_page(nav.data, nav.page_id, view_w, view_h)
@@ -175,10 +176,8 @@ def open_page(
             name = button_at(listed, event.x, event.y)
             if not name:
                 return
-            try:
-                result = nav.click(name)
-            except ValueError as exc:
-                print(exc, file=sys.stderr)
+            result = click_reported(nav, name, errors)
+            if result is None:
                 root.bell()
                 return
             if result.beep:
@@ -189,9 +188,27 @@ def open_page(
         canvas.bind("<Button-1>", on_click)
         redraw()
         root.mainloop()
+        return tuple(errors)
     finally:
         if root.winfo_exists():
             root.destroy()
+
+
+def click_reported(nav, name: str, errors: list[str], stream=None):
+    """Run one click. A reader error prints its one line and returns None.
+
+    The line is the same sentence the open prints, for example
+    ``nida81.tbk was not found; P310 of that book does not open``. The
+    page and book stay where they were.
+    """
+    import sys
+
+    try:
+        return nav.click(name)
+    except ValueError as exc:
+        print(exc, file=stream if stream is not None else sys.stderr)
+        errors.append(str(exc))
+        return None
 
 
 def button_at(listed: DisplayList, x: float, y: float) -> str | None:

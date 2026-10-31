@@ -5,7 +5,8 @@ whose ``buttonClick`` quotes a page opens that page. A quoted ``of book``
 is found with the same search as opening a book: the book directory, its
 parent, ``--home``, ``--home/courses``, and ``--home/Nida98/Lessons``,
 regardless of case. A file that search does not find is an error that
-names the file and the page. A quiz button on a page whose background
+names the file and the page, in the same sentence
+as the open: ``nida81.tbk was not found; P310 of that book does not open``. A quiz button on a page whose background
 calls ``handleQuizClick`` uses the stored page list.
 """
 
@@ -17,17 +18,7 @@ from pathlib import Path
 from opentoolbook.click import follow_click, quiz_background
 from opentoolbook.field import page_ids
 from opentoolbook.quiznav import quiz_click
-from opentoolbook.shelf import find_file, search_roots
-
-
-class MissingBook(ValueError):
-    """A book a click names that the search does not find."""
-
-    def __init__(self, name: str, page_id: str, roots: tuple[Path, ...]) -> None:
-        self.name = name
-        self.page_id = page_id
-        self.roots = roots
-        super().__init__(f"{name} was not found; {page_id} of that book is the page the click opens")
+from opentoolbook.shelf import MissingBook, find_file, search_roots
 
 
 @dataclass(frozen=True)
