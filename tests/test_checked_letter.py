@@ -57,7 +57,7 @@ class LessonLetterClickTests(unittest.TestCase):
         self.assertFalse(clicked.moved)
         self.assertTrue(clicked.checked)
         self.assertEqual(nav.page_id, "P10210")
-        after = _letters(show_page(self.data, nav.page_id, 800, 600, None, nav.checked_buttons()))
+        after = _letters(show_page(self.data, nav.page_id, 800, 600, checked=nav.checked_buttons()))
         self.assertEqual(after["A"], (118, "checked"))
         self.assertEqual(after["B"], (119, "up"))
         self.assertEqual(after["C"], (122, "up"))
@@ -67,7 +67,7 @@ class LessonLetterClickTests(unittest.TestCase):
         nav = Navigator(self.data, "P10210")
         nav.click("A")
         nav.click("b")
-        after = _letters(show_page(self.data, nav.page_id, 800, 600, None, nav.checked_buttons()))
+        after = _letters(show_page(self.data, nav.page_id, 800, 600, checked=nav.checked_buttons()))
         self.assertEqual(after["A"], (116, "up"))
         self.assertEqual(after["B"][1], "checked")
 
@@ -76,7 +76,7 @@ class LessonLetterClickTests(unittest.TestCase):
         self.assertEqual(stored["B"][1], "checked")
         nav = Navigator(self.data, "P10211")
         nav.click("A")
-        after = _letters(show_page(self.data, nav.page_id, 800, 600, None, nav.checked_buttons()))
+        after = _letters(show_page(self.data, nav.page_id, 800, 600, checked=nav.checked_buttons()))
         self.assertEqual(after["A"][1], "checked")
         self.assertEqual(after["B"][1], "up")
 
