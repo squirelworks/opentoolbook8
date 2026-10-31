@@ -52,6 +52,8 @@ class Clicked:
     requests: tuple[str, ...] = ()
     changed: bool = False
     checked: bool = False
+    # ``send exit`` asked the window to close.
+    exited: bool = False
 
 
 class Navigator:
@@ -223,6 +225,7 @@ class Navigator:
 
     def _apply(self, acted) -> Clicked:
         beep, asked = acted.beeps > 0, acted.requests
+        exited = bool(getattr(acted, "exited", False))
         owners = self._owners()
         state = self._book_state()
         checked = changed = False
@@ -242,16 +245,16 @@ class Navigator:
             pages = page_ids(data)
         page = _match(pages, acted.page_id)
         if page is None:
-            return Clicked(False, beep, asked, changed, checked)
+            return Clicked(False, beep, asked, changed, checked, exited)
         if book == self.book and page == self.page_id:
-            return Clicked(False, beep, asked, changed, checked)
+            return Clicked(False, beep, asked, changed, checked, exited)
         self.data, self.pages, self.book = data, pages, book
         self.page_id = page
         self._load_inverted()
         if book != before_book:
             # A go within the book sent leavePage and enterPage while the handler ran.
             self._enter_book()
-        return Clicked(True, beep, asked)
+        return Clicked(True, beep, asked, exited=exited)
 
     def _enter_book(self) -> None:
         """``enterBook``, ``enterBackground``, then ``enterPage``, after the window opens another book."""

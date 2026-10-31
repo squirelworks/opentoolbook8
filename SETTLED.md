@@ -273,6 +273,10 @@ Resizing the window refits the page. The canvas fills the window. A `Configure` 
 
 The window's close button ends the Tk loop. `open_page` returns, and `python3 -m opentoolbook --show PAGE book.tbk` exits 0. Before this, closing the window raised `TclError` from the destroyed root. A click whose handler raises `ValueError` or `OSError` prints that error's one line on stderr and the window stays up on the same page. Any other exception keeps its traceback and the window also stays up. The smoke test opens `otb-line-rect.tbk` and presses close. It is skipped with a message when `DISPLAY` is unset or the Python has no `tkinter`.
 
+## `send exit`
+
+`send exit` is a message. When no `to handle exit` answers it, the click host takes it and marks the result exited. The window ends its Tk loop the same way Escape and the close button do. A synthetic `buttonClick` that only `send exit` leaves the page where it is and returns exited. On `9e954d01.tbk`, `Exit` on `P900` runs `send keyup keyF2 to this page`; the book's `keyUp` asks `Are you sure you want to Exit the Lesson?`, and with Yes it runs `EndExperiment`, `closeSession`, and `send exit`, so the click exits. With No the page stays and the click does not exit. `keyUp` for F2 with the same answers does the same.
+
 ## Page photos
 
 Drawing a page deletes the Tk images of the page drawn before it, then makes the new page's images. The window holds the photos of one page at a time. On `9e954d01.tbk` P300 has five button pictures and P400 has four, and P300, Next to P400, Back to P300, and so on keeps the window at five and four images, whether or not something else still holds a reference to an old photo. There is no bitmap cache across pages or books.

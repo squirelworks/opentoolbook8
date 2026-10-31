@@ -31,6 +31,8 @@ class Follow:
     # Properties a script set: (owner, kind, lower-case name or id, property, value), in order.
     # The owner is a page id or a background key.
     writes: tuple[tuple[str, str, object, str, object], ...] = ()
+    # ``send exit`` (or a bare ``exit`` message) asked the reader to close.
+    exited: bool = False
 
 
 def object_handler(data: bytes, page_id: str, kind: str, name: str, message: str) -> str | None:

@@ -439,6 +439,9 @@ def open_page(
             if result is None:
                 root.bell()
                 return
+            if result.exited:
+                root.quit()
+                return
             if result.beep:
                 root.bell()
             for text in result.requests:
@@ -458,6 +461,9 @@ def open_page(
             if target is not None:
                 up = nav.message(*target, "buttonUp", field_texts(listed))
                 if up is not None:
+                    if up.exited:
+                        root.quit()
+                        return
                     if up.beep:
                         root.bell()
                     redraw()
@@ -502,6 +508,9 @@ def open_page(
             """Show beep/request and redraw when ``result`` changed the page. True when handled."""
             if result is None:
                 return False
+            if result.exited:
+                root.quit()
+                return True
             if result.beep:
                 root.bell()
             for text in result.requests:
@@ -543,6 +552,9 @@ def open_page(
                 return
             result = nav.key_char(char)
             if result is None:
+                return
+            if result.exited:
+                root.quit()
                 return
             if result.beep:
                 root.bell()

@@ -1616,3 +1616,8 @@ Source: handoff M8 keyboard; RESEARCH note that live `keyUp` was unwired. The wi
 ## Menu Selection T to Begin
 
 Source: handoff M6 (MENU → Begin starts the quiz); driver on `9e954d01.tbk` with startup `__lessonMode` 2. `Menu` opens `P900`; `selectiont` opens `P10004`; `selection1` starts the Quiz and lands on `P10210`. Assessment menu `P10001` still needs `__lessonMode` 0.
+
+## `send exit` closes the window
+
+Source: handoff M6 Exit (`send keyUp keyF2 to this page` on the `Exit` button; book's `keyUp` then `send exit`). No book in the Logic Families chain defines `to handle exit`. The reader treats an unanswered `exit` message as close-the-window, matching Escape and the title-bar close.
+
