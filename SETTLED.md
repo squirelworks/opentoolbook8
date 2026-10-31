@@ -55,6 +55,10 @@ A button bitmap is an 8-byte prefix followed by a `BM` file in the huge table. T
 
 `9e954d01.tbk` names four bitmaps in the huge table. Resource 148 is at `0x2577`, 581 by 157, 8 bits per pixel. Resource 150 is at `0x18ff7`, 580 by 387, 8 bits per pixel. Resource 155 stays at `0x50117`, 580 by 158, 8 bits per pixel. Resource 164 is at `0x1be627`, 580 by 158, 8 bits per pixel. That count is four.
 
+## 8-bit pictures
+
+An 8-bit picture's pixels are indexes into the color table that follows its info header. The table has the info header's color count, or 256 when that count is 0. The window draws the table color, in red, green, blue order, for each index, with rows turned top-down. It does not read index bytes as color triples. Resources 148, 150, 155, and 164 of `9e954d01.tbk` are 8 bits per pixel. The first stored byte of each is index 0. For 148, 150, and 155 that is 192, 192, 192, and for 164 it is 113, 217, 217. Resource 155 is 580 by 158, and the `textbox` button on `P450` draws it. Every type-1 picture the reader finds decodes: 49 at 8 bits and 18 at 24 bits in `9e954d01.tbk`, and 18 and 14 in `nida81.tbk`. Each of the 67 in `9e954d01.tbk` is the same RGB as the `Bitmap` file of that id in the TBKX export.
+
 ## Button picture
 
 A class `0x09` button is 43 bytes. The word at `+0x28` is a near pointer to a graphics block. When that word is not 0, the block starts with `0x0202` and the unaligned word at byte `0x15` of the block is the picture id. That id is a type-1 resource id plus one. The reader returns it. On `9e954d01.tbk` the four huge-table bitmaps are named there by their stored ids.
@@ -71,13 +75,25 @@ A class `0x09` button's word at `+0x28` names a graphics block that starts with 
 
 A class `0x09` button's graphics block starts with `0x0202`. The unaligned word at byte `0x27` of that block is the invert picture. It is a type-1 resource id plus one, or 0 when there is no invert picture. The reader returns it. On `9e954d01.tbk` the A button on `P10210` is 117, the stored id of bitmap 116. The MenuFrame button on `P300` is 0. The same word is a stored id or 0 on every such block in `nida81.tbk`. The border byte at the button record's `+0x27` is a different field.
 
+## Invert picture on press
+
+While the mouse button is down on a button, the window draws the picture at byte `0x27` of that button's graphics block, when that word is not 0. Letting go draws the up picture again, and the click runs on release over the same button. Releasing somewhere else does not run the click. A button whose invert word is 0, such as `MenuFrame` on `P300`, does not change while held. On `9e954d01.tbk` the A button on `P10210` draws stored id 117, bitmap 116, while held, and stored id 116, bitmap 115, after release. The headless call `pressed` returns that held display list.
+
 ## Button disabled picture
 
 A class `0x09` button's graphics block starts with `0x0202`. The unaligned word at byte `0x39` of that block is the disabled picture. It is a type-1 resource id plus one, or 0 when there is no disabled picture. The reader returns it. On `9e954d01.tbk` the A button on `P10301` is 128, the stored id of bitmap 127. The MenuFrame button on `P300` is 0. Every such block in `nida81.tbk` is 0.
 
+## Disabled button picture
+
+The window draws a disabled button's disabled picture. When bit 0 of button `+0x26` is 0 and the word at byte `0x39` of the graphics block is not 0, that stored id is the picture. When the word is 0 the up picture stays. On `9e954d01.tbk` the A button on `P10302` is disabled, and the window draws stored id 128, bitmap 127. The A button on `P10301` stores 128 too, but its enabled bit is 1, so it keeps up picture 116. On the `Test` background, `Back`, `Help`, `Next`, and `Skip` are disabled on the pages that store them that way, and they draw their disabled pictures 103, 109, 115, and 112. No button in either book is both disabled with a disabled picture and checked. Every button in `nida81.tbk` stores 0 at byte `0x39`, so those buttons keep their up pictures.
+
 ## Button border
 
 A class `0x09` button is 43 bytes. The byte at `+0x27` is the border. The reader returns that byte. On `9e954d01.tbk` the Next button on `P300` is 1 and the A button on `P10210` is 9. The export calls 1 `none`, 9 `radioButton3d`, and 7 `pushButton`. In `nida81.tbk` every such button is 1 or 7.
+
+## Button border frame
+
+A button's border byte at `+0x27` is drawn as a frame in the button's stroke color, the color at `+0x17`. `pushButton` (7) is a frame on the bounds the reader returns. `radioButton3d` (9) is a smaller frame, one pixel (15 page units) inside the bounds. No byte stores that inset; it is the window's choice. `none` (1) and any other byte draw no frame. The picture is drawn first and the frame on top. A button's stroke is `+0x17` and its fill is `+0x1B`, the same offsets as a draw object: the export's `RgbStroke` and `RgbFill` match those bytes on all 382 buttons in `9e954d01.tbk`. On `9e954d01.tbk`, `Next` on `P300` is border 1 and has no frame. `A` on `P10210` is border 9, bounds `2430,1635,2715,1920`, and its frame is `2445,1650,2700,1905` in black. The `OK` button on `P30000` is border 7 and its frame is its bounds `4111,3945,5323,4245`. In `nida81.tbk`, `Retry` on `P12000` is border 7 and its frame is its bounds `603,2295,3339,2721` in black. A button caption is not drawn.
 
 ## Button enabled
 
@@ -86,6 +102,10 @@ A class `0x09` button is 43 bytes. Bit 0 of the byte at `+0x26` is enabled. The 
 ## Button checked
 
 A class `0x09` button is 43 bytes. Bit 4 of the byte at `+0x26` is checked. The reader returns that bit. On `9e954d01.tbk` the B button on `P10211` is 1 and the A button on `P10210` is 0. The export calls 1 `true` and 0 `false`. Every such button in `nida81.tbk` is 0. The checked picture at byte `0x4b` of the graphics block is a different field.
+
+## Letter click checks the letter
+
+On a page whose background calls `handleQuizClick`, a click on a button named `A` through `E` is `manageQuizButtons` in `nc81test.sbk`: `set checked of button vLabel to true`, then every other `ansiToChar(96 + i)` button that is checked is set to false. `initializeTest` sets `__quizMaxResponse` to 5, so the letters are `a` to `e`, compared regardless of case. The page stays. The window keeps that letter for the page and the book, and draws the page again: the clicked letter uses the checked picture at byte `0x4b` and the other letters use the up picture at byte `0x15`, whatever bit 4 of `+0x26` stores. On `9e954d01.tbk`, after a click on `A` on `P10210`, the display list has picture 118 for `A`, 119 for `B`, 122 for `C`, and 125 for `D`. Before the click `A` is 116. On `P10211`, where `B` is stored checked, a click on `A` draws `A` checked and `B` up. A page the window has not had a letter click on keeps its stored bits. The letter is also the `checked` that `quiz_click` reads.
 
 ## Page ids
 
@@ -131,6 +151,18 @@ A class `0x0E` line is 53 bytes. The endpoints are the signed pairs at `+0x26`. 
 
 The word at byte 2 of a style run is 1, or a near pointer in the list at the book record's `+0x28`. The first word of that list is a count of the pointers. When the run word is one of those pointers, the bytes there are a C string and the reader returns it. When the word is 1, the reader returns no string. On `9e954d01.tbk` more than one of those strings occurs, the same pointer is the same string, and 1 is not in the list. The same shape holds on `nida81.tbk`.
 
+## No hatch for class 0x8
+
+The next class `0x8` pattern byte after 254 and 253 that occurs in both books does not exist. In `9e954d01.tbk` the bytes at `+0x25` are 254 on 143 records, 33 on 56, 253 on 41, and 4 on 3. In `nida81.tbk` they are 254 on 75, 253 on 9, and 81 on 2. Only 254 and 253 are in both. The export names 254 `solidFill` and 253 `none`, and it writes 33 and 4 as bare numbers, `Pattern="33"` and `Pattern="4"`. No byte and no Instructor note names a hatch for 33, 4, or 81. The window does not draw a hatch: such a rectangle is its fill color at `+0x1B` and its stroke at `+0x17`. On `P440` the first pattern-33 bar is `750,4830,825,5130`, filled 192, 192, 192 with a black stroke.
+
+## Layer list
+
+A page or a background stores one class `0x06` record of 15 bytes whose word at `+0x08` is that page's or background's near. The word at `+0x02` is a count, and the word at `+0x0C` is a trailer handle. That handle's item holds that many near words: the parent's objects, back to front. The word at `+0x00` is at least the count. On `9e954d01.tbk` each of the 131 pages has exactly one such record and its list holds the page's objects once each. The object ids in list order are the export's `Page.Objects` order on all 131 pages. On 36 of them that order is not the stored order. Each of the 44 pages of `nida81.tbk` has one such record with the same property. The 14 lesson backgrounds and 20 `nida81.tbk` backgrounds store one as well, naming the same objects in their stored order. The window paints a page's or background's objects in list order, and a group's children in its own child list order. When the list is missing or does not name the same objects, the stored order stays. The field rules in the window section then run on that order. On `P300` the list is `0x25a`, `0x2da`, `0x9c`, `0xe4`, `0x3f6`: `MenuFrame`, the `MenuTitle` group, the `selection1` group, `Next`, `Back`. `MenuFrame` is behind the `selection1` button, so a click on that button is the button and not the frame. On `P410` the list puts the chip rectangle 39 in front of rectangles 68 and 69 and ellipse 58, which the stored order painted over it.
+
+## Hotword click
+
+A field's hotword character range is stored. A field style run whose word at byte 4 is the near of a class `0x17` hotword that names the field starts the hotword, and the range runs to the next run's offset or the end of the text. On `9e954d01.tbk` that range is the hotword's name in all five: `tolerance` at 87 to 96 on `P1080` and `P1082`, `propagation delay` at 31 to 48 on `P1200` and `P1207`, and `impedance` at 90 to 99 on `P2070`. The display list keeps each field's ranges and names. The window draws each style run from the stored text at its stored offset, with line breaks shown as breaks, so the hotword's run is the hotword's characters. A click on the text the window drew for that run is a click on the hotword, before buttons are tested. The click runs the hotword's `buttonClick` on the same path as a button. Each of the five assigns `lastpage = name of this page` and runs `go to page "p1085"`, `"p1205"`, or `"p2075"`. A page name in a quoted `go to page` matches regardless of case, so they open `P1085`, `P1205`, and `P2075`.
+
 ## Class `0x0B`
 
 A class `0x0B` record is 49 bytes. The four signed words at `+0x0F` are a rectangle. It is the union of the rectangles at `+0x0F` of the objects whose word at `+0x04` names the record. The reader returns that rectangle. On `9e954d01.tbk` the two records in `FINDINGS.md` are (2557, 105, 6322, 1005) and (3202, 360, 6142, 765). The same read holds for every such record in `nida81.tbk`.
@@ -162,6 +194,10 @@ A class `0xA` field is 61 bytes. The reader returns the word at `+0x28`, the wor
 ## Class `0x17`
 
 A class `0x17` record is 17 bytes. The word at `+0x04` is a near pointer to a class `0xA` field, and that field is named `Text`. The reader returns the pointer and the name. `9e954d01.tbk` has five. On `P1080` the word is `0x240`. On `P1082` it is `0x9C`. `nida81.tbk` has no class `0x17` record.
+
+## Hotwords on the page walk
+
+A class `0x17` record is a hotword. The page walk returns it as a child of the class `0xA` field its word at `+0x04` names, in stored order. It is not an object of the page by itself. Its name is the trailer name its word at `+0x06` names, as for other objects. On `9e954d01.tbk` the five are `tolerance` on `P1080` and `P1082`, `propagation delay` on `P1200` and `P1207`, and `impedance` on `P2070`, each under that page's field `Text`. The TBKX export lists the same five names inside the same fields. The window paints the field's text once and does not paint the hotword. A page with no hotword walks as before.
 
 ## Page body
 
@@ -217,7 +253,7 @@ The book record stores the page width at `+0x20` and the page height at `+0x1E`.
 
 ## Page window
 
-`python3 -m opentoolbook --show P300 path/to/9e954d01.tbk` opens that page. The display list is the same list without a screen. The background is painted from the class 4 reader. Pattern 254 is a solid fill of the color at `+0x5B`. Pattern 253 paints no fill. A rectangle, ellipse, or polygon uses the color at `+0x1B` as its fill and the color at `+0x17` as its stroke. A line is the two endpoints at `+0x26`, in the stroke color. A polygon is the stored points. A field paints its text, its bounds, and the style-run faces. A button paints its bounds and the picture at byte `0x15` of the graphics block. The picture at byte `0x4B` is drawn only when bit 4 of button `+0x26` is set. On `P10210` the A button is not checked, so the window uses picture 116 and not picture 118. A field whose bounds contain a non-text shape is painted under that shape. A label whose bounds contain no shape is painted in front of a later shape or button that contains the label. On `P300` the selection text is in front of `MenuFrame`. On `P400` the part number is in front of the chip rectangle. On `P410` the label stored behind the chip rectangle is painted in front of it. On `P1110` the field that contains a line is painted under that line, and the label that contains nothing is painted in front of the ellipse.
+`python3 -m opentoolbook --show P300 path/to/9e954d01.tbk` opens that page. The display list is the same list without a screen. The background is painted from the class 4 reader. Pattern 254 is a solid fill of the color at `+0x5B`. Pattern 253 paints no fill. A rectangle, ellipse, or polygon uses the color at `+0x1B` as its fill and the color at `+0x17` as its stroke. A line is the two endpoints at `+0x26`, in the stroke color. A polygon is the stored points. A field paints its text, its bounds, and the style-run faces. A button paints its bounds and the picture at byte `0x15` of the graphics block. The picture at byte `0x4B` is drawn only when bit 4 of button `+0x26` is set. A button whose enabled bit, bit 0 of `+0x26`, is 0 draws the picture at byte `0x39` when that word is not 0, and keeps the up picture when it is 0. On `P10210` the A button is not checked, so the window uses picture 116 and not picture 118. After a click on A it uses picture 118. A field whose bounds contain a non-text shape is painted under that shape. A label whose bounds contain no shape is painted in front of a later shape or button that contains the label. On `P300` the selection text is in front of `MenuFrame`. On `P400` the part number is in front of the chip rectangle. On `P410` the label stored behind the chip rectangle is painted in front of it. On `P1110` the field that contains a line is painted under that line, and the label that contains nothing is painted in front of the ellipse.
 
 An inline type-1 picture stores a `BM` file eight bytes after `01 02 01 00`. On `9e954d01.tbk` that marker is at byte 18 of all 63 inline pictures. On `nida81.tbk` it is at byte 18 of 21 pictures and at byte 36 of the other 2. A huge-table picture keeps the `BM` file after the 8-byte prefix.
 
@@ -229,9 +265,17 @@ An inline type-1 picture stores a `BM` file eight bytes after `01 02 01 00`. On 
 
 Resizing the window refits the page. The canvas fills the window. A `Configure` event with a new canvas size computes the fit scale again from the stored page size and that view: 9360 by 6624 on the lesson, 9000 by 6000 on the fixtures. The paint list is unchanged and only the scale moves. A 600 by 400 view of `otb-line-rect.tbk` is scale 1, and a 300 by 400 view of the same page is scale 0.5. There are no scroll bars.
 
+## No enterButton or leaveButton
+
+`handler_sites` finds every `to handle NAME` line in a book's expanded scripts: inline object scripts, type 10 scripts, and type 19 shared scripts. Handler names are stored as keyword tokens, so a byte search of the file does not see them. On `9e954d01.tbk`, `nida81.tbk`, `nc81base.sbk`, `nc81recs.sbk`, `nc81test.sbk`, and `nc81trnr.sbk` there is no `enterButton` handler and no `leaveButton` handler. The window dispatches neither message. The hover handlers the books do have are `mouseEnter` and `mouseLeave`, 19 of each on `9e954d01.tbk` and 3 of each on `nida81.tbk`, all in inline scripts of class `0xA` fields such as `Selection1` on `P300`, and none in the system books. Those are hover, and the window does not dispatch them either.
+
 ## Window close
 
 The window's close button ends the Tk loop. `open_page` returns, and `python3 -m opentoolbook --show PAGE book.tbk` exits 0. Before this, closing the window raised `TclError` from the destroyed root. A click whose handler raises `ValueError` or `OSError` prints that error's one line on stderr and the window stays up on the same page. Any other exception keeps its traceback and the window also stays up. The smoke test opens `otb-line-rect.tbk` and presses close. It is skipped with a message when `DISPLAY` is unset or the Python has no `tkinter`.
+
+## Page photos
+
+Drawing a page deletes the Tk images of the page drawn before it, then makes the new page's images. The window holds the photos of one page at a time. On `9e954d01.tbk` P300 has five button pictures and P400 has four, and P300, Next to P400, Back to P300, and so on keeps the window at five and four images, whether or not something else still holds a reference to an old photo. There is no bitmap cache across pages or books.
 
 ## Export DLL in the window
 
@@ -317,7 +361,7 @@ A book with no startup page and no stored page is an error. The error names the 
 
 `python3 -m opentoolbook path/to/book.tbk --report` prints the record count, the follow-up reads, the files the book names, and the startup call names. It does not open a window. `--report path/to/book.tbk` prints the same report. `--home` with a book and without `--report` opens the book and searches that install. It does not print the install list. `--home` without a book still prints the install folder.
 
-`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds class `0x11`, and the window does not paint it. It paints class `0x13` as an angled line, class `0xD` as its bounds, class `0x15` as its stored bitmap, and class `0x19` as its picture. Class `0x12` pies and class `0x17` records are outside that walk and are not painted.
+`python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds class `0x11`, and the window does not paint it. It paints class `0x13` as an angled line, class `0xD` as its bounds, class `0x15` as its stored bitmap, and class `0x19` as its picture. Class `0x12` pies are outside that walk and are not painted. Class `0x17` hotwords are on that walk under their field and are not painted a second time.
 
 ## User properties
 
@@ -325,7 +369,7 @@ A `__` name is a system variable the lesson and the four system books declare, s
 
 ## Lesson tests
 
-`python3 -m unittest discover -s tests` passes with no lesson on disk. Every test that reads Logic Families takes the path from `OPENTOOLBOOK_TBK` and skips when that variable is unset or names no file. Nothing from the lesson, `nida81.tbk`, or the `nc81*.sbk` books is checked in. A test reads a companion with `tests/lesson.py` `companion`, which is `find_file` over `search_roots` of the lesson: the lesson directory, then its parent, case-insensitive, the same shelf `open_book` uses. A disc copy with `NC81RECS.SBK` in upper case beside the lesson and `NIDA81.TBK` one directory up passes the same tests as a flat lower-case copy. When the shelf has no such file, `companion` returns the path beside the lesson, so the test's own `is_file` check fails or skips as before.
+`python3 -m unittest discover -s tests` passes with no lesson on disk. Every test that reads Logic Families takes the path from `OPENTOOLBOOK_TBK` and skips when that variable is unset or names no file. Nothing from the lesson, `nida81.tbk`, or the `nc81*.sbk` books is checked in. A test reads a companion with `tests/lesson.py` `companion`, which is `find_file` over `search_roots` of the lesson: the lesson directory, then its parent, case-insensitive, the same shelf `open_book` uses. A disc copy with `NC81RECS.SBK` in upper case beside the lesson and `NIDA81.TBK` one directory up passes the same tests as a flat lower-case copy. When the shelf has no such file, `companion` returns the path beside the lesson, so the test's own `is_file` check fails or skips as before. A test that builds a `Navigator` on the logo book and follows a name back to the lesson passes `lesson=`, the same shelf the window keeps, because on a disc copy the lesson is in `Lessons/` below the logo book and not on the logo book's own shelf. A file name a test compares is compared in lower case.
 
 ## Statement walker
 
@@ -383,6 +427,18 @@ A quoted `go to page` in the landing page's `enterPage`, in a branch the reader 
 ## Background enter page
 
 The background's `enterBackground` and `enterPage` write fields with the same rules as the page's `enterPage`. The page's handler runs first, then the background's, then the book's, the order `forward` passes the message. A later write to the same field wins. Neither `9e954d01.tbk` nor `nida81.tbk` stores an `enterBackground`. The `Test` background of `P10210` through `P10229` has an `enterPage` that sets field `PageText` to the name of the page when `sysLevel` is `author`. A missing `sysLevel` is `reader`, so the window keeps the stored `Testing`. With `sysLevel` `author` the display list for `P10210` shows `P10210` in `PageText`, and `P10211` shows `P10211`. The other backgrounds' `enterPage` handlers call `clearPagelist` and `addToPageList` and write no field.
+
+## Field text in a click
+
+A `buttonClick` line `text of field "Stem" = ...` or `set text of field "Stem" to ...` writes that field's text. The value is a quoted string, a number, or `text of field "name"`, joined by `&` and `&&`. A value with any other part is not written. A later line in the same handler reads the written text. Before the first write, `text of field "name"` is the text the display list shows for that page, after `enterPage`. `text of field "x" = "y"`, `<>`, `is`, and `is not` compare without case. A field the page does not have decides nothing, so neither branch runs. The display list after the click shows the written text, and the style run that covered the old string covers the new one, the same as the `P10` greeting. On `P10` of `9e954d01.tbk` a handler that tests `text of field "Text" = "logic families"` and then writes it shows the new text in field `Text`, and field `first` keeps its greeting. The window passes the text the page shows into the click, keeps the written text on that page, and redraws when a click writes a field and stays. A page change drops the written text.
+
+## Hide and show
+
+In a click, `hide field "name"` and `show field "name"` change whether that object is on the display list. The same holds for `button`, `rectangle`, `ellipse`, `line`, and `polygon`, by quoted name (case ignored) or by `id n`, and for `set visible of rectangle "name" to false` or `true`. The handler returns each change in order, and the last change for an object wins. A hidden object is left off the display list. The window keeps it hidden until the page changes. `show` after `hide` puts it back the same as before. A pattern-253 object stays unfilled whether it is shown or not. On `otb-line-rect.tbk`, `hide rectangle id 0` leaves the background and the angled line. On `P300` of `9e954d01.tbk`, `hide button "menuframe"` removes `MenuFrame`. No script in the lesson, `nida81.tbk`, or the four system books hides or shows a page object by name. Their `show` lines are `show menubar` and `show viewer`. The rectangle `Correct` stays unpainted until item 43 quotes the line that shows it.
+
+## initializeBase literals
+
+`initializeBase(cmdLine)` in `nc81base.sbk` runs its literal assignments only. An assignment runs when its right side is a whole or decimal number, a quoted string, `true`, `false`, the `cmdLine` parameter, or a name the handler or the store already holds. A `__` name goes to the in-memory store, and any other name is local to the handler. Every other line is skipped, and the skip is named: `linkDLL tbfile32.dll`, `linkDLL32 kernel32.dll`, and `linkDLL32 user32.dll` by library, a call by the name it calls (`clearMenuFlags`, `specifyMenuColors`, `clearExperimentFlags`, `WritePrivateProfileStringA`, `GetPrivateProfileIntA`, `placeLesson`), `set saveOnClose of this book` and `set sysChangesDB` by property, and the `/Quester` `conditions` block under `if wordcount(__cmdline) >= 2` by its condition. `setSection` is not called. With an empty command line the store holds `__pageIndex` 0, `__pageListCleared` 0, `__quizDisableMenuKey` 0, and `__cmdLine` empty. `__lessonMode` comes from `GetPrivateProfileIntA` on `NIDAREC.INI`, so it stays unset, and `if __lessonMode = 5` and `= 6` run neither branch. `__nidaVersion` is not assigned there. `if sysLevel = reader` is taken. A condition on a value the handler holds is decided, and any other condition runs neither branch and is named. The walker skips a whole `conditions`, `step`, or `while` block when its caller asks, as this one does. Startup does not call this yet: `enterSystem` guards `get initializebase(cmdLine)` with `if "nc81base.sbk" is not in sysBooks`, and the reader does not decide `sysBooks`.
 
 ## Stored user properties
 

@@ -8,7 +8,12 @@ stays. A handler line ``name = "text"``, ``name = name of this book``, or
 ``name = name of this page`` assigns that system variable. ``send next`` and
 ``send previous`` are the next and previous pages in the stored page
 list. ``if``, ``break``, and ``return`` are the shared walker in
-``walk.py``. A line that is not one of those is not a page change.
+``walk.py``. ``text of field "x" = ...`` and ``set text of field "x" to
+...`` write a field's text, and a later condition reads that text.
+``hide`` and ``show`` of a field, button, rectangle, ellipse, line, or
+polygon, by name or by ``id``, and ``set visible of ... to``, change
+whether it is painted. A line that is not one of those is not a page
+change.
 ``beep`` does nothing and returns. ``request "..."`` records its text and
 does not change the page.
 """
@@ -47,6 +52,8 @@ class Follow:
     book: str | None
     requests: tuple[str, ...] = ()
     beeps: int = 0
+    fields: tuple[tuple[str, str], ...] = ()
+    visible: tuple[tuple[tuple[str, str | int], bool], ...] = ()
 
 
 def follow_click(
@@ -56,16 +63,18 @@ def follow_click(
     pages: tuple[str, ...],
     variables: dict[str, object] | None = None,
     book: str = "",
+    fields: dict[str, str] | None = None,
 ) -> Follow | None:
     """The page this button's handler opens, or None when it has no handler.
 
     ``variables`` is the window's system variables. The handler's
     assignments are written into it. ``book`` is ``name of this book``.
+    ``fields`` maps a field name to the text the page shows now.
     """
     source = _handler(data, page_id, button)
     if source is None:
         return None
-    return run_handler(source, pages, page_id, variables, book)
+    return run_handler(source, pages, page_id, variables, book, fields)
 
 
 def page_click(
@@ -74,6 +83,7 @@ def page_click(
     pages: tuple[str, ...],
     variables=None,
     book: str = "",
+    fields: dict[str, str] | None = None,
 ) -> Follow | None:
     """The page's own ``buttonClick``, or None when the page script has none."""
     from opentoolbook.enter import page_source
@@ -82,7 +92,7 @@ def page_click(
     source = _button_click(text.replace("\r\n", "\n").replace("\n", "\r\n")) if text else None
     if source is None:
         return None
-    return run_handler(source, pages, page_id, variables, book)
+    return run_handler(source, pages, page_id, variables, book, fields)
 
 
 def run_handler(
@@ -91,19 +101,29 @@ def run_handler(
     page_id: str,
     variables: dict[str, object] | None = None,
     book_name: str = "",
+    fields: dict[str, str] | None = None,
 ) -> Follow:
-    """Run the assignment, ``go to page``, ``send next``, and ``send previous`` lines.
+    """Run the assignment, ``go to page``, ``send next``, ``send previous``, and field text lines.
 
     ``variables`` maps a lower-case system variable name to the value a
     handler this runner executed assigned it. This handler's assignments
-    are written into it. ``book_name`` is ``name of this book``.
+    are written into it. ``book_name`` is ``name of this book``. ``fields``
+    maps a field name to its text before the click. A write changes that
+    text for the lines after it.
     """
     known = variables if variables is not None else {}
     landed = {"page": page_id, "book": None}
     asked: list[str] = []
     beeps = [0]
+    texts = {name.lower(): text for name, text in (fields or {}).items()}
+    written: list[tuple[str, str]] = []
+    shown: list[tuple[tuple[str, str | int], bool]] = []
 
     def statement(raw: str, low: str) -> None:
+        changed = visibility(raw)
+        if changed is not None:
+            shown.append(changed)
+            return
         if is_beep(raw):
             beeps[0] += 1
             return
@@ -115,6 +135,14 @@ def run_handler(
         found = quoted_go_to(raw)
         if found is not None:
             landed["page"], landed["book"] = found
+            return
+        write = field_write(raw)
+        if write is not None:
+            name, expression = write
+            value = text_value(expression, texts)
+            if value is not None:
+                texts[name.lower()] = value
+                written.append((name, value))
             return
         assigned = _ASSIGN.match(text)
         if assigned is not None and not assigned.group(1).startswith("__"):
@@ -136,8 +164,122 @@ def run_handler(
             landed["page"] = _step(pages, page_id, 1 if low == "send next" else -1)
             landed["book"] = None
 
-    walk(source.splitlines(), Flow(), condition=reader_condition, statement=statement)
-    return Follow(landed["page"], landed["book"], tuple(asked), beeps[0])
+    def condition(text: str) -> bool | None:
+        settled = reader_condition(text)
+        if settled is not None:
+            return settled
+        return text_condition(text, texts)
+
+    walk(source.splitlines(), Flow(), condition=condition, statement=statement)
+    return Follow(landed["page"], landed["book"], tuple(asked), beeps[0], tuple(written), tuple(shown))
+
+
+_FIELD = re.compile(r'^text\s+of\s+field\s+"([^"]*)"\s*', re.IGNORECASE)
+_SET_FIELD = re.compile(r'^set\s+text\s+of\s+field\s+"([^"]*)"\s+to\s+(.+)$', re.IGNORECASE)
+_PUT_FIELD = re.compile(r'^text\s+of\s+field\s+"([^"]*)"\s*=\s*(.+)$', re.IGNORECASE)
+_COMPARE = re.compile(r"^(.+?)\s*(<>|=|\bis not\b|\bis\b)\s*(.+)$", re.IGNORECASE)
+
+
+_KINDS = ("field", "button", "rectangle", "ellipse", "line", "polygon")
+_TARGET = rf'({"|".join(_KINDS)})\s+(?:"([^"]*)"|id\s+(\d+))'
+_HIDE = re.compile(rf"^(hide|show)\s+{_TARGET}$", re.IGNORECASE)
+_SET_VISIBLE = re.compile(rf"^set\s+visible\s+of\s+{_TARGET}\s+to\s+(true|false)$", re.IGNORECASE)
+
+
+def visibility(line: str) -> tuple[tuple[str, str | int], bool] | None:
+    """``((kind, name or id), shown)`` for ``hide``, ``show``, or ``set visible of``."""
+    text = line.strip()
+    found = _HIDE.match(text)
+    if found is not None:
+        shown = found.group(1).lower() == "show"
+        kind, name, number = found.group(2), found.group(3), found.group(4)
+    else:
+        found = _SET_VISIBLE.match(text)
+        if found is None:
+            return None
+        kind, name, number = found.group(1), found.group(2), found.group(3)
+        shown = found.group(4).lower() == "true"
+    key: str | int = int(number) if number is not None else name.lower()
+    return (kind.lower(), key), shown
+
+
+def field_write(line: str) -> tuple[str, str] | None:
+    """``(field name, expression)`` for ``text of field "x" = ...`` or ``set text of field "x" to ...``."""
+    text = line.strip()
+    found = _SET_FIELD.match(text) or _PUT_FIELD.match(text)
+    if found is None:
+        return None
+    return found.group(1), found.group(2).strip()
+
+
+def text_value(expression: str, texts: dict[str, str]) -> str | None:
+    """A quoted string, a number, or ``text of field "x"``, joined by ``&`` and ``&&``.
+
+    None when any part is something else.
+    """
+    parts: list[str] = []
+    joins: list[str] = []
+    rest = expression.strip()
+    while True:
+        value, rest = _operand(rest, texts)
+        if value is None:
+            return None
+        parts.append(value)
+        rest = rest.lstrip()
+        if not rest:
+            break
+        if rest.startswith("&&"):
+            joins.append(" ")
+            rest = rest[2:].lstrip()
+        elif rest.startswith("&"):
+            joins.append("")
+            rest = rest[1:].lstrip()
+        else:
+            return None
+    out = parts[0]
+    for join, part in zip(joins, parts[1:]):
+        out = out + join + part
+    return out
+
+
+def text_condition(text: str, texts: dict[str, str]) -> bool | None:
+    """``text of field "x" = "y"``, ``<>``, ``is``, and ``is not``. Strings compare without case."""
+    found = _COMPARE.match(text.strip())
+    if found is None or "text of field" not in text.lower():
+        return None
+    left = text_value(found.group(1), texts)
+    right = text_value(found.group(3), texts)
+    if left is None or right is None:
+        return None
+    same = left.lower() == right.lower()
+    operator = " ".join(found.group(2).lower().split())
+    return same if operator in {"=", "is"} else not same
+
+
+def _operand(text: str, texts: dict[str, str]) -> tuple[str | None, str]:
+    if text.startswith('"'):
+        chars: list[str] = []
+        index = 1
+        while index < len(text):
+            if text[index] == '"':
+                if text.startswith('""', index):
+                    chars.append('"')
+                    index += 2
+                    continue
+                return "".join(chars), text[index + 1:]
+            chars.append(text[index])
+            index += 1
+        return None, ""
+    found = _FIELD.match(text)
+    if found is not None:
+        name = found.group(1).lower()
+        if name not in texts:
+            return None, ""
+        return texts[name], text[found.end():]
+    number = re.match(r"-?\d+", text)
+    if number is not None:
+        return number.group(0), text[number.end():]
+    return None, ""
 
 
 def _assigned(expression: str, page_id: str, book_name: str) -> str | None:
