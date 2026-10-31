@@ -86,7 +86,8 @@ class SceneTests(unittest.TestCase):
         self.assertLess(_index(shown, "button", 19), _index(shown, "field", 17))
         background = shown.items[0]
         number = next(item for item in shown.items if item.name == "Page#")
-        self.assertEqual(number.text, "P300")
+        # The stored text; the book's enterPage writes the page name over it.
+        self.assertEqual(number.text, "P100")
         self.assertEqual(background.pattern, 254)
         self.assertEqual(background.fill, (0, 0, 191))
         self.assertEqual(background.bounds, (0, 0, 9360, 6624))

@@ -170,22 +170,19 @@ def show_page(
     page_id: str,
     view_width: int,
     view_height: int,
-    props: UserProperties | None = None,
     fields: dict[str, str] | None = None,
     visible: dict[tuple[str, str | int], bool] | None = None,
     *,
-    sys_level: str | None = None,
     checked: Mapping[str, bool] | None = None,
     correct: bool = False,
     enabled: Mapping[str, bool] | None = None,
 ) -> DisplayList:
-    """The display list for one page. It does not open a window.
+    """The display list for one page as the book stores it. It does not open a window
+    and runs no script.
 
-    ``props`` holds the ``__`` names the page's ``enterPage`` reads.
-    ``fields`` is field text a handler wrote after ``enterPage``.
-    ``visible`` maps ``(kind, name or id)`` to whether a handler shows it.
-    An object a handler hid is not on the list.
-    ``sys_level`` ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
+    ``fields`` is field text scripts wrote, by field name.
+    ``visible`` maps ``(kind, name or id)`` to whether a script shows it.
+    An object a script hid is not on the list.
     ``checked`` maps a button name, in any case, to the checked state a
     click gave it. It wins over bit 4 of that button's ``+0x26``.
     The rectangle named ``Correct`` is the answer mark. It is on the list
@@ -196,7 +193,7 @@ def show_page(
     """
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
-    items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props, sys_level)
+    items = _ordered(_stored(data, page_id, width, height))
     if not correct:
         items = tuple(item for item in items if not _answer_mark(item))
     if fields:
@@ -253,11 +250,14 @@ def open_page(
     variables: dict[str, object] | None = None,
     sysbooks: tuple[str, ...] = (),
     objects: dict | None = None,
+    enter: bool = False,
 ) -> tuple[str, ...]:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
     The page id is the one the caller passed. This function does not
-    follow startup handlers. A button whose handler quotes a page opens
+    follow startup handlers. ``enter`` sends ``enterBackground`` and
+    ``enterPage`` to that page first, for a window that did not run the
+    opening sequence. A button whose handler quotes a page opens
     that page. A quoted book is found with the same search as opening a
     book: the directory of ``book``, its parent, and ``home``, regardless of case. A
     book that search does not find is reported on stderr with the file
@@ -309,6 +309,8 @@ def open_page(
         }
         nav = Navigator(data, page_id, book, home, lesson, variables, props=state["props"], sysbooks=sysbooks, objects=objects)
         nav.ask = lambda prompt, buttons: ask_dialog(root, nav.book_name or "ToolBook", prompt, buttons)
+        if enter:
+            nav.enter()
         root.title(nav.title())
         errors: list[str] = []
 
@@ -325,7 +327,7 @@ def open_page(
         canvas.pack(fill="both", expand=True)
 
         def redraw() -> None:
-            listed = nav.display(*state["view"], state["props"])
+            listed = nav.display(*state["view"])
             paint(listed)
 
         def paint(listed: DisplayList) -> None:
@@ -594,29 +596,6 @@ def release_photos(canvas) -> int:
 
 def _pixels(units: int) -> int:
     return max(1, round(unit_to_px(units, 1)))
-
-
-def _entered(
-    data: bytes,
-    page_id: str,
-    items: tuple[Paint, ...],
-    props: UserProperties | None = None,
-    sys_level: str | None = None,
-) -> tuple[Paint, ...]:
-    """Run the page's enterPage text. A missing sysLevel is reader."""
-    from opentoolbook.enter import cover_style, enter_fields
-
-    indexes = [index for index, item in enumerate(items) if item.kind == "field"]
-    packed = tuple((items[index].name, items[index].text or "", items[index].runs) for index in indexes)
-    changed = enter_fields(data, page_id, packed, props=props, sys_level=sys_level)
-    if changed == packed:
-        return items
-    out = list(items)
-    for index, (_name, text, runs) in zip(indexes, changed):
-        if text != (out[index].text or "") or runs != out[index].runs:
-            sizes = cover_style(out[index].text or "", text, out[index].sizes)
-            out[index] = replace(out[index], text=text, runs=runs, sizes=sizes)
-    return tuple(out)
 
 
 def field_texts(listed: DisplayList) -> dict[str, str]:

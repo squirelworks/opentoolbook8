@@ -202,6 +202,7 @@ class LessonTests(unittest.TestCase):
             return [item.text for item in listed.items if item.kind == "field" and item.name.lower() == "page#"]
 
         nav = Navigator(path.read_bytes(), "P300", path)
+        nav.enter()
         self.assertEqual(page_number(nav), ["P300"])
         self.assertTrue(nav.click("Next").moved)
         self.assertEqual(nav.page_id, "P400")

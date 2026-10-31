@@ -183,7 +183,7 @@ class Navigator:
         from opentoolbook.clickrun import send_click
         from opentoolbook.show import show_page
 
-        listed = show_page(self.data, self.page_id, 1, 1, None)
+        listed = show_page(self.data, self.page_id, 1, 1)
         groups: tuple[str, ...] = ()
         if target is not None:
             for item in listed.items:
@@ -264,8 +264,8 @@ class Navigator:
         finally:
             self._entering = depth
 
-    def display(self, view_width: int, view_height: int, props: UserProperties | None = None):
-        """The display list of the page on screen, after its ``enterPage``."""
+    def display(self, view_width: int, view_height: int):
+        """The display list of the page on screen, with the properties scripts set."""
         from opentoolbook.show import show_page
 
         from opentoolbook.show import pressed
@@ -280,7 +280,6 @@ class Navigator:
             self.page_id,
             view_width,
             view_height,
-            props,
             fields=fields,
             visible=visible,
             checked=self.checked_buttons(),
@@ -322,7 +321,7 @@ class Navigator:
         if "enabled" in values:
             return values["enabled"] is True
         try:
-            listed = show_page(self.data, self.page_id, 1, 1, None)
+            listed = show_page(self.data, self.page_id, 1, 1)
         except ValueError:
             return True
         for item in listed.items:
@@ -334,12 +333,19 @@ class Navigator:
         return (str(self.book or ""), self.page_id)
 
     def enter(self) -> None:
-        """Send ``enterPage`` to the page on screen and follow the page it goes to."""
+        """Send ``enterBackground`` and ``enterPage`` to the page on screen, as a window opened on it does."""
         from opentoolbook.openscript.interp import Ref
 
-        acted = self._send(None, "enterpage", None, to=Ref("page", "this", None, None))
-        if acted is not None:
-            self._apply(acted)
+        for message, to in (
+            ("enterbackground", Ref("background", "page", self.page_id, None)),
+            ("enterpage", Ref("page", "this", None, None)),
+        ):
+            where = (self.book, self.page_id)
+            acted = self._send(None, message, None, to=to)
+            if acted is not None:
+                self._apply(acted)
+            if (self.book, self.page_id) != where:
+                return
 
     def chain(self):
         """Handler maps by book: this book's, then each ``sysBooks`` book's."""

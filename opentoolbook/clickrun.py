@@ -174,7 +174,7 @@ class ClickHost(BookHost):
             from opentoolbook.show import show_page
 
             try:
-                self._listed[page] = show_page(self.data, page, 1, 1, None).items
+                self._listed[page] = show_page(self.data, page, 1, 1).items
             except ValueError:
                 self._listed[page] = ()
         return self._listed[page]
@@ -263,6 +263,13 @@ class ClickHost(BookHost):
                 return self._page_property(name, of)
             if of.kind == "book" and of.by == "this" and name == "pagecount":
                 return True, len(self.pages)
+            if of.kind == "book" and of.by == "this":
+                stored, value = self._read("book", "book", "", name)
+                if stored:
+                    return True, value
+                found = self._book_properties().get(name)
+                if found is not None:
+                    return True, found
             found = self._locate(of)
             if found is not None:
                 owner, page, kind, key, item = found
@@ -284,6 +291,14 @@ class ClickHost(BookHost):
             if name == "name" and of.by == "name":
                 return True, text(of.value)
         return super().property(name, of)
+
+    def _book_properties(self) -> dict:
+        """The user properties the book stores, by lower-case name."""
+        if "book properties" not in self._maps:
+            from opentoolbook.userprops import book_properties
+
+            self._maps["book properties"] = book_properties(self.data) if self.data else {}
+        return self._maps["book properties"]
 
     def _stored_bit(self, name: str, page: str, button: str, item) -> bool:
         if item is not None:
@@ -336,6 +351,11 @@ class ClickHost(BookHost):
             value = _on(value)
         elif name == "text":
             value = text(value)
+        if isinstance(of, Ref) and of.kind == "book" and of.by == "this" and name.startswith("_"):
+            # A user property of this book stays set while the book is open.
+            self.state.setdefault("book", {}).setdefault(("book", ""), {})[name] = value
+            self.writes.append(("book", "book", "", name, value))
+            return True
         return self._write(of, name, value)
 
     def command(self, engine: Engine, name: str, args: tuple):

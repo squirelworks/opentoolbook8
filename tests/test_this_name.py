@@ -4,7 +4,6 @@ import os
 import unittest
 from pathlib import Path
 
-from opentoolbook.enter import concatenate
 from opentoolbook.entry import choose_opening
 from opentoolbook.walk import this_name
 
@@ -14,14 +13,6 @@ class ThisNameTests(unittest.TestCase):
         self.assertEqual(this_name("name of this page", "P300", "9e954d01.tbk"), "P300")
         self.assertEqual(this_name("Name  of This Book", "P300", "9e954d01.tbk"), "9e954d01.tbk")
         self.assertIsNone(this_name("name of this background", "P300", "9e954d01.tbk"))
-
-    def test_enter_page_joins_them(self):
-        joined = concatenate(
-            'name of this book & ":" & name of this page',
-            page_id="P300",
-            book_name="9e954d01.tbk",
-        )
-        self.assertEqual(joined, "9e954d01.tbk:P300")
 
     def test_a_startup_handler_returns_them(self):
         handlers = {
@@ -44,11 +35,13 @@ class ThisNameTests(unittest.TestCase):
         if not path or not os.path.isfile(path):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         from opentoolbook.enter import _book_enter
-        from opentoolbook.show import show_page
+        from opentoolbook.navigate import Navigator
 
         data = Path(path).read_bytes()
         self.assertIn("to name of this page", _book_enter(data))
-        listed = show_page(data, "P300", 800, 600)
+        nav = Navigator(data, "P300", Path(path))
+        nav.enter()
+        listed = nav.display(800, 600)
         texts = {item.name.lower(): item.text for item in listed.items if item.kind == "field"}
         self.assertEqual(texts["page#"], "P300")
 

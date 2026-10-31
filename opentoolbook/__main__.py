@@ -73,6 +73,7 @@ def main(argv: list[str]) -> int:
                 args.home,
                 status=unshipped_dll(opened, home),
                 sysbooks=_startup_sysbooks(opened, home),
+                enter=True,
             )
         except ValueError as exc:
             print(exc, file=sys.stderr)

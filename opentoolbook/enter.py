@@ -1,63 +1,14 @@
-"""The enterPage statements the page window runs.
+"""A page's inline script, its ``enterPage`` block, and how a field's style runs follow new text.
 
-``getFirst`` returns ``__studentFirst`` with the ends stripped, or
-``Student`` when that variable is empty. A missing ``sysLevel`` is
-``reader``. ``&&`` is one operator and is recognized before ``&``. A
-value that still contains ``__`` and ``of this book`` is not written
-over the field.
-
-The page's handler runs first, then the background's ``enterBackground``
-and ``enterPage``, then the book's ``enterPage``, the order ``forward``
-passes the message. A later write to the same field wins.
+``enterPage`` itself runs on the OpenScript interpreter.
 """
 
 from __future__ import annotations
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
-from opentoolbook.props import UserProperties
 from opentoolbook.script import _script, resource_scripts
-from opentoolbook.userprops import book_properties
-from opentoolbook.walk import Flow, reader_condition, this_name, walk
 
 _PAGE = 5
-
-
-def get_first(student_first: str | None) -> str:
-    """``__studentFirst`` with the ends stripped, or ``Student`` when empty."""
-    if student_first is None:
-        return "Student"
-    stripped = student_first.strip()
-    return stripped if stripped else "Student"
-
-
-def concatenate(
-    expression: str,
-    *,
-    student_first: str | None = None,
-    page_id: str | None = None,
-    book_name: str | None = None,
-    book: dict[str, str] | None = None,
-) -> str:
-    """Join one expression. ``&&`` inserts a space. ``&`` does not.
-
-    ``name of this page`` is ``page_id`` and ``name of this book`` is ``book_name``.
-    ``book`` maps a lower-case user property name to the text the book stores.
-    ``__nidaVersion of this book`` reads that property when the book stores it.
-    """
-    tokens = list(_tokens(expression))
-    parts: list[list[tuple[str, str, str]]] = [[]]
-    operators: list[str] = []
-    for kind, value, source in tokens:
-        if kind in {"and", "andand"}:
-            parts.append([])
-            operators.append(kind)
-            continue
-        parts[-1].append((kind, value, source))
-    values = [_operand(part, student_first, page_id, book_name, book) for part in parts]
-    result = values[0] if values else ""
-    for operator, value in zip(operators, values[1:]):
-        result = f"{result} {value}" if operator == "andand" else result + value
-    return result
 
 
 def cover_style(
@@ -90,58 +41,6 @@ def cover_style(
     return runs
 
 
-def blocks_write(value: str) -> bool:
-    """True when the value still names an unresolved property of this book."""
-    return "__" in value and "of this book" in value.lower()
-
-
-def enter_fields(
-    data: bytes,
-    page_id: str,
-    fields: tuple[tuple[str, str, tuple[tuple[int, str | None], ...]], ...],
-    *,
-    student_first: str | None = None,
-    sys_level: str | None = None,
-    props: UserProperties | None = None,
-    book_name: str | None = None,
-) -> tuple[tuple[str, str, tuple[tuple[int, str | None], ...]], ...]:
-    """Field text after the page's ``enterPage`` handler.
-
-    ``book_name`` is the file name ``name of this book`` returns.
-
-    ``fields`` is ``(name, text, runs)`` in paint order. ``sys_level``
-    ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
-    ``student_first`` ``None`` reads ``__studentFirst`` from ``props``.
-    """
-    from opentoolbook.click import background_script
-
-    if student_first is None and props is not None:
-        stored = props.get("__studentFirst")
-        student_first = None if stored is None else str(stored)
-    handler = _enter_page(page_source(data, page_id))
-    behind = background_script(data, page_id)
-    backdrop = [found for found in (_handler(behind, "enterbackground"), _enter_page(behind)) if found]
-    book = _book_enter(data)
-    if not handler and not book and not backdrop:
-        return fields
-    reader = (sys_level is None) or sys_level.lower() == "reader"
-    names = tuple(name for name, _text, _runs in fields)
-    stored = book_properties(data)
-    found = []
-    for source in [handler, *backdrop, book]:
-        if source:
-            found.extend(_assignments(source.splitlines(), reader, student_first, page_id, names, book_name, stored))
-    out = list(fields)
-    for name, value in found:
-        if blocks_write(value):
-            continue
-        for index, (field_name, text, runs) in enumerate(out):
-            if field_name.lower() != name.lower():
-                continue
-            out[index] = (field_name, value, cover_style(text, value, runs))
-    return tuple(out)
-
-
 def page_source(data: bytes, page_id: str) -> str:
     """The inline script of one page. Empty when that page stores none."""
     segments = _segments(data)
@@ -161,66 +60,6 @@ def page_source(data: bytes, page_id: str) -> str:
         size = _u16(data, record - 4) - (record - segment.base)
         return _script(data, heap, record, kind, size)
     return ""
-
-
-def _assignments(
-    lines: list[str],
-    reader: bool,
-    student_first: str | None,
-    page_id: str,
-    names: tuple[str, ...],
-    book_name: str | None = None,
-    stored: dict[str, str] | None = None,
-) -> list[tuple[str, str]]:
-    found: list[tuple[str, str]] = []
-
-    def statement(raw: str, _low: str) -> None:
-        written = _set_text(raw)
-        if written is not None:
-            name, expression = written
-            found.append((name, concatenate(expression, student_first=student_first, page_id=page_id, book_name=book_name, book=stored)))
-
-    walk(
-        lines,
-        Flow(),
-        condition=lambda text: _branch(text, reader, names),
-        statement=statement,
-    )
-    return found
-
-
-def _branch(condition: str, reader: bool, names: tuple[str, ...]) -> bool | None:
-    known = reader_condition(condition, reader)
-    if known is not None:
-        return known
-    if " ".join(condition.lower().split()) in {"syslevel = author", 'syslevel = "author"'}:
-        return not reader
-    folded = condition.replace(" ", "")
-    if folded == 'isobject(field"page#"ofparentofthispage)':
-        return any(name.lower() == "page#" for name in names)
-    return None
-
-
-def _set_text(line: str) -> tuple[str, str] | None:
-    text = line.strip()
-    if not text.lower().startswith("set text of field "):
-        return None
-    mark = text.find('"')
-    if mark < 0:
-        return None
-    end = text.find('"', mark + 1)
-    if end < 0:
-        return None
-    name = text[mark + 1:end]
-    rest = text[end + 1:].strip()
-    folded = rest.lower()
-    parent = "of parent of this page"
-    if folded.startswith(parent):
-        rest = rest[len(parent):].strip()
-        folded = rest.lower()
-    if not folded.startswith("to "):
-        return None
-    return name, rest[3:].strip()
 
 
 def _enter_page(source: str) -> str:
@@ -263,85 +102,3 @@ def _book_enter(data: bytes) -> str:
         if "page#" in handler.lower():
             return handler
     return ""
-
-
-def _operand(
-    tokens: list[tuple[str, str, str]],
-    student_first: str | None,
-    page_id: str | None,
-    book_name: str | None = None,
-    book: dict[str, str] | None = None,
-) -> str:
-    if len(tokens) == 1 and tokens[0][0] == "str":
-        return tokens[0][1]
-    if (
-        len(tokens) == 3
-        and tokens[0][0] == "word"
-        and tokens[0][1].lower() == "getfirst"
-        and tokens[1][0] == "("
-        and tokens[2][0] == ")"
-    ):
-        return get_first(student_first)
-    named = this_name(_source(tokens), page_id, book_name)
-    if named is not None:
-        return named
-    words = _source(tokens).lower().split()
-    if book and len(words) == 4 and words[1:] == ["of", "this", "book"] and words[0] in book:
-        return book[words[0]]
-    return _source(tokens)
-
-
-def _source(tokens: list[tuple[str, str, str]]) -> str:
-    out = []
-    for index, (kind, _value, source) in enumerate(tokens):
-        if index and kind != ")" and tokens[index - 1][0] != "(":
-            out.append(" ")
-        out.append(source)
-    return "".join(out)
-
-
-def _tokens(expression: str):
-    index = 0
-    size = len(expression)
-    while index < size:
-        char = expression[index]
-        if char.isspace():
-            index += 1
-            continue
-        if char == '"':
-            chars: list[str] = []
-            index += 1
-            while index < size:
-                if expression[index] == '"':
-                    if index + 1 < size and expression[index + 1] == '"':
-                        chars.append('"')
-                        index += 2
-                        continue
-                    index += 1
-                    break
-                chars.append(expression[index])
-                index += 1
-            yield "str", "".join(chars), ""
-            continue
-        if expression.startswith("&&", index):
-            yield "andand", "&&", "&&"
-            index += 2
-            continue
-        if char == "&":
-            yield "and", "&", "&"
-            index += 1
-            continue
-        if char in "()":
-            yield char, char, char
-            index += 1
-            continue
-        start = index
-        while index < size and (expression[index].isalnum() or expression[index] == "_"):
-            index += 1
-        if index == start:
-            yield "word", char, char
-            index += 1
-            continue
-        word = expression[start:index]
-        yield "word", word, word
-

@@ -6,7 +6,6 @@ from pathlib import Path
 
 from opentoolbook.entry import choose_opening
 from opentoolbook.props import UserProperties
-from opentoolbook.show import show_page
 
 LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 
@@ -73,21 +72,26 @@ class GreetingTests(unittest.TestCase):
     def test_p10_greets_the_student_the_store_names(self):
         if not LESSON or not os.path.isfile(LESSON):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        data = Path(LESSON).read_bytes()
+        from opentoolbook.entry import opening_page
+        from opentoolbook.navigate import Navigator
 
-        def first(props):
-            shown = show_page(data, "P10", 400, 300, props)
+        path = Path(LESSON)
+        opened = opening_page(path)
+
+        def first(name):
+            props = type(opened.props)(dict(opened.props.items()))
+            if name is not None:
+                props.set("__studentFirst", name)
+            nav = Navigator(path.read_bytes(), "P10", path, props=props, sysbooks=opened.sysbooks)
+            nav.enter()
+            shown = nav.display(400, 300)
             return next(item for item in shown.items if item.kind == "field" and item.name.lower() == "first")
 
-        props = UserProperties()
-        self.assertEqual(first(props).text, "Hello Student, this lesson is about:")
-        props.set("__studentFirst", "")
-        self.assertEqual(first(props).text, "Hello Student, this lesson is about:")
-        props.set("__studentFirst", "Ada")
-        named = first(props)
+        # With no NIDAREC.INI, startup leaves __studentFirst "Student".
+        self.assertEqual(first(None).text, "Hello Student, this lesson is about:")
+        named = first("Ada")
         self.assertEqual(named.text, "Hello Ada, this lesson is about:")
         self.assertEqual(named.runs, ((0, "Arial"),))
-        self.assertEqual(first(None).text, "Hello Student, this lesson is about:")
 
 
 if __name__ == "__main__":

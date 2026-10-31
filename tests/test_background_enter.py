@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from opentoolbook.click import background_script
-from opentoolbook.enter import _branch, _handler, enter_fields
+from opentoolbook.enter import _handler
 from opentoolbook.show import show_page
 
 LESSON = os.environ.get("OPENTOOLBOOK_TBK")
@@ -28,15 +28,9 @@ class HandlerTests(unittest.TestCase):
         self.assertIn('field "B"', _handler(SCRIPT, "enterpage"))
         self.assertEqual(_handler(SCRIPT, "leavepage"), "")
 
-    def test_author_is_the_branch_a_reader_skips(self):
-        # main's _branch answers True (take the branch), False (skip it), or None.
-        self.assertIs(_branch("syslevel = author", True, ()), False)
-        self.assertIs(_branch("syslevel = author", False, ()), True)
-        self.assertIs(_branch('syslevel = "reader"', True, ()), True)
-
 
 class LessonTests(unittest.TestCase):
-    def test_the_test_background_names_the_page_in_pagetext_for_an_author(self):
+    def test_the_test_background_stores_testing_in_pagetext(self):
         if not LESSON or not os.path.isfile(LESSON):
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         data = Path(LESSON).read_bytes()
@@ -45,15 +39,8 @@ class LessonTests(unittest.TestCase):
         self.assertNotIn("enterbackground", script.lower())
         for page in ("P10210", "P10211"):
             listed = show_page(data, page, 400, 300)
-            fields = tuple((item.name, item.text or "", item.runs) for item in listed.items if item.kind == "field")
-            stored = dict((name, text) for name, text, _runs in fields)
+            stored = {item.name: item.text or "" for item in listed.items if item.kind == "field"}
             self.assertEqual(stored["PageText"], "Testing")
-            author = dict((name, text) for name, text, _runs in enter_fields(data, page, fields, sys_level="author"))
-            self.assertEqual(author["PageText"], page)
-            self.assertEqual(author["Stem"], stored["Stem"])
-            shown = show_page(data, page, 400, 300, sys_level="author")
-            page_text = [item.text for item in shown.items if item.kind == "field" and item.name == "PageText"]
-            self.assertEqual(page_text, [page])
 
 
 if __name__ == "__main__":

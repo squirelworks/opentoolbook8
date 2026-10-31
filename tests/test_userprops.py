@@ -4,8 +4,7 @@ import os
 import unittest
 from pathlib import Path
 
-from opentoolbook.enter import blocks_write, concatenate, enter_fields
-from opentoolbook.show import show_page
+from opentoolbook.navigate import Navigator
 from opentoolbook.userprops import book_properties
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -25,13 +24,6 @@ class StoredPropertyTests(unittest.TestCase):
         self.assertEqual(book_properties(b""), {})
         self.assertEqual(book_properties(b"\x00" * 64 + b":HDMEDIAPATH\x00"), {})
 
-    def test_of_this_book_reads_a_stored_property(self):
-        expression = '"Version: " & __nidaVersion of this book'
-        stored = {"__nidaversion": "2.003.0001"}
-        self.assertEqual(concatenate(expression, book=stored), "Version: 2.003.0001")
-        missing = concatenate(expression, book={})
-        self.assertTrue(blocks_write(missing))
-
 
 class LessonTests(unittest.TestCase):
     def test_pinfo_and_pqinfo_show_the_version_the_book_stores(self):
@@ -44,9 +36,9 @@ class LessonTests(unittest.TestCase):
         self.assertEqual(stored["_asym_ea_version"], "8.0")
         self.assertNotIn("__nidaversion", book_properties(Path(LESSON).with_name("nida81.tbk").read_bytes()))
         for page in ("PINFO", "PQINFO"):
-            written = enter_fields(data, page, (("version", "", ()),))
-            self.assertEqual(written, (("version", "Version: 2.003.0001", ()),))
-            listed = show_page(data, page, 400, 300)
+            nav = Navigator(data, page, Path(LESSON))
+            nav.enter()
+            listed = nav.display(400, 300)
             version = [item.text for item in listed.items if item.kind == "field" and item.name.lower() == "version"]
             self.assertEqual(version, ["Version: 2.003.0001"])
 
