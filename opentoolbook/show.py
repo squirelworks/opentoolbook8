@@ -7,9 +7,14 @@ as a hatch. A draw object's fill is the color at ``+0x1B`` and its stroke
 is the color at ``+0x17``. A button draws the picture at byte ``0x15`` of
 its graphics block, or the picture at byte ``0x4B`` when the button is
 checked. A button whose enabled bit, bit 0 of ``+0x26``, is 0 draws the
-picture at byte ``0x39`` when that word is not 0. The invert picture is
-not drawn. A field's text is drawn at the character height of each style
-run's font-table entry. A field that
+picture at byte ``0x39`` when that word is not 0. The border byte at
+``+0x27`` is a frame in the stroke color at ``+0x17``: ``pushButton`` (7)
+frames the bounds, ``radioButton3d`` (9) frames a box one pixel inside
+them, and ``none`` (1) draws no frame. A letter click on a quiz page
+checks that letter and unchecks the other letters, and the page is drawn
+again with those states. The invert picture is not drawn. A field's text
+is drawn at the character height of each style run's font-table entry.
+A field that
 contains a shape is painted under that shape. A label that contains no
 shape is painted in front of a shape that contains the label.
 
@@ -32,6 +37,7 @@ and class ``0x17`` records are outside that walk, and they are not painted.
 from __future__ import annotations
 
 import struct
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 
 from opentoolbook.background import background
@@ -65,6 +71,12 @@ NO_FILL = 253
 
 _RECTANGLE = 0x8
 _BUTTON = 0x9
+# Button border byte +0x27.
+PUSH_BUTTON = 7
+RADIO_BUTTON_3D = 9
+# One pixel at 96 dpi is 15 page units. The radioButton3d frame is that
+# far inside the bounds. No byte stores the inset.
+_RADIO_INSET = 15
 _FIELD = 0xA
 _GROUP = 0xB
 _ELLIPSE = 0xC
@@ -103,6 +115,9 @@ class Paint:
     picture_role: str | None = None
     picture: tuple[int, int, bytes] | None = None
     mask: bytes | None = None
+    frame: tuple[int, int, int, int] | None = None
+    up_id: int | None = None
+    checked_id: int | None = None
     sizes: tuple[tuple[int, int | None], ...] = ()
 
 
@@ -141,15 +156,20 @@ def show_page(
     props: UserProperties | None = None,
     *,
     sys_level: str | None = None,
+    checked: Mapping[str, bool] | None = None,
 ) -> DisplayList:
     """The display list for one page. It does not open a window.
 
     ``props`` holds the ``__`` names the page's ``enterPage`` reads.
     ``sys_level`` ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
+    ``checked`` maps a button name, in any case, to the checked state a
+    click gave it. It wins over bit 4 of that button's ``+0x26``.
     """
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
     items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props, sys_level)
+    if checked:
+        items = _checked(data, items, checked)
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
 
 
@@ -258,7 +278,7 @@ def open_page(
                 from tkinter import messagebox
 
                 messagebox.showinfo(nav.book_name or "ToolBook", text, parent=root)
-            if result.moved:
+            if result.moved or result.checked:
                 redraw()
 
         def on_key(event) -> None:
@@ -278,7 +298,7 @@ def open_page(
                 return
             if result.beep:
                 root.bell()
-            if result.moved:
+            if result.moved or result.checked:
                 redraw()
 
         canvas.bind("<Button-1>", on_click)
@@ -588,6 +608,33 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
     return None
 
 
+def _checked(data: bytes, items: tuple[Paint, ...], checked: Mapping[str, bool]) -> tuple[Paint, ...]:
+    """Buttons drawn with the checked state a click set, not the stored bit."""
+    wanted = {name.lower(): on for name, on in checked.items()}
+    out = list(items)
+    for index, item in enumerate(out):
+        on = wanted.get(item.name.lower()) if item.kind == "button" else None
+        if on is None or item.picture_role == "disabled":
+            continue
+        if on and item.checked_id:
+            picture_id, role = item.checked_id, "checked"
+        else:
+            picture_id, role = item.up_id, "up" if item.up_id else None
+        if picture_id == item.picture_id:
+            continue
+        out[index] = replace(item, picture_id=picture_id, picture_role=role, picture=_picture(data, picture_id))
+    return tuple(out)
+
+
+def _picture(data: bytes, picture_id: int | None):
+    if not picture_id:
+        return None
+    try:
+        return picture_rgb(data, picture_id)
+    except ValueError:
+        return None
+
+
 def _button(data, segment, at: int, object_id: int, name: str, bounds) -> Paint:
     up = _graphic_word(data, segment, at, 0x15)
     checked_id = _graphic_word(data, segment, at, 0x4B)
@@ -603,21 +650,34 @@ def _button(data, segment, at: int, object_id: int, name: str, bounds) -> Paint:
     else:
         picture_id = up
         role = "up" if up else None
-    picture = None
-    if picture_id:
-        try:
-            picture = picture_rgb(data, picture_id)
-        except ValueError:
-            picture = None
+    picture = _picture(data, picture_id)
+    _fill, stroke = _colors(data, at)
     return Paint(
         "button",
         object_id,
         name,
         bounds,
+        stroke=stroke,
         picture_id=picture_id,
         picture_role=role,
         picture=picture,
+        frame=_frame(data[at + 0x27], bounds),
+        up_id=up or None,
+        checked_id=checked_id or None,
     )
+
+
+def _frame(border: int, bounds) -> tuple[int, int, int, int] | None:
+    """The box a button border draws: the bounds, a smaller box, or none."""
+    if bounds is None:
+        return None
+    left, top, right, bottom = bounds
+    if border == PUSH_BUTTON:
+        return bounds
+    if border == RADIO_BUTTON_3D:
+        inset = min(_RADIO_INSET, (right - left) // 2, (bottom - top) // 2)
+        return (left + inset, top + inset, right - inset, bottom - inset)
+    return None
 
 
 def _runs(data, trailer, base: int, known: set[int], at: int):
@@ -817,6 +877,14 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list, make_photo=None)
         x = unit_to_px(item.bounds[0], scale)
         y = unit_to_px(item.bounds[1], scale)
         canvas.create_image(x, y, image=photo, anchor="nw")
+    if item.kind == "button" and item.frame is not None:
+        canvas.create_rectangle(
+            *_device_box(item.frame, scale),
+            fill="",
+            outline=_rgb(item.stroke) if item.stroke is not None else "#000000",
+        )
+        return
+    if item.kind in ("button", "paint object"):
         return
     if item.kind == "picture" and item.picture is not None and item.bounds is not None:
         left, top, right, bottom = _device_box(item.bounds, scale)
