@@ -2,8 +2,9 @@
 
 A quoted ``go to page`` opens that page. ``of book`` names the other
 file when the line quotes one. ``send next`` and ``send previous`` are
-the next and previous pages in the stored page list. ``break`` stops
-the handler. A line that is not one of those is not a page change.
+the next and previous pages in the stored page list. ``if``, ``break``,
+and ``return`` are the shared walker in ``walk.py``. A line that is not
+one of those is not a page change.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from dataclasses import dataclass
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
 from opentoolbook.script import _script, button_clicks, quoted_go_to
+from opentoolbook.walk import Flow, reader_condition, walk
 
 _PAGE = 5
 _BACKGROUND = 4
@@ -41,30 +43,19 @@ def follow_click(
 
 def run_handler(source: str, pages: tuple[str, ...], page_id: str) -> Follow:
     """Run the ``go to page``, ``send next``, and ``send previous`` lines."""
-    target = page_id
-    book = None
-    for line in source.splitlines():
-        text = line.strip()
-        if not text or text.startswith("--"):
-            continue
-        low = " ".join(text.lower().split())
-        if low.startswith("to handle") or low.startswith("end"):
-            continue
-        if low == "break":
-            break
-        found = quoted_go_to(text)
+    landed = {"page": page_id, "book": None}
+
+    def statement(raw: str, low: str) -> None:
+        found = quoted_go_to(raw)
         if found is not None:
-            target, book = found
-            continue
-        if low == "send next":
-            target = _step(pages, page_id, 1)
-            book = None
-            continue
-        if low == "send previous":
-            target = _step(pages, page_id, -1)
-            book = None
-            continue
-    return Follow(target, book)
+            landed["page"], landed["book"] = found
+            return
+        if low in {"send next", "send previous"}:
+            landed["page"] = _step(pages, page_id, 1 if low == "send next" else -1)
+            landed["book"] = None
+
+    walk(source.splitlines(), Flow(), condition=reader_condition, statement=statement)
+    return Follow(landed["page"], landed["book"])
 
 
 def quiz_background(data: bytes, page_id: str) -> bool:
