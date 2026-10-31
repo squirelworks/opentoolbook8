@@ -169,3 +169,43 @@ def _table(props: UserProperties, name: str) -> dict:
 
 def _int(value: object) -> int:
     return value if isinstance(value, int) and not isinstance(value, bool) else 0
+
+
+def goto_next_question_ex(
+    props: UserProperties,
+    pages: tuple[str, ...],
+    question_numbers: dict[str, int],
+) -> str | None:
+    """The page ``gotoNextQuestionEx`` opens on a running pass 1, 2, or 3.
+
+    ``question_numbers`` maps a page id to its stored ``QuestionNo``. The
+    page is the first one from ``__quizStartPage`` on whose question number
+    is ``getNextQuestion``'s result. After the last question, pass 1 opens
+    ``__quizPages`` element 3, 1, or 2 by ``__quizMode`` 0, 1, or 2, pass 2
+    opens element 1 or 2 by mode 1 or 2, and pass 3 opens element 2 on
+    mode 2. None when the handler names no page.
+    """
+    quiz_pass = _int(props.get("__quizPass"))
+    if quiz_pass not in (1, 2, 3):
+        return None
+    number = get_next_question(props)
+    if quiz_pass == 2:
+        responses = _table(props, "__quizResponse")
+        while number != -1 and responses.get(_int(props.get("__quizIndex")), "") != "":
+            number = get_next_question(props)
+    if number >= 0:
+        start = max(1, _int(props.get("__quizStartPage")))
+        for page_id in pages[start - 1:]:
+            if question_numbers.get(page_id) == number:
+                return page_id
+        return None
+    mode = _int(props.get("__quizMode"))
+    element = {
+        1: {0: 3, 1: 1, 2: 2},
+        2: {1: 1, 2: 2},
+        3: {2: 2},
+    }[quiz_pass].get(mode)
+    if element is None:
+        return None
+    found = _table(props, "__quizPages").get(element)
+    return found if isinstance(found, str) and found else None
