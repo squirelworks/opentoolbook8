@@ -81,13 +81,16 @@ class NavigatorFieldTests(unittest.TestCase):
 
         nav = navigate.Navigator.__new__(navigate.Navigator)
         nav.data, nav.pages, nav.page_id, nav.book, nav.home, nav.fields = b"", ("P1", "P2"), "P1", None, None, {}
+        nav.lesson, nav.variables, nav._handlers = None, {}, {}
         wrote = Follow("P1", None, fields=(("Stem", "new"),))
         with patch.object(navigate, "follow_click", return_value=wrote) as called:
             clicked = nav.click("Check", {"Stem": "old"})
-        self.assertEqual(called.call_args.args[4], {"Stem": "old"})
+        self.assertEqual(called.call_args.args[6], {"Stem": "old"})
         self.assertEqual((clicked.moved, clicked.changed), (False, True))
         self.assertEqual(nav.fields, {"Stem": "new"})
-        with patch.object(navigate, "follow_click", return_value=Follow("P2", None)):
+        with patch.object(navigate, "follow_click", return_value=Follow("P2", None)), patch.object(
+            navigate.Navigator, "enter"
+        ):
             clicked = nav.click("Next", {"Stem": "new"})
         self.assertTrue(clicked.moved)
         self.assertEqual(nav.fields, {})

@@ -218,7 +218,7 @@ def open_page(
         errors: list[str] = []
 
         def redraw() -> None:
-            listed = show_page(nav.data, nav.page_id, *state["view"], state["props"], fields=nav.fields)
+            listed = nav.display(*state["view"], state["props"])
             paint(listed)
 
         def paint(listed: DisplayList) -> None:
@@ -248,6 +248,10 @@ def open_page(
                 return
             if result.beep:
                 root.bell()
+            for text in result.requests:
+                from tkinter import messagebox
+
+                messagebox.showinfo(nav.book_name or "ToolBook", text, parent=root)
             if result.moved or result.changed:
                 redraw()
 
