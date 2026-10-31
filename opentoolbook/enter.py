@@ -5,12 +5,18 @@
 ``reader``. ``&&`` is one operator and is recognized before ``&``. A
 value that still contains ``__`` and ``of this book`` is not written
 over the field.
+
+The page's handler runs first, then the background's ``enterBackground``
+and ``enterPage``, then the book's ``enterPage``, the order ``forward``
+passes the message. A later write to the same field wins.
 """
 
 from __future__ import annotations
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
+from opentoolbook.props import UserProperties
 from opentoolbook.script import _script, resource_scripts
+from opentoolbook.walk import Flow, reader_condition, this_name, walk
 
 _PAGE = 5
 
@@ -28,8 +34,12 @@ def concatenate(
     *,
     student_first: str | None = None,
     page_id: str | None = None,
+    book_name: str | None = None,
 ) -> str:
-    """Join one expression. ``&&`` inserts a space. ``&`` does not."""
+    """Join one expression. ``&&`` inserts a space. ``&`` does not.
+
+    ``name of this page`` is ``page_id`` and ``name of this book`` is ``book_name``.
+    """
     tokens = list(_tokens(expression))
     parts: list[list[tuple[str, str, str]]] = [[]]
     operators: list[str] = []
@@ -39,7 +49,7 @@ def concatenate(
             operators.append(kind)
             continue
         parts[-1].append((kind, value, source))
-    values = [_operand(part, student_first, page_id) for part in parts]
+    values = [_operand(part, student_first, page_id, book_name) for part in parts]
     result = values[0] if values else ""
     for operator, value in zip(operators, values[1:]):
         result = f"{result} {value}" if operator == "andand" else result + value
@@ -88,23 +98,34 @@ def enter_fields(
     *,
     student_first: str | None = None,
     sys_level: str | None = None,
+    props: UserProperties | None = None,
+    book_name: str | None = None,
 ) -> tuple[tuple[str, str, tuple[tuple[int, str | None], ...]], ...]:
     """Field text after the page's ``enterPage`` handler.
 
+    ``book_name`` is the file name ``name of this book`` returns.
+
     ``fields`` is ``(name, text, runs)`` in paint order. ``sys_level``
     ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
+    ``student_first`` ``None`` reads ``__studentFirst`` from ``props``.
     """
+    from opentoolbook.click import background_script
+
+    if student_first is None and props is not None:
+        stored = props.get("__studentFirst")
+        student_first = None if stored is None else str(stored)
     handler = _enter_page(page_source(data, page_id))
+    behind = background_script(data, page_id)
+    backdrop = [found for found in (_handler(behind, "enterbackground"), _enter_page(behind)) if found]
     book = _book_enter(data)
-    if not handler and not book:
+    if not handler and not book and not backdrop:
         return fields
     reader = (sys_level is None) or sys_level.lower() == "reader"
     names = tuple(name for name, _text, _runs in fields)
     found = []
-    if handler:
-        found.extend(_assignments(handler.splitlines(), reader, student_first, page_id, names))
-    if book:
-        found.extend(_assignments(book.splitlines(), reader, student_first, page_id, names))
+    for source in [handler, *backdrop, book]:
+        if source:
+            found.extend(_assignments(source.splitlines(), reader, student_first, page_id, names, book_name))
     out = list(fields)
     for name, value in found:
         if blocks_write(value):
@@ -143,59 +164,35 @@ def _assignments(
     student_first: str | None,
     page_id: str,
     names: tuple[str, ...],
-):
-    index = 0
-    while index < len(lines):
-        low = _norm(lines[index])
-        if low.startswith("if ") and low.endswith(" then"):
-            condition = low[3:-5].strip()
-            index += 1
-            taken, skipped, index = _split_if(lines, index)
-            chosen = _branch(condition, reader, names, taken, skipped)
-            if chosen is not None:
-                yield from _assignments(chosen, reader, student_first, page_id, names)
-            continue
-        found = _set_text(lines[index])
-        if found is not None:
-            name, expression = found
-            yield name, concatenate(expression, student_first=student_first, page_id=page_id)
-        index += 1
+    book_name: str | None = None,
+) -> list[tuple[str, str]]:
+    found: list[tuple[str, str]] = []
+
+    def statement(raw: str, _low: str) -> None:
+        written = _set_text(raw)
+        if written is not None:
+            name, expression = written
+            found.append((name, concatenate(expression, student_first=student_first, page_id=page_id, book_name=book_name)))
+
+    walk(
+        lines,
+        Flow(),
+        condition=lambda text: _branch(text, reader, names),
+        statement=statement,
+    )
+    return found
 
 
-def _branch(condition: str, reader: bool, names: tuple[str, ...], taken: list[str], skipped: list[str]):
-    if condition == "syslevel = reader":
-        return taken if reader else skipped
+def _branch(condition: str, reader: bool, names: tuple[str, ...]) -> bool | None:
+    known = reader_condition(condition, reader)
+    if known is not None:
+        return known
+    if " ".join(condition.lower().split()) in {"syslevel = author", 'syslevel = "author"'}:
+        return not reader
     folded = condition.replace(" ", "")
     if folded == 'isobject(field"page#"ofparentofthispage)':
-        if any(name.lower() == "page#" for name in names):
-            return taken
-        return skipped
+        return any(name.lower() == "page#" for name in names)
     return None
-
-
-def _split_if(lines: list[str], index: int):
-    taken: list[str] = []
-    skipped: list[str] = []
-    branch = taken
-    depth = 0
-    while index < len(lines):
-        low = _norm(lines[index])
-        if low.startswith("if ") and low.endswith(" then"):
-            depth += 1
-            branch.append(lines[index])
-            index += 1
-            continue
-        if low == "else" and depth == 0:
-            branch = skipped
-            index += 1
-            continue
-        if low == "end if" and depth == 0:
-            return taken, skipped, index + 1
-        if low == "end if":
-            depth -= 1
-        branch.append(lines[index])
-        index += 1
-    return taken, skipped, index
 
 
 def _set_text(line: str) -> tuple[str, str] | None:
@@ -221,6 +218,11 @@ def _set_text(line: str) -> tuple[str, str] | None:
 
 
 def _enter_page(source: str) -> str:
+    return _handler(source, "enterpage")
+
+
+def _handler(source: str, message: str) -> str:
+    """The ``to handle`` block for ``message`` in ``source``, or empty."""
     lines = source.splitlines()
     start = None
     for index, line in enumerate(lines):
@@ -229,7 +231,7 @@ def _enter_page(source: str) -> str:
             len(parts) >= 3
             and parts[0].lower() == "to"
             and parts[1].lower() == "handle"
-            and parts[2].lower() == "enterpage"
+            and parts[2].lower() == message
         ):
             start = index
             break
@@ -257,7 +259,12 @@ def _book_enter(data: bytes) -> str:
     return ""
 
 
-def _operand(tokens: list[tuple[str, str, str]], student_first: str | None, page_id: str | None) -> str:
+def _operand(
+    tokens: list[tuple[str, str, str]],
+    student_first: str | None,
+    page_id: str | None,
+    book_name: str | None = None,
+) -> str:
     if len(tokens) == 1 and tokens[0][0] == "str":
         return tokens[0][1]
     if (
@@ -268,8 +275,9 @@ def _operand(tokens: list[tuple[str, str, str]], student_first: str | None, page
         and tokens[2][0] == ")"
     ):
         return get_first(student_first)
-    if page_id is not None and _source(tokens).lower() == "name of this page":
-        return page_id
+    named = this_name(_source(tokens), page_id, book_name)
+    if named is not None:
+        return named
     return _source(tokens)
 
 
@@ -327,6 +335,3 @@ def _tokens(expression: str):
         word = expression[start:index]
         yield "word", word, word
 
-
-def _norm(line: str) -> str:
-    return " ".join(line.strip().lower().split())

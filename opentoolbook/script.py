@@ -82,6 +82,26 @@ def quoted_go_to(line: str) -> tuple[str, str | None] | None:
 def button_clicks(data: bytes) -> tuple[ButtonClick, ...]:
     """Every inline ``buttonClick`` in the book, in the order the records are stored."""
     found: list[ButtonClick] = []
+    for item in object_scripts(data):
+        handler = _button_click(item.source)
+        if handler:
+            found.append(ButtonClick(item.owner, item.name, handler))
+    return tuple(found)
+
+
+@dataclass(frozen=True)
+class ObjectScript:
+    """One inline object script, as source text. ``kind`` is the record class."""
+
+    owner: str
+    name: str
+    kind: int
+    source: str
+
+
+def object_scripts(data: bytes) -> tuple[ObjectScript, ...]:
+    """Every inline script in the book, in stored order, whatever handlers it holds."""
+    found: list[ObjectScript] = []
     for segment in _segments(data):
         trailer = _trailer(data, segment)
         heap = b"\x00" * 6 + data[segment.file_at:segment.file_at + segment.size]
@@ -95,11 +115,32 @@ def button_clicks(data: bytes) -> tuple[ButtonClick, ...]:
                 at += 1
                 continue
             text = _script(data, heap, at, kind, size)
-            handler = _button_click(text) if text else None
-            if handler:
-                found.append(ButtonClick(owner, _object_name(data, trailer, at, kind), handler))
+            if text:
+                found.append(ObjectScript(owner, _object_name(data, trailer, at, kind), kind, text))
             at += size
     return tuple(found)
+
+
+def handler_sites(data: bytes, name: str) -> tuple[tuple[str, str, str], ...]:
+    """Where ``to handle NAME`` starts a handler: ``(place, owner, object)``.
+
+    The places are inline object scripts, type 10 scripts, and type 19
+    shared scripts. The match ignores case and spacing. The handler is
+    not called.
+    """
+    header = re.compile(r"^\s*to\s+handle\s+" + re.escape(name) + r"\b", re.IGNORECASE | re.MULTILINE)
+    sites: list[tuple[str, str, str]] = []
+    for item in object_scripts(data):
+        sites.extend(("inline", item.owner, item.name) for _ in header.finditer(item.source))
+    for place, reader in (("type 10", resource_scripts), ("type 19", shared_scripts)):
+        try:
+            stored = reader(data)
+        except ValueError:
+            # A book with no resource segment stores no such script.
+            stored = ()
+        for item in stored:
+            sites.extend((place, str(item.resource_id), "") for _ in header.finditer(item.source))
+    return tuple(sites)
 
 
 def _owner(data: bytes, base: int) -> str:
