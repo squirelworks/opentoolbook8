@@ -2,7 +2,8 @@
 
 The record is 17 bytes. The word at ``+0x04`` is a near pointer to a
 class ``0xA`` field in the same segment. That field is named ``Text``.
-The page window does not paint this record.
+The record is a hotword. The page walk returns it under that field. The
+page window does not paint it.
 """
 
 from __future__ import annotations

@@ -7,7 +7,8 @@ is local to the handler. Every other line is skipped and named: a
 ``linkDLL`` or ``linkDLL32`` block by its library, a call by the name it
 calls, ``set ... of this book`` by its property, and a ``conditions``,
 ``step``, or ``while`` block by its first line. ``if sysLevel = reader``
-is taken. A condition on a value the handler holds is decided. Any
+is taken. A ``__`` name whose right side was skipped is listed as
+unset. A condition on a value the handler holds is decided. Any
 other condition runs neither branch and is named. No DLL is called.
 """
 
@@ -35,6 +36,7 @@ class Initialized:
 
     assigned: list[tuple[str, object]] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)
+    unset: list[str] = field(default_factory=list)
 
 
 def run_literals(
@@ -100,6 +102,9 @@ def run_literals(
                 assign(assigned.group(1), found)
             else:
                 skip_line(assigned.group(2))
+                target = assigned.group(1)
+                if UserProperties.owns(target) and target not in done.unset:
+                    done.unset.append(target)
             return
         put = _SET.match(text)
         if put is not None:
