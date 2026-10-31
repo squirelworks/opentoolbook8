@@ -626,6 +626,10 @@ def _contains(outer, inner) -> bool:
 
 
 def _draw_item(canvas, scale: float, item: Paint, photos: list, make_photo=None) -> None:
+    if make_photo is None and item.picture is not None:
+        import tkinter as tk
+
+        make_photo = tk.PhotoImage
     if item.kind == "background" and item.fill is not None and item.bounds is not None:
         canvas.create_rectangle(*_device_box(item.bounds, scale), fill=_rgb(item.fill), outline="")
         return
@@ -661,10 +665,6 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list, make_photo=None)
         return
     if item.kind in ("button", "paint object") and item.picture is not None and item.bounds is not None:
         width, height, rgb = _scale_rgb(item.picture[0], item.picture[1], item.picture[2], scale)
-        if make_photo is None:
-            import tkinter as tk
-
-            make_photo = tk.PhotoImage
         photo = make_photo(data=_ppm(width, height, rgb))
         photos.append(photo)
         x = unit_to_px(item.bounds[0], scale)
@@ -675,7 +675,7 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list, make_photo=None)
         left, top, right, bottom = _device_box(item.bounds, scale)
         width = max(1, round(right - left))
         height = max(1, round(bottom - top))
-        photo = tk.PhotoImage(data=_png(*_stretch(item.picture, item.mask, width, height)))
+        photo = make_photo(data=_png(*_stretch(item.picture, item.mask, width, height)))
         photos.append(photo)
         canvas.create_image(left, top, image=photo, anchor="nw")
         return

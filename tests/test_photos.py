@@ -93,5 +93,24 @@ class PhotoCountTests(unittest.TestCase):
         self.assertEqual(len(canvas.images), sum(live))
 
 
+
+class PictureClassTests(unittest.TestCase):
+    def setUp(self):
+        FakePhoto.live = 0
+
+    def test_class_19_pictures_use_the_same_photo_list(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        data = path.with_name("nida81.tbk").read_bytes()
+        listed = _pictures(show_page(data, "P310", 624, 442))
+        kinds = [item.kind for item in listed.items]
+        self.assertIn("picture", kinds)
+        canvas = FakeCanvas()
+        for _ in range(3):
+            draw_page(canvas, listed, FakePhoto)
+            self.assertEqual(FakePhoto.live, len(kinds))
+
+
 if __name__ == "__main__":
     unittest.main()
