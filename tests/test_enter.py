@@ -16,6 +16,8 @@ from opentoolbook.field import field_text
 from opentoolbook.script import book_handlers, resource_scripts
 from opentoolbook.show import show_page
 
+from lesson import companion
+
 LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 GREETING = "Hello Student, this lesson is about:"
 STORED = "Hello, this lesson is about:"
@@ -99,11 +101,11 @@ class GreetingTests(unittest.TestCase):
             version = next(item for item in listed.items if item.kind == "field" and item.name.lower() == "version")
             self.assertEqual(version.text, stored)
             self.assertIn("__nidaVersion of this book", page_source(data, page))
-        recs = resource_scripts(path.with_name("nc81recs.sbk").read_bytes())[0].source
+        recs = resource_scripts(companion(path, "nc81recs.sbk").read_bytes())[0].source
         body = _body(recs, "getFirst")
         self.assertIn("return __studentFirst", body)
         self.assertNotIn("Student", body)
-        base = resource_scripts(path.with_name("nc81base.sbk").read_bytes())[0].source
+        base = resource_scripts(companion(path, "nc81base.sbk").read_bytes())[0].source
         section = _body(base, "setSection")
         self.assertIn("WritePrivateProfileStringA", section)
         self.assertIn("kernel32.dll", section)
