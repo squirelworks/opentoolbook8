@@ -19,6 +19,12 @@ begins::
 ``__quizAttempted`` (1), ``__quizTestNo``, ``__quizQuestionNo``,
 ``__quizResponse``, and ``__quizScore``. OpenScript compares strings
 without case, so the lower-case letter matches an upper-case ``Answer``.
+With no letter checked the block calls ``storeQuestionSkipped``, which
+writes only ``__quizTestNo`` and ``__quizQuestionNo`` at ``__quizIndex``.
+
+``getQuizScore`` adds ``__quizScore[i]`` for ``i`` from 1 to
+``__quizCount`` and returns ``score div count``, or 0 when ``__quizCount``
+is 0. An element nothing stored is 0.
 """
 
 from __future__ import annotations
@@ -68,6 +74,28 @@ def store_question_response(
     return 0
 
 
+def store_question_skipped(props: UserProperties, test: int | str, question: int | str) -> int:
+    """``storeQuestionSkipped``: ``__quizTestNo`` and ``__quizQuestionNo`` at ``__quizIndex``. Returns 0."""
+    index = _int(props.get("__quizIndex"))
+    for name, value in (("__quizTestNo", _number(test)), ("__quizQuestionNo", _number(question))):
+        table = props.get(name)
+        stored = dict(table) if isinstance(table, dict) else {}
+        stored[index] = value
+        props.set(name, stored)
+    return 0
+
+
+def get_quiz_score(props: UserProperties) -> int:
+    """``getQuizScore``: the sum of ``__quizScore[1..__quizCount]`` ``div`` the count."""
+    table = props.get("__quizScore")
+    scores = table if isinstance(table, dict) else {}
+    count = _int(props.get("__quizCount"))
+    score = sum(_int(scores.get(index)) for index in range(1, count + 1))
+    if count <= 0:
+        return 0
+    return int(score / count)
+
+
 def record_answer(
     props: UserProperties,
     checked: dict[str, bool],
@@ -79,12 +107,13 @@ def record_answer(
 
     Returns the stored score, or None when that block stores no response:
     ``__quizPass`` is above 3, ``__quizIndex`` is 0, or no letter is
-    checked. The skipped branch is not this function.
+    checked. With no letter checked it runs ``storeQuestionSkipped``.
     """
     if _int(props.get("__quizPass")) > 3 or _int(props.get("__quizIndex")) <= 0:
         return None
     response = get_quiz_response(checked)
     if not response:
+        store_question_skipped(props, test, question)
         return None
     score = answer_score(response, answer)
     store_question_response(props, test, question, response, score)
