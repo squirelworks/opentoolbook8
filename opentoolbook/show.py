@@ -122,14 +122,18 @@ def show_page(
     view_width: int,
     view_height: int,
     props: UserProperties | None = None,
+    fields: dict[str, str] | None = None,
 ) -> DisplayList:
     """The display list for one page. It does not open a window.
 
     ``props`` holds the ``__`` names the page's ``enterPage`` reads.
+    ``fields`` is field text a handler wrote after ``enterPage``.
     """
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
     items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props)
+    if fields:
+        items = _written(items, fields)
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
 
 
@@ -265,6 +269,24 @@ def _entered(
     for index, (_name, text, runs) in zip(indexes, changed):
         if text != (out[index].text or "") or runs != out[index].runs:
             out[index] = replace(out[index], text=text, runs=runs)
+    return tuple(out)
+
+
+def field_texts(listed: DisplayList) -> dict[str, str]:
+    """Each field name on the display list and the text it shows."""
+    return {item.name: item.text or "" for item in listed.items if item.kind == "field" and item.name}
+
+
+def _written(items: tuple[Paint, ...], fields: dict[str, str]) -> tuple[Paint, ...]:
+    from opentoolbook.enter import cover_style
+
+    wanted = {name.lower(): text for name, text in fields.items()}
+    out = list(items)
+    for index, item in enumerate(out):
+        if item.kind != "field" or item.name.lower() not in wanted:
+            continue
+        text = wanted[item.name.lower()]
+        out[index] = replace(item, text=text, runs=cover_style(item.text or "", text, item.runs))
     return tuple(out)
 
 

@@ -3,12 +3,15 @@
 A quoted ``go to page`` opens that page. ``of book`` names the other
 file when the line quotes one. ``send next`` and ``send previous`` are
 the next and previous pages in the stored page list. ``if``, ``break``,
-and ``return`` are the shared walker in ``walk.py``. A line that is not
+and ``return`` are the shared walker in ``walk.py``. ``text of field
+"x" = ...`` and ``set text of field "x" to ...`` write a field's text,
+and a later condition reads that text. A line that is not
 one of those is not a page change.
 """
 
 from __future__ import annotations
 
+import re
 import struct
 from dataclasses import dataclass
 
@@ -22,10 +25,14 @@ _BACKGROUND = 4
 
 @dataclass(frozen=True)
 class Follow:
-    """The page a handler opens. ``book`` is None when it stays in this book."""
+    """The page a handler opens. ``book`` is None when it stays in this book.
+
+    ``fields`` is each ``(field name, text)`` the handler wrote, in order.
+    """
 
     page_id: str
     book: str | None
+    fields: tuple[tuple[str, str], ...] = ()
 
 
 def follow_click(
@@ -33,17 +40,32 @@ def follow_click(
     page_id: str,
     button: str,
     pages: tuple[str, ...],
+    fields: dict[str, str] | None = None,
 ) -> Follow | None:
-    """The quoted page this button's handler opens, or None when it has no handler."""
+    """The quoted page this button's handler opens, or None when it has no handler.
+
+    ``fields`` maps a field name to the text the page shows now.
+    """
     source = _handler(data, page_id, button)
     if source is None:
         return None
-    return run_handler(source, pages, page_id)
+    return run_handler(source, pages, page_id, fields)
 
 
-def run_handler(source: str, pages: tuple[str, ...], page_id: str) -> Follow:
-    """Run the ``go to page``, ``send next``, and ``send previous`` lines."""
+def run_handler(
+    source: str,
+    pages: tuple[str, ...],
+    page_id: str,
+    fields: dict[str, str] | None = None,
+) -> Follow:
+    """Run the ``go to page``, ``send next``, ``send previous``, and field text lines.
+
+    ``fields`` maps a field name to its text before the click. A write
+    changes that text for the lines after it.
+    """
     landed = {"page": page_id, "book": None}
+    texts = {name.lower(): text for name, text in (fields or {}).items()}
+    written: list[tuple[str, str]] = []
 
     def statement(raw: str, low: str) -> None:
         found = quoted_go_to(raw)
@@ -53,9 +75,108 @@ def run_handler(source: str, pages: tuple[str, ...], page_id: str) -> Follow:
         if low in {"send next", "send previous"}:
             landed["page"] = _step(pages, page_id, 1 if low == "send next" else -1)
             landed["book"] = None
+            return
+        write = field_write(raw)
+        if write is not None:
+            name, expression = write
+            value = text_value(expression, texts)
+            if value is not None:
+                texts[name.lower()] = value
+                written.append((name, value))
 
-    walk(source.splitlines(), Flow(), condition=reader_condition, statement=statement)
-    return Follow(landed["page"], landed["book"])
+    def condition(text: str) -> bool | None:
+        known = reader_condition(text)
+        if known is not None:
+            return known
+        return text_condition(text, texts)
+
+    walk(source.splitlines(), Flow(), condition=condition, statement=statement)
+    return Follow(landed["page"], landed["book"], tuple(written))
+
+
+_FIELD = re.compile(r'^text\s+of\s+field\s+"([^"]*)"\s*', re.IGNORECASE)
+_SET_FIELD = re.compile(r'^set\s+text\s+of\s+field\s+"([^"]*)"\s+to\s+(.+)$', re.IGNORECASE)
+_PUT_FIELD = re.compile(r'^text\s+of\s+field\s+"([^"]*)"\s*=\s*(.+)$', re.IGNORECASE)
+_COMPARE = re.compile(r"^(.+?)\s*(<>|=|\bis not\b|\bis\b)\s*(.+)$", re.IGNORECASE)
+
+
+def field_write(line: str) -> tuple[str, str] | None:
+    """``(field name, expression)`` for ``text of field "x" = ...`` or ``set text of field "x" to ...``."""
+    text = line.strip()
+    found = _SET_FIELD.match(text) or _PUT_FIELD.match(text)
+    if found is None:
+        return None
+    return found.group(1), found.group(2).strip()
+
+
+def text_value(expression: str, texts: dict[str, str]) -> str | None:
+    """A quoted string, a number, or ``text of field "x"``, joined by ``&`` and ``&&``.
+
+    None when any part is something else.
+    """
+    parts: list[str] = []
+    joins: list[str] = []
+    rest = expression.strip()
+    while True:
+        value, rest = _operand(rest, texts)
+        if value is None:
+            return None
+        parts.append(value)
+        rest = rest.lstrip()
+        if not rest:
+            break
+        if rest.startswith("&&"):
+            joins.append(" ")
+            rest = rest[2:].lstrip()
+        elif rest.startswith("&"):
+            joins.append("")
+            rest = rest[1:].lstrip()
+        else:
+            return None
+    out = parts[0]
+    for join, part in zip(joins, parts[1:]):
+        out = out + join + part
+    return out
+
+
+def text_condition(text: str, texts: dict[str, str]) -> bool | None:
+    """``text of field "x" = "y"``, ``<>``, ``is``, and ``is not``. Strings compare without case."""
+    found = _COMPARE.match(text.strip())
+    if found is None or "text of field" not in text.lower():
+        return None
+    left = text_value(found.group(1), texts)
+    right = text_value(found.group(3), texts)
+    if left is None or right is None:
+        return None
+    same = left.lower() == right.lower()
+    operator = " ".join(found.group(2).lower().split())
+    return same if operator in {"=", "is"} else not same
+
+
+def _operand(text: str, texts: dict[str, str]) -> tuple[str | None, str]:
+    if text.startswith('"'):
+        chars: list[str] = []
+        index = 1
+        while index < len(text):
+            if text[index] == '"':
+                if text.startswith('""', index):
+                    chars.append('"')
+                    index += 2
+                    continue
+                return "".join(chars), text[index + 1:]
+            chars.append(text[index])
+            index += 1
+        return None, ""
+    found = _FIELD.match(text)
+    if found is not None:
+        name = found.group(1).lower()
+        if name not in texts:
+            return None, ""
+        return texts[name], text[found.end():]
+    number = re.match(r"-?\d+", text)
+    if number is not None:
+        return number.group(0), text[number.end():]
+    return None, ""
 
 
 def quiz_background(data: bytes, page_id: str) -> bool:
