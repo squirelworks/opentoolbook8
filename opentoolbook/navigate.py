@@ -250,17 +250,6 @@ class Navigator:
         self.enter()
         return Clicked(True, beep, asked)
 
-    def call(self, name: str) -> str | None:
-        """The page a ``get name()`` line in a click goes to, or None.
-
-        ``gotoMenuPage`` is the one call that opens a page.
-        """
-        from opentoolbook.menu import goto_menu_page
-
-        if name.lower() != "gotomenupage":
-            return None
-        return goto_menu_page(self.handlers(), self.pages, self.props)
-
     def display(self, view_width: int, view_height: int, props: UserProperties | None = None):
         """The display list of the page on screen, after its ``enterPage``."""
         from opentoolbook.show import show_page
