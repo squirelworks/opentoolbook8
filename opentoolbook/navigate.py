@@ -172,7 +172,7 @@ class Navigator:
             if name in LETTERS:
                 self.letters[self._key()] = name
                 return Clicked(False, checked=True)
-            if name in _NEXT_QUESTION and self.props is not None:
+            if name in _NEXT_QUESTION and self.props is not None and not self._ok_beeps(name):
                 self.record_answer()
             result = quiz_click(self.pages, self.page_id, button, checked=self.letters.get(self._key()))
             asked = (result.request,) if result.request else ()
@@ -255,6 +255,14 @@ class Navigator:
             question.test_no,
             question.question_no,
         )
+
+    def _ok_beeps(self, name: str) -> bool:
+        """``OK`` with ``__quizPass`` in ``1,2`` and no letter beeps and returns 0 first."""
+        from opentoolbook.quizscore import get_quiz_response
+
+        if name != "ok" or self.props.get("__quizPass") not in (1, 2):
+            return False
+        return get_quiz_response(self.letter_states()) == ""
 
     def _key(self) -> tuple[str, str]:
         return (str(self.book or ""), self.page_id)
