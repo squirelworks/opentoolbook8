@@ -250,3 +250,9 @@ A book with no startup page and no stored page is an error. The error names the 
 `python3 -m opentoolbook path/to/book.tbk --report` prints the record count, the follow-up reads, the files the book names, and the startup call names. It does not open a window. `--report path/to/book.tbk` prints the same report. `--home` with a book and without `--report` opens the book and searches that install. It does not print the install list. `--home` without a book still prints the install folder.
 
 `python3 -m opentoolbook --show P300 path/to/book.tbk` opens a Tk window on the page id in the command. It does not follow those startup handlers to the book's opening page. The paint and the OpenScript that window runs are the sections above. The page walk also finds classes `0xD`, `0x11`, `0x13`, `0x15`, and `0x19`, and the window does not paint those. Class `0x12` pies and class `0x17` records are outside that walk and are not painted.
+
+## Logo page click
+
+`P0` of `nida81.tbk` has no button. The page paints the background, field `Page#`, field `Copyright`, and one unnamed field. Its only handler is the page's own `buttonClick`: `system lastbook`, `system nextpage`, `go to page (nextpage) of book(lastbook)`. It has no `enterPage`; the book `enterPage` sets `page#` to `P0`. A click that hits no button, or a button with no `buttonClick`, goes to the page's `buttonClick`. So the way off logo `P0` is a click anywhere on the page.
+
+`go to page (name) of book(name)` reads those two system variables. When a handler this runner executed assigned both a string, the window opens that page of that book, with the book found by the click search. A page id matches regardless of case. With `--show P0` no handler has assigned them, so the click stays on `P0`. The page the click opens is whatever `nextpage` and `lastbook` hold; the logo page quotes none.

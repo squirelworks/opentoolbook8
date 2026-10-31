@@ -7,8 +7,10 @@ parent, ``--home``, ``--home/courses``, and ``--home/Nida98/Lessons``,
 regardless of case. After the window changes books, the search still
 starts from the lesson the user opened, then the book on screen, then
 ``--home``. A file that search does not find is an error that names the
-file and the page. A quiz button on a page whose background
-calls ``handleQuizClick`` uses the stored page list.
+file and the page. A click that hits no button, or a button with no
+``buttonClick``, goes to the page's own ``buttonClick``. A quiz button on
+a page whose background calls ``handleQuizClick`` uses the stored page
+list. A page id matches regardless of case.
 """
 
 from __future__ import annotations
@@ -16,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from opentoolbook.click import follow_click, quiz_background
+from opentoolbook.click import follow_click, page_click, quiz_background
 from opentoolbook.field import page_ids
 from opentoolbook.quiznav import quiz_click
 from opentoolbook.shelf import find_file, search_roots
@@ -50,6 +52,7 @@ class Navigator:
         book: Path | str | None = None,
         home: Path | str | None = None,
         lesson: Path | str | None = None,
+        variables: dict[str, object] | None = None,
     ) -> None:
         self.data = data
         self.pages = page_ids(data)
@@ -58,6 +61,8 @@ class Navigator:
         self.home = Path(home) if home else None
         # The path the user passed. It stays when the window changes books.
         self.lesson = Path(lesson) if lesson else self.book
+        # System variables a handler this runner executed assigned, by lower-case name.
+        self.variables: dict[str, object] = {key.lower(): value for key, value in (variables or {}).items()}
 
     @property
     def book_name(self) -> str:
@@ -83,11 +88,18 @@ class Navigator:
             raise MissingBook(name, page_id, roots)
         return found
 
-    def click(self, button: str) -> Clicked:
-        """Run the named button's click. The page and book change in place."""
-        acted = follow_click(self.data, self.page_id, button, self.pages)
+    def click(self, button: str | None) -> Clicked:
+        """Run one click. ``button`` None is a click that hits no button.
+
+        The page and book change in place.
+        """
+        acted = None
+        if button:
+            acted = follow_click(self.data, self.page_id, button, self.pages)
         if acted is None:
-            if not quiz_background(self.data, self.page_id):
+            acted = page_click(self.data, self.page_id, self.pages, self.variables)
+        if acted is None:
+            if not button or not quiz_background(self.data, self.page_id):
                 return Clicked(False)
             result = quiz_click(self.pages, self.page_id, button)
             if result.page_id == self.page_id:
@@ -99,10 +111,18 @@ class Navigator:
             book = self.find_book(acted.book, acted.page_id)
             data = book.read_bytes()
             pages = page_ids(data)
-        if acted.page_id not in pages:
+        page = _match(pages, acted.page_id)
+        if page is None:
             return Clicked(False)
-        if book == self.book and acted.page_id == self.page_id:
+        if book == self.book and page == self.page_id:
             return Clicked(False)
         self.data, self.pages, self.book = data, pages, book
-        self.page_id = acted.page_id
+        self.page_id = page
         return Clicked(True)
+
+
+def _match(pages: tuple[str, ...], page_id: str) -> str | None:
+    for page in pages:
+        if page.lower() == page_id.lower():
+            return page
+    return None

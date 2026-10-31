@@ -103,6 +103,28 @@ class LessonTests(unittest.TestCase):
             self.assertIn("P310", str(caught.exception))
             self.assertEqual((missing.page_id, missing.book), ("P300", lesson))
 
+    def test_logo_p0_has_no_button_and_its_page_click_reads_two_variables(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from opentoolbook.click import page_click
+        from opentoolbook.enter import page_source
+        from opentoolbook.show import button_at, show_page
+
+        logo = path.with_name("nida81.tbk")
+        data = logo.read_bytes()
+        self.assertIn("go to page (nextpage) of book(lastbook)", page_source(data, "P0"))
+        listed = show_page(data, "P0", 800, 600)
+        self.assertEqual([item for item in listed.items if item.kind == "button"], [])
+        self.assertIsNone(button_at(listed, 400, 300))
+        shown = Navigator(data, "P0", logo)
+        self.assertFalse(shown.click(None).moved)
+        self.assertEqual((shown.page_id, shown.book), ("P0", logo))
+        self.assertIsNone(page_click(data, "P310", shown.pages))
+        assigned = Navigator(data, "P0", logo, variables={"NextPage": "p10", "lastbook": "9e954d01.tbk"})
+        self.assertTrue(assigned.click(None).moved)
+        self.assertEqual((assigned.page_id, assigned.book.name), ("P10", path.name))
+
     def test_the_opening_window_on_the_logo_book_finds_the_lesson(self):
         path = _lesson()
         if path is None:
