@@ -122,14 +122,21 @@ def show_page(
     view_width: int,
     view_height: int,
     props: UserProperties | None = None,
+    correct: bool = False,
 ) -> DisplayList:
     """The display list for one page. It does not open a window.
 
     ``props`` holds the ``__`` names the page's ``enterPage`` reads.
+    The rectangle named ``Correct`` is the answer mark. It is on the list
+    only when ``correct`` is True, which is when ``setupQuizPage`` ran
+    ``set visible of rectangle("correct") of page iPage to true`` for
+    this page.
     """
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
     items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props)
+    if not correct:
+        items = tuple(item for item in items if not _answer_mark(item))
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
 
 
@@ -285,6 +292,10 @@ def _entered(
     return tuple(out)
 
 
+def _answer_mark(item: Paint) -> bool:
+    return item.kind == "rectangle" and item.name.lower() == "correct"
+
+
 def _stored(data: bytes, page_id: str, width: int, height: int) -> list[Paint]:
     segments = _segments(data)
     by_key = {segment.key: segment for segment in segments}
@@ -371,9 +382,6 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
     name = _object_name(data, trailer, at) if trailer is not None else ""
     object_id = _u16(data, at)
     bounds = _bounds(data, at)
-    # The rectangle named Correct is the answer mark. No quiz pass has shown it.
-    if kind == _RECTANGLE and name.lower() == "correct":
-        return None
     if kind in (_RECTANGLE, _ELLIPSE, _POLYGON):
         fill, stroke = _colors(data, at)
         points = _polygon_points(data, segment, at) if kind == _POLYGON else ()

@@ -8,7 +8,9 @@ and ``send previous``. A chosen answer does not pick a question. That
 call is ``getNextQuestion``, and it returns a random pool entry. On a
 running pass 1, 2, or 3, ``OK`` with a letter, ``Next``, and ``Skip``
 with no letter run ``gotoNextQuestionEx``: the page is the one whose
-``QuestionNo`` is that entry. ``Back`` on those passes stays.
+``QuestionNo`` is that entry. ``Back`` on those passes stays. ``gotoNextQuestionEx`` and
+``gotoPreviousQuestionEx`` call ``setupQuizPage`` on the page they open,
+and that handler sets whether the rectangle ``Correct`` is visible.
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ class QuizClick:
 
     page_id: str
     beep: bool
+    correct: bool | None = None
 
 
 def quiz_click(
@@ -57,8 +60,13 @@ def quiz_click(
             from opentoolbook.pool import goto_next_question_ex
 
             found = goto_next_question_ex(props, pages, question_numbers)
+            if found in pages and found in question_numbers:
+                return QuizClick(found, False, setup_quiz_page_correct(quiz_pass))
             return QuizClick(found if found in pages else page_id, False)
         return QuizClick(page_id, False)
+    if quiz_pass == 8 and name in _NEXT | {"back"} and not (name == "skip" and choice):
+        moved = _adjacent(pages, page_id, -1 if name == "back" else 1)
+        return QuizClick(moved, False, setup_quiz_page_correct(8) if moved != page_id else None)
     if quiz_pass == 8 and name == "skip" and choice:
         return QuizClick(page_id, True)
     if quiz_pass not in (None, 8):
@@ -68,6 +76,21 @@ def quiz_click(
     if name == "back":
         return QuizClick(_adjacent(pages, page_id, -1), False)
     return QuizClick(page_id, False)
+
+
+def setup_quiz_page_correct(quiz_pass: int | None, reader: bool = True) -> bool | None:
+    """What ``setupQuizPage`` sets ``visible of rectangle("correct")`` to.
+
+    The author level shows it. On the reader level pass 1, 2, and 3 hide
+    it, and pass 4, 5, and 8 show it. Any other pass leaves it alone.
+    """
+    if not reader:
+        return True
+    if quiz_pass in (1, 2, 3):
+        return False
+    if quiz_pass in (4, 5, 8):
+        return True
+    return None
 
 
 def _adjacent(pages: tuple[str, ...], page_id: str, step: int) -> str:
