@@ -56,7 +56,7 @@ class NavigatorHideTests(unittest.TestCase):
         from opentoolbook.click import Follow
 
         nav = navigate.Navigator(FIXTURE.read_bytes(), "")
-        hid = Follow("", None, (), ((("rectangle", 0), False),))
+        hid = Follow("", None, visible=((("rectangle", 0), False),))
         with patch.object(navigate, "follow_click", return_value=hid):
             clicked = nav.click("Hide")
         self.assertEqual((clicked.moved, clicked.changed), (False, True))
