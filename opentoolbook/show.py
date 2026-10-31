@@ -252,6 +252,7 @@ def open_page(
     lesson: str | None = None,
     variables: dict[str, object] | None = None,
     sysbooks: tuple[str, ...] = (),
+    objects: dict | None = None,
 ) -> tuple[str, ...]:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
@@ -306,7 +307,7 @@ def open_page(
             "props": props if props is not None else UserProperties(),
             "view": (view_w, view_h),
         }
-        nav = Navigator(data, page_id, book, home, lesson, variables, props=state["props"], sysbooks=sysbooks)
+        nav = Navigator(data, page_id, book, home, lesson, variables, props=state["props"], sysbooks=sysbooks, objects=objects)
         nav.ask = lambda prompt, buttons: ask_dialog(root, nav.book_name or "ToolBook", prompt, buttons)
         root.title(nav.title())
         errors: list[str] = []

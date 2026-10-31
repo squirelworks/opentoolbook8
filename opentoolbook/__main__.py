@@ -95,6 +95,7 @@ def main(argv: list[str]) -> int:
             lesson=args.book,
             variables=entry.variables,
             sysbooks=entry.sysbooks,
+            objects=entry.objects,
         )
         return 1 if errors else 0
     if not any((args.book, args.home)):

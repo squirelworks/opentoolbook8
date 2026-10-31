@@ -69,6 +69,7 @@ class Navigator:
         variables: dict[str, object] | None = None,
         props: UserProperties | None = None,
         sysbooks: tuple[str, ...] = (),
+        objects: dict | None = None,
     ) -> None:
         self.data = data
         # ``sysBooks`` startup left, first item first. Their handlers follow the book's.
@@ -93,7 +94,7 @@ class Navigator:
         self.visible: dict[tuple[str, str | int], bool] = {}
         # Properties scripts set while the window is open: by book, then owner
         # (a page id or a background key), then (kind, lower-case name).
-        self.state: dict[str, dict[str, dict[tuple[str, str], dict[str, object]]]] = {}
+        self.state: dict[str, dict[str, dict[tuple[str, str], dict[str, object]]]] = dict(objects or {})
         # ``ask(prompt, buttons)`` answers a ``request`` while the handler runs. None returns
         # the prompt in ``Clicked.requests`` and the handler reads an empty answer.
         self.ask = None

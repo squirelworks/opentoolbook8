@@ -889,6 +889,8 @@ _FUNCTIONS: dict[str, Callable[[Engine, tuple], object]] = {
     "textlinecount": lambda engine, args: count_chunks(text(_arg(args, 0)), "textline"),
     "uppercase": lambda engine, args: text(_arg(args, 0)).upper(),
     "lowercase": lambda engine, args: text(_arg(args, 0)).lower(),
+    # The 8.3 form of a path. The books on hand name 8.3 files, so the text is its own short name.
+    "shortfilename": lambda engine, args: text(_arg(args, 0)),
     "ansitochar": _ansi_to_char,
     "chartoansi": _char_to_ansi,
     "offset": _offset,

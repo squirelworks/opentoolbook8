@@ -100,16 +100,18 @@ class ClickHost(BookHost):
     def _path(self, target: object) -> list:
         """Handler maps from the target up to the background."""
         page = self.page_id
-        if not page:
+        if page is None:
             return []
         if not isinstance(target, Ref):
             return self._page_path(page)
         if target.kind == "book":
             return []
         if target.kind == "background":
-            return self._page_path(text(target.value) or page, background_only=True)
+            named = text(target.value)
+            return self._page_path(named if self._page_id(Ref("page", "name", named, None)) is not None else page, background_only=True)
         if target.kind == "page":
-            return self._page_path(self._page_id(target) or page)
+            found = self._page_id(target)
+            return self._page_path(found if found is not None else page)
         found = self._locate(target)
         if found is None:
             return self._page_path(page)
@@ -140,7 +142,7 @@ class ClickHost(BookHost):
         super().go(target)
         new = self.page_id
         engine = getattr(self, "engine", None)
-        if self.book_name or not old or not new or new.lower() == old.lower() or engine is None:
+        if self.book_name or old is None or new is None or new.lower() == old.lower() or engine is None:
             return
         if self.moves >= 16:
             return
@@ -192,7 +194,7 @@ class ClickHost(BookHost):
             page, layer = text(container.value), "background"
         else:
             return None
-        if not page:
+        if page is None:
             return None
         name = text(ref.value).lower()
         item = next(

@@ -39,6 +39,10 @@ _GET_VALUE = re.compile(r"^get\s+(.+)$")
 _IT_IS = re.compile(r'^it (?:is|=) (-?\d+|true|false|"[^"]*")$')
 _COMPARE = re.compile(r"^([a-z_][a-z0-9_]*) = (false|true|\d+)$")
 _MESSAGES = ("entersystem", "enterapplication", "enterbook")
+# After those three, the window and the opening page, in the order a TB80RTM trace shows.
+_PAGE_MESSAGES = ("enterwindow", "enterbackground", "enterpage", "firstidle")
+# A book the window switches to gets these.
+_SWITCH_MESSAGES = ("enterbook", "enterbackground", "enterpage")
 _PUSH_SYSBOOKS = re.compile(r'^push\s+"([^"]+)"\s+onto\s+sysbooks$')
 _IN_SYSBOOKS = re.compile(r'^"([^"]+)"\s+is\s+(not\s+)?in\s+sysbooks$')
 
@@ -55,6 +59,8 @@ class Entry:
     variables: dict[str, object] = field(default_factory=dict)
     # ``sysBooks`` after startup, first item first, in lower case.
     sysbooks: tuple[str, ...] = ()
+    # Properties the startup handlers set, by book path, then owner, then (kind, name).
+    objects: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -78,6 +84,9 @@ class _State:
     sysbooks: list[str] = field(default_factory=list)
     own: dict[str, str] | None = None
     loaded: dict[str, dict[str, str]] = field(default_factory=dict)
+    data: bytes = b""
+    # Properties the handlers set in this book, by owner, then (kind, name).
+    objects: dict = field(default_factory=dict)
 
 
 def opening_page(path: Path, home: Path | None = None, props: UserProperties | None = None) -> Entry:
@@ -103,6 +112,7 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
     roots = search_roots(path, home)
     handlers = _handler_map(data)
     sysbooks = add_bound_sysbooks([], data, roots)
+    objects: dict = {}
     page, other = choose_opening(
         pages,
         handlers,
@@ -112,6 +122,8 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
         props=props,
         variables=variables,
         sysbooks=sysbooks,
+        data=data,
+        objects=objects.setdefault(str(path), {}),
     )
     current_path = path
     current_data = data
@@ -143,8 +155,10 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
             props=props,
             variables=variables,
             sysbooks=sysbooks,
+            data=current_data,
+            objects=objects.setdefault(str(found), {}),
         )
-    return Entry(page, current_path, current_data, props, variables, tuple(sysbooks))
+    return Entry(page, current_path, current_data, props, variables, tuple(sysbooks), objects)
 
 
 def choose_opening(
@@ -159,6 +173,8 @@ def choose_opening(
     props: UserProperties | None = None,
     variables: dict[str, object] | None = None,
     sysbooks: list[str] | None = None,
+    data: bytes = b"",
+    objects: dict | None = None,
 ) -> tuple[str, str | None]:
     """``(page id, other book or None)`` after startup and this book's ``enterPage``.
 
@@ -166,9 +182,18 @@ def choose_opening(
     maps a page id to that page's script. An other book is a file name, not
     a path. The caller resolves it. ``props`` keeps the ``__`` names the
     handlers assign. ``variables`` is filled with the system
-    variables the handlers assign.
+    variables the handlers assign. With ``data`` the messages run on the
+    page, background, book, and ``sysBooks`` path, and ``objects`` keeps
+    the properties they set. Startup sends ``enterSystem``,
+    ``enterApplication`` and ``enterBook``, then ``enterWindow``,
+    ``enterBackground``, ``enterPage`` and ``firstIdle`` on the opening
+    page. A book opened after a switch (``startup`` False) gets
+    ``enterBook``, ``enterBackground`` and ``enterPage``.
     """
     state = _State(pages, {key.lower(): value for key, value in handlers.items()}, roots, book_name)
+    state.data = data
+    if objects is not None:
+        state.objects = objects
     if props is not None:
         state.props = props
     if variables is not None:
@@ -177,6 +202,8 @@ def choose_opening(
         state.sysbooks = sysbooks
         _merge_sysbooks(state)
     state.page_id = page_id
+    if data:
+        return _open_on_page(state, startup)
     if startup:
         _run_startup(state)
         if state.page_id is None:
@@ -221,6 +248,57 @@ def choose_opening(
     return matched, None
 
 
+def _open_on_page(state: _State, startup: bool) -> tuple[str, str | None]:
+    """Send the opening messages on the interpreter. ``(page id, other book or None)``."""
+    engine, host = _engine(state)
+    from opentoolbook.openscript.interp import Ref
+
+    def moved() -> bool:
+        return bool(host.book_name) or bool(host.book_error)
+
+    if startup:
+        for name in _MESSAGES:
+            _guarded(engine, lambda name=name: engine.send(name, (), Ref("book", "this", None, None)))
+            if moved():
+                break
+        if not moved():
+            if host.page_id is None:
+                if not state.pages:
+                    raise ValueError(
+                        f"no opening page in {state.book_file}: the startup handlers do not name a page, "
+                        "and the book has no stored page"
+                    )
+                host.page_id = state.pages[0]
+            matched = _match(state.pages, host.page_id)
+            if matched is None:
+                raise ValueError(f"{host.page_id} is not a page of {state.book_file}")
+            host.page_id = matched
+        names = _PAGE_MESSAGES
+    else:
+        names = _SWITCH_MESSAGES
+    for name in names if not moved() else ():
+        if name == "enterwindow":
+            to = Ref("book", "this", None, None)
+        elif name == "enterbackground":
+            to = Ref("background", "page", host.page_id, None)
+        elif name == "enterbook":
+            to = Ref("book", "this", None, None)
+        else:
+            to = Ref("page", "this", None, None)
+        _guarded(engine, lambda name=name, to=to: engine.send(name, (), to))
+        if moved():
+            break
+    _sync(state, host, engine)
+    if state.book_error and not state.book_name:
+        raise MissingBook(state.book_error, state.page_id or "", state.roots)
+    if state.book_name:
+        return state.page_id or "", state.book_name
+    matched = _match(state.pages, state.page_id or "")
+    if matched is None:
+        raise ValueError(f"{state.page_id} is not a page of {state.book_file}")
+    return matched, None
+
+
 def _run_startup(state: _State) -> None:
     """``enterSystem``, ``enterApplication``, then ``enterBook``, each when a handler answers it."""
     engine, host = _engine(state)
@@ -235,7 +313,12 @@ def _run_startup(state: _State) -> None:
 def _engine(state: _State):
     from opentoolbook.run import BookHost, engine_for
 
-    host = BookHost(state.pages, state.book_file, state.roots)
+    if state.data:
+        from opentoolbook.clickrun import ClickHost
+
+        host = ClickHost(state.pages, state.book_file, state.roots, state.page_id, {}, set(), state.data, (), state.objects)
+    else:
+        host = BookHost(state.pages, state.book_file, state.roots)
     host.page_id = state.page_id
     host.book_name = state.book_name
     return engine_for(state, host), host
