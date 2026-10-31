@@ -5,6 +5,10 @@
 ``reader``. ``&&`` is one operator and is recognized before ``&``. A
 value that still contains ``__`` and ``of this book`` is not written
 over the field.
+
+The page's handler runs first, then the background's ``enterBackground``
+and ``enterPage``, then the book's ``enterPage``, the order ``forward``
+passes the message. A later write to the same field wins.
 """
 
 from __future__ import annotations
@@ -94,17 +98,20 @@ def enter_fields(
     ``fields`` is ``(name, text, runs)`` in paint order. ``sys_level``
     ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
     """
+    from opentoolbook.click import background_script
+
     handler = _enter_page(page_source(data, page_id))
+    behind = background_script(data, page_id)
+    backdrop = [found for found in (_handler(behind, "enterbackground"), _enter_page(behind)) if found]
     book = _book_enter(data)
-    if not handler and not book:
+    if not handler and not book and not backdrop:
         return fields
     reader = (sys_level is None) or sys_level.lower() == "reader"
     names = tuple(name for name, _text, _runs in fields)
     found = []
-    if handler:
-        found.extend(_assignments(handler.splitlines(), reader, student_first, page_id, names))
-    if book:
-        found.extend(_assignments(book.splitlines(), reader, student_first, page_id, names))
+    for source in [handler, *backdrop, book]:
+        if source:
+            found.extend(_assignments(source.splitlines(), reader, student_first, page_id, names))
     out = list(fields)
     for name, value in found:
         if blocks_write(value):
@@ -163,8 +170,10 @@ def _assignments(
 
 
 def _branch(condition: str, reader: bool, names: tuple[str, ...], taken: list[str], skipped: list[str]):
-    if condition == "syslevel = reader":
+    if condition in {"syslevel = reader", 'syslevel = "reader"'}:
         return taken if reader else skipped
+    if condition in {"syslevel = author", 'syslevel = "author"'}:
+        return skipped if reader else taken
     folded = condition.replace(" ", "")
     if folded == 'isobject(field"page#"ofparentofthispage)':
         if any(name.lower() == "page#" for name in names):
@@ -221,6 +230,11 @@ def _set_text(line: str) -> tuple[str, str] | None:
 
 
 def _enter_page(source: str) -> str:
+    return _handler(source, "enterpage")
+
+
+def _handler(source: str, message: str) -> str:
+    """The ``to handle`` block for ``message`` in ``source``, or empty."""
     lines = source.splitlines()
     start = None
     for index, line in enumerate(lines):
@@ -229,7 +243,7 @@ def _enter_page(source: str) -> str:
             len(parts) >= 3
             and parts[0].lower() == "to"
             and parts[1].lower() == "handle"
-            and parts[2].lower() == "enterpage"
+            and parts[2].lower() == message
         ):
             start = index
             break

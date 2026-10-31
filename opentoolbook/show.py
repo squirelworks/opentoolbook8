@@ -113,11 +113,21 @@ def fit_scale(width: int, height: int, view_width: int, view_height: int) -> flo
     return min(view_width / page_w, view_height / page_h)
 
 
-def show_page(data: bytes, page_id: str, view_width: int, view_height: int) -> DisplayList:
-    """The display list for one page. It does not open a window."""
+def show_page(
+    data: bytes,
+    page_id: str,
+    view_width: int,
+    view_height: int,
+    *,
+    sys_level: str | None = None,
+) -> DisplayList:
+    """The display list for one page. It does not open a window.
+
+    ``sys_level`` ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
+    """
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
-    items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)))
+    items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), sys_level)
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
 
 
@@ -217,13 +227,18 @@ def _pixels(units: int) -> int:
     return max(1, round(unit_to_px(units, 1)))
 
 
-def _entered(data: bytes, page_id: str, items: tuple[Paint, ...]) -> tuple[Paint, ...]:
+def _entered(
+    data: bytes,
+    page_id: str,
+    items: tuple[Paint, ...],
+    sys_level: str | None = None,
+) -> tuple[Paint, ...]:
     """Run the page's enterPage text. A missing sysLevel is reader."""
     from opentoolbook.enter import enter_fields
 
     indexes = [index for index, item in enumerate(items) if item.kind == "field"]
     packed = tuple((items[index].name, items[index].text or "", items[index].runs) for index in indexes)
-    changed = enter_fields(data, page_id, packed)
+    changed = enter_fields(data, page_id, packed, sys_level=sys_level)
     if changed == packed:
         return items
     out = list(items)
