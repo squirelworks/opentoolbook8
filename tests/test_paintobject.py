@@ -10,6 +10,8 @@ from opentoolbook.page import _objects
 from opentoolbook.paintobject import PAINT_OBJECT, paint_object_bmp
 from opentoolbook.show import show_page
 
+from lesson import companion
+
 LESSON = os.environ.get("OPENTOOLBOOK_TBK")
 
 
@@ -32,7 +34,7 @@ class LessonPaintObjectTests(unittest.TestCase):
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
         seen = []
-        for name in (path, path.with_name("nida81.tbk")):
+        for name in (path, companion(path, "nida81.tbk")):
             data = name.read_bytes()
             for segment, at in _records(data):
                 blob = paint_object_bmp(data, segment, at)
@@ -41,7 +43,7 @@ class LessonPaintObjectTests(unittest.TestCase):
                     int.from_bytes(blob[22:26], "little"),
                     int.from_bytes(blob[28:30], "little"),
                 )
-                seen.append((name.name, width, height, bpp, data[at + 0x26]))
+                seen.append((name.name.lower(), width, height, bpp, data[at + 0x26]))
         self.assertEqual(
             sorted(seen),
             sorted([
@@ -64,7 +66,7 @@ class LessonPaintObjectTests(unittest.TestCase):
             ("P10210", 16): ((-22, 0, 9383, 360), 627, 24, "999999999999", "ee4b6325103353a6"),
             ("P10210", 20): ((-22, 6210, 9383, 6630), 627, 28, "ffffffffffff", "fd0a005f4315f440"),
         }
-        nida = path.with_name("nida81.tbk").read_bytes()
+        nida = companion(path, "nida81.tbk").read_bytes()
         shown = {
             "P450": show_page(data, "P450", 400, 300),
             "P10210": show_page(data, "P10210", 400, 300),
