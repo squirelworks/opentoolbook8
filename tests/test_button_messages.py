@@ -34,6 +34,10 @@ class FixtureTests(unittest.TestCase):
         acted = run('to handle buttonDoubleClick\n\tgo to page "P2"\nend\n', PAGES, "P1")
         self.assertEqual(acted.page_id, "P2")
 
+    def test_button_still_down_handler_runs(self):
+        acted = run('to handle buttonStillDown\n\tgo to page "P2"\nend\n', PAGES, "P1")
+        self.assertEqual(acted.page_id, "P2")
+
     def test_invert_stays_in_object_state_across_a_page_change(self):
         nav = Navigator(FIXTURE.read_bytes(), "", FIXTURE)
         nav._set_invert("Go", True)

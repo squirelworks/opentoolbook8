@@ -372,16 +372,47 @@ def open_page(
         def on_leave(_event) -> None:
             set_hover(None)
 
+        def clear_still() -> None:
+            pending = state.pop("still_after", None)
+            if pending is not None:
+                root.after_cancel(pending)
+
+        def schedule_still(target: tuple[str, str]) -> None:
+            """While the button stays down, send ``buttonStillDown`` every 100 ms."""
+            from opentoolbook.click import object_handler
+
+            if object_handler(nav.data, nav.page_id, target[0], target[1], "buttonStillDown") is None:
+                return
+
+            def tick() -> None:
+                state.pop("still_after", None)
+                if state.get("target") != target:
+                    return
+                listed = getattr(canvas, "listed", None)
+                if listed is None:
+                    return
+                still = nav.message(*target, "buttonStillDown", field_texts(listed))
+                if still is not None and (still.moved or still.changed or still.checked or still.beep):
+                    apply_result(still)
+                    if still.moved:
+                        return
+                if state.get("target") == target:
+                    state["still_after"] = root.after(100, tick)
+
+            state["still_after"] = root.after(100, tick)
+
         def on_press(event) -> None:
             listed = getattr(canvas, "listed", None)
             if listed is None:
                 return
+            clear_still()
             name = hotword_hit(canvas, event.x, event.y) or button_at(listed, event.x, event.y)
             state["pressed"] = name
             target = object_at(listed, event.x, event.y)
             state["target"] = target
             if target is not None:
                 down = nav.message(*target, "buttonDown", field_texts(listed))
+                schedule_still(target)
                 if down is not None:
                     # The object's own buttonDown runs instead of the stored invert picture.
                     redraw()
@@ -410,6 +441,7 @@ def open_page(
             listed = getattr(canvas, "listed", None)
             if listed is None:
                 return
+            clear_still()
             name = state.pop("pressed", None)
             target = state.pop("target", None)
             if target is not None:
@@ -441,10 +473,12 @@ def open_page(
             listed = getattr(canvas, "listed", None)
             if listed is None:
                 return
+            clear_still()
             pending = state.pop("click_after", None)
             if pending is not None:
                 root.after_cancel(pending)
             state.pop("pressed", None)
+            state.pop("target", None)
             target = object_at(listed, event.x, event.y)
             if target is None:
                 return
@@ -603,8 +637,8 @@ def button_at(listed: DisplayList, x: float, y: float) -> str | None:
 def object_at(listed: DisplayList, x: float, y: float) -> tuple[str, str] | None:
     """``(kind, name)`` of the topmost named button or field at the point.
 
-    ``buttonDown``, ``buttonUp``, ``mouseEnter``, and ``mouseLeave`` go to
-    that object.
+    ``buttonDown``, ``buttonUp``, ``buttonStillDown``, ``buttonDoubleClick``,
+    ``mouseEnter``, and ``mouseLeave`` go to that object.
     """
     for item in reversed(listed.items):
         if item.kind not in ("button", "field") or item.bounds is None or not item.name:

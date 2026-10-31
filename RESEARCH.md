@@ -1584,3 +1584,7 @@ Source: handoff M4. ToolBook sends those messages to a system book when it enter
 ## Startup message order
 
 Source: handoff M4 section 2 and the TB80RTM trace already cited in SETTLED. The seven-name log test pins the reader order on a synthetic handler set over `otb-line-rect.tbk`.
+
+## buttonStillDown
+
+Source: handoff M5 and the OpenScript message list. ToolBook repeats `buttonStillDown` while the mouse button is held. This reader uses a 100 ms Tk `after` timer on the pressed object, cancelled on release or double-click.
