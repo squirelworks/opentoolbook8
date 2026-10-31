@@ -155,6 +155,11 @@ def find_file(roots: tuple[Path, ...], name: str) -> Path | None:
     return None
 
 
+def file_exists32(roots: tuple[Path, ...], name: str) -> int:
+    """``fileExists32(name)``: 1 when the shelf finds ``name``, else 0. No DLL is called."""
+    return 1 if find_file(roots, name) is not None else 0
+
+
 @dataclass(frozen=True)
 class FileReport:
     name: str

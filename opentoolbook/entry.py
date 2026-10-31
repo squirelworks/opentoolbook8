@@ -6,8 +6,8 @@ The reader takes ``sysLevel = reader`` because a missing ``sysLevel`` is
 ``reader``. ``it`` is the value of the last ``get``. ``__studentRecords``
 that has not been set is 0, so ``openSession`` returns 0 and ``gotoPageList`` does not run. The names in
 ``gotoPageList`` are not quoted. ``forward`` is not executed. A
-``linkDLL`` line is not called. ``fileExists32`` is not called; a quoted
-name in that check is looked up with the same search as the book report.
+``linkDLL`` line is not called. ``fileExists32`` is not a DLL call here:
+it is 1 when the book report's search finds the quoted name, else 0.
 
 When those handlers do not name a page, the page is the first one stored
 in the book's page list. That page's ``enterPage`` is read the same way.
@@ -24,13 +24,16 @@ from opentoolbook.enter import _enter_page
 from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
 from opentoolbook.script import book_handlers, quoted_go_to, resource_scripts
-from opentoolbook.shelf import MissingBook, find_file, open_book, search_roots
+from opentoolbook.send import calls_dll, handler_chain
+from opentoolbook.shelf import MissingBook, file_exists32, find_file, open_book, search_roots
 from opentoolbook.walk import norm, reader_condition, this_name, walk
 
+_SEND = re.compile(r"^send\s+([a-z_][a-z0-9_]*)$")
 _GET = re.compile(r"^get\s+([a-z_][a-z0-9_]*)\s*\((.*)\)\s*$")
 _ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$")
 _BOOK_CALL = re.compile(r"of\s+book\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", re.IGNORECASE)
-_FILE_EXISTS = re.compile(r'^fileexists32\("([^"]*)"\) = 1$')
+_FILE_EXISTS = re.compile(r'^fileexists32\(\s*"([^"]*)"\s*\)$')
+_FILE_EXISTS_IS = re.compile(r'^fileexists32\(\s*"([^"]*)"\s*\)\s*(=|<>)\s*(-?\d+)$')
 _GET_VALUE = re.compile(r"^get\s+(.+)$")
 _IT_IS = re.compile(r'^it (?:is|=) (-?\d+|true|false|"[^"]*")$')
 _COMPARE = re.compile(r"^([a-z_][a-z0-9_]*) = (false|true|\d+)$")
@@ -66,6 +69,7 @@ class _State:
     return_value: object = None
     breaking: bool = False
     stack: list[str] = field(default_factory=list)
+    skipped: list[str] = field(default_factory=list)
 
 
 def opening_page(path: Path, home: Path | None = None, props: UserProperties | None = None) -> Entry:
@@ -88,9 +92,10 @@ def opening_page(path: Path, home: Path | None = None, props: UserProperties | N
     except ValueError as exc:
         raise ValueError(f"no opening page in {path.name}: {exc}") from exc
     pages = _pages(data)
-    handlers = _companion_handlers(opened)
-    handlers.update(_handler_map(data))
     roots = search_roots(path, home)
+    handlers = handler_chain(data, path.name, roots).merged()
+    for name, body in _companion_handlers(opened).items():
+        handlers.setdefault(name, body)
     page, other = choose_opening(
         pages,
         handlers,
@@ -248,6 +253,10 @@ def _statement(raw: str, low: str, state: _State) -> None:
         state.page_id = page
         state.book_name = book
         return
+    exists = _FILE_EXISTS.fullmatch(low[4:].strip()) if low.startswith("get ") else None
+    if exists is not None:
+        state.it = file_exists32(state.roots, exists.group(1))
+        return
     call = _GET.match(low)
     if call is not None:
         state.it = _call(call.group(1), state)
@@ -262,11 +271,26 @@ def _statement(raw: str, low: str, state: _State) -> None:
         state.page_id = _step(state.pages, current, step)
         state.book_name = None
         return
+    sent = _SEND.match(low)
+    if sent is not None:
+        _send(sent.group(1), state)
+        return
     assigned = _ASSIGN.match(raw.strip())
     if assigned is not None:
         value = _value(assigned.group(2).strip(), state)
         if value is not None:
             _assign(state, assigned.group(1), value)
+
+
+def _send(name: str, state: _State) -> object:
+    """``send name``: the handler runs unless it links a DLL."""
+    body = state.handlers.get(name.lower())
+    if body is None:
+        return None
+    if calls_dll(body):
+        state.skipped.append(name.lower())
+        return None
+    return _call(name, state)
 
 
 def _book_from_call(line: str, state: _State) -> tuple[str | None, str | None]:
@@ -300,9 +324,13 @@ def _condition(text: str, state: _State) -> bool | None:
     reader = reader_condition(low)
     if reader is not None:
         return reader
-    exists = _FILE_EXISTS.fullmatch(low)
+    exists = _FILE_EXISTS_IS.fullmatch(low)
     if exists is not None:
-        return find_file(state.roots, exists.group(1)) is not None
+        same = file_exists32(state.roots, exists.group(1)) == int(exists.group(3))
+        return same if exists.group(2) == "=" else not same
+    alone = _FILE_EXISTS.fullmatch(low)
+    if alone is not None:
+        return file_exists32(state.roots, alone.group(1)) == 1
     compared = _IT_IS.fullmatch(low)
     if compared is not None:
         expected = compared.group(1)
@@ -372,6 +400,9 @@ def _value(expr: str, state: _State) -> object | None:
     named = this_name(low, state.page_id, state.book_file)
     if named is not None:
         return named
+    exists = _FILE_EXISTS.fullmatch(low)
+    if exists is not None:
+        return file_exists32(state.roots, exists.group(1))
     if len(expr) >= 2 and expr[0] == '"' and expr[-1] == '"':
         return expr[1:-1]
     return None
