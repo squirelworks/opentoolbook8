@@ -423,7 +423,7 @@ The words that vary are `+0x00`, `+0x04`, `+0x0A`, `+0x0C`, `+0x0E`, `+0x10`, `+
 
 The word at `+0x04` is the near pointer already recorded: a class 5 page on 31 records and a class `0xB` record of 49 bytes on 8. No other word names one class on more than one record.
 
-The word at `+0x2A` is 144 on 3 records. The word at `+0x2E` is 147 on 6 records and 0 on 6. 144 and 147 are type-1 resource ids in this book. The dword at header `+(144 + 5) * 4` is `0x0F960000`. The dword at header `+(147 + 5) * 4` is `0x01400006`. Both are past the end of the file. The same slots hold other values on the other records, so neither word is a picture id.
+`SETTLED.md` now reads the record as a picture: `+0x29`, `+0x2D`, `+0x4D`, and the metafile in the huge table. The words at `+0x41` and `+0x43` are within two of the DIB width and height: the DIB is wider by 0 on 29 records and by 1 on 10, and taller by 1 on 29, by 0 on 7, and by 2 on 3. The window does not use them; it uses the metafile window extent. The word at `+0x45` is 8, the DIB depth, on all 39. The word at `+0x51` points at a 40-byte block of zeros followed by a 256-color palette; the reader uses the palette inside the metafile instead. The word at `+0x2A` is 144 on 3 records. The word at `+0x2E` is 147 on 6 records and 0 on 6. 144 and 147 are type-1 resource ids in this book. The dword at header `+(144 + 5) * 4` is `0x0F960000`. The dword at header `+(147 + 5) * 4` is `0x01400006`. Both are past the end of the file. The same slots hold other values on the other records, so neither word is a picture id.
 
 ## Page scripts that are not inline
 
