@@ -74,6 +74,18 @@ class ShelfTests(unittest.TestCase):
             self.assertEqual(alone.lesson, logo)
 
 
+class StartupVariableTests(unittest.TestCase):
+    def test_enter_page_assignments_come_back_from_startup(self):
+        from opentoolbook.entry import choose_opening
+
+        source = 'to handle enterPage\n    lastbook = name of this book\n    nextpage = "p10"\nend\n'
+        variables: dict = {}
+        page, book = choose_opening(("P1",), {}, {"P1": source}, book_name="9e954d01.tbk", variables=variables)
+        self.assertEqual((page, book), ("P1", None))
+        self.assertEqual(variables["lastbook"], "9e954d01.tbk")
+        self.assertEqual(variables["nextpage"], "p10")
+
+
 class LessonTests(unittest.TestCase):
     def test_selection1_on_p300_opens_p310_of_nida81_in_the_parent(self):
         path = _lesson()
@@ -145,6 +157,29 @@ class LessonTests(unittest.TestCase):
             nav = Navigator(entry.data, entry.page_id, entry.book, home, lesson)
             self.assertEqual(nav.find_book("9e954d01.tbk", "P400"), lesson)
             self.assertEqual(nav.home, home)
+
+    def test_a_click_on_logo_p0_returns_to_p10_of_the_lesson(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from opentoolbook.entry import opening_page
+
+        with tempfile.TemporaryDirectory() as tmp:
+            top = Path(tmp)
+            home = top / "home"
+            (home / "courses").mkdir(parents=True)
+            for name in ("nida81.tbk", "nc81base.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81trnr.sbk"):
+                (home / "courses" / name).symlink_to(path.with_name(name).resolve())
+            lesson = top / "discs" / "LF" / "9e954d01.tbk"
+            lesson.parent.mkdir(parents=True)
+            lesson.symlink_to(path.resolve())
+            entry = opening_page(lesson, home)
+            self.assertEqual(entry.variables["lastbook"], "9e954d01.tbk")
+            self.assertEqual(entry.variables["nextpage"], "p10")
+            nav = Navigator(entry.data, entry.page_id, entry.book, home, lesson, entry.variables)
+            self.assertTrue(nav.click(None).moved)
+            self.assertEqual((nav.page_id, nav.book), ("P10", lesson))
+            self.assertIn("P10", nav.pages)
 
 
 if __name__ == "__main__":

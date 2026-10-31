@@ -160,6 +160,7 @@ def open_page(
     *,
     status: str | None = None,
     lesson: str | None = None,
+    variables: dict[str, object] | None = None,
 ) -> None:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
@@ -180,6 +181,7 @@ def open_page(
     ``MINSTB32.dll named, not shipped``. It does not stop the paint.
     ``lesson`` is the path the user passed when the window opens on
     another book. A click still searches beside it.
+    ``variables`` are the system variables startup assigned.
     """
     import sys
     import tkinter as tk
@@ -203,7 +205,7 @@ def open_page(
         if status:
             tk.Label(root, text=status, anchor="w").pack(side="bottom", fill="x")
         canvas.pack(fill="both", expand=True)
-        nav = Navigator(data, page_id, book, home, lesson)
+        nav = Navigator(data, page_id, book, home, lesson, variables)
         state = {
             "props": props if props is not None else UserProperties(),
             "view": (view_w, view_h),
