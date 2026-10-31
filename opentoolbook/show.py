@@ -207,7 +207,7 @@ def open_page(
         }
 
         def redraw() -> None:
-            listed = show_page(nav.data, nav.page_id, *state["view"], state["props"])
+            listed = show_page(nav.data, nav.page_id, *state["view"], state["props"], fields=nav.fields)
             paint(listed)
 
         def paint(listed: DisplayList) -> None:
@@ -234,14 +234,14 @@ def open_page(
             if not name:
                 return
             try:
-                result = nav.click(name)
+                result = nav.click(name, field_texts(listed))
             except ValueError as exc:
                 print(exc, file=sys.stderr)
                 root.bell()
                 return
             if result.beep:
                 root.bell()
-            if result.moved:
+            if result.moved or result.changed:
                 redraw()
 
         canvas.bind("<Button-1>", on_click)

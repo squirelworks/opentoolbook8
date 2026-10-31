@@ -6,7 +6,8 @@ is found with the same search as opening a book: the book directory, its
 parent, ``--home``, ``--home/courses``, and ``--home/Nida98/Lessons``,
 regardless of case. A file that search does not find is an error that
 names the file and the page. A quiz button on a page whose background
-calls ``handleQuizClick`` uses the stored page list.
+calls ``handleQuizClick`` uses the stored page list. Field text a
+click writes stays on the page until the page changes.
 """
 
 from __future__ import annotations
@@ -32,10 +33,11 @@ class MissingBook(ValueError):
 
 @dataclass(frozen=True)
 class Clicked:
-    """Whether the page changed, and whether the script beeped."""
+    """Whether the page changed, whether the script beeped, and whether a field changed."""
 
     moved: bool
     beep: bool = False
+    changed: bool = False
 
 
 class Navigator:
@@ -53,6 +55,7 @@ class Navigator:
         self.page_id = page_id
         self.book = Path(book) if book else None
         self.home = Path(home) if home else None
+        self.fields: dict[str, str] = {}
 
     @property
     def book_name(self) -> str:
@@ -70,9 +73,13 @@ class Navigator:
             raise MissingBook(name, page_id, roots)
         return found
 
-    def click(self, button: str) -> Clicked:
-        """Run the named button's click. The page and book change in place."""
-        acted = follow_click(self.data, self.page_id, button, self.pages)
+    def click(self, button: str, shown: dict[str, str] | None = None) -> Clicked:
+        """Run the named button's click. The page and book change in place.
+
+        ``shown`` is the field text the page shows now. Field text the
+        click writes is kept in ``fields`` until the page changes.
+        """
+        acted = follow_click(self.data, self.page_id, button, self.pages, shown)
         if acted is None:
             if not quiz_background(self.data, self.page_id):
                 return Clicked(False)
@@ -81,15 +88,19 @@ class Navigator:
                 return Clicked(False, result.beep)
             self.page_id = result.page_id
             return Clicked(True, result.beep)
+        changed = bool(acted.fields)
+        for name, text in acted.fields:
+            self.fields[name] = text
         data, pages, book = self.data, self.pages, self.book
         if acted.book and acted.book.lower() != self.book_name.lower():
             book = self.find_book(acted.book, acted.page_id)
             data = book.read_bytes()
             pages = page_ids(data)
         if acted.page_id not in pages:
-            return Clicked(False)
+            return Clicked(False, changed=changed)
         if book == self.book and acted.page_id == self.page_id:
-            return Clicked(False)
+            return Clicked(False, changed=changed)
         self.data, self.pages, self.book = data, pages, book
         self.page_id = acted.page_id
+        self.fields = {}
         return Clicked(True)
