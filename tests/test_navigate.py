@@ -107,6 +107,30 @@ class StartupVariableTests(unittest.TestCase):
         self.assertEqual(variables["nextpage"], "p10")
 
 
+class IdleTests(unittest.TestCase):
+    def test_idle_sends_idle_to_this_page(self):
+        from unittest import mock
+
+        from opentoolbook.openscript.interp import Ref
+
+        nav = Navigator(FIXTURE.read_bytes(), "", FIXTURE)
+        with mock.patch.object(nav, "_send", return_value=None) as sent:
+            self.assertIsNone(nav.idle())
+        self.assertEqual(sent.call_args.args[:2], (None, "idle"))
+        self.assertEqual(sent.call_args.kwargs["to"], Ref("page", "this", None, None))
+
+    def test_an_idle_handler_runs_and_can_go(self):
+        from engine_run import run
+
+        acted = run(
+            'to handle idle\n  system nextpage\n  nextpage = "P2"\n  go to page "P2"\nend\n',
+            pages=("P1", "P2"),
+            page_id="P1",
+        )
+        self.assertEqual(acted.page_id, "P2")
+        self.assertEqual(acted.beeps, 0)
+
+
 class TitleTests(unittest.TestCase):
     def test_the_title_is_the_book_file_and_the_page_id(self):
         nav = Navigator(FIXTURE.read_bytes(), "", FIXTURE)

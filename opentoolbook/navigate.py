@@ -347,6 +347,19 @@ class Navigator:
             if (self.book, self.page_id) != where:
                 return
 
+    def idle(self) -> Clicked | None:
+        """Send ``idle`` to the page on screen while the window is idle."""
+        from opentoolbook.openscript.interp import Ref
+
+        where = (self.book, self.page_id)
+        acted = self._send(None, "idle", None, to=Ref("page", "this", None, None))
+        if acted is None:
+            return None
+        result = self._apply(acted)
+        if result.moved and where != (self.book, self.page_id):
+            self.history.append(where)
+        return result
+
     def chain(self):
         """Handler maps by book: this book's, then each ``sysBooks`` book's."""
         from opentoolbook.send import handler_chain

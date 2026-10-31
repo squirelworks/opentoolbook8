@@ -1548,3 +1548,7 @@ Source: the Cursor handoff M2 (2026-10-31). Page width and height are the signed
 ## flushMessageQueue
 
 Source: OpenScript keyword list (`OPENCODE.md` / keyword resource) and `nc81trnr.sbk` scripts that call `flushMessageQueue()` (FINDINGS). ToolBook drains its message queue; this reader has none, so the word returns without effect as a statement or as a function.
+
+## idle
+
+Source: ToolBook OpenScript `idle` message (keyword list) and the handoff M5 note that the window should send it when idle. `firstIdle` already runs in the opening sequence (TB80RTM trace). The window schedules `idle` with Tk `after_idle` and then every 200 ms.

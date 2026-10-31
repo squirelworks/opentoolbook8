@@ -427,6 +427,23 @@ def open_page(
         root.protocol("WM_DELETE_WINDOW", root.quit)
         root.report_callback_exception = _report_click_error
         redraw()
+
+        def on_idle() -> None:
+            """ToolBook's ``idle`` while the window has nothing else to do."""
+            try:
+                if not root.winfo_exists():
+                    return
+            except tk.TclError:
+                return
+            result = nav.idle()
+            if result is not None and (result.moved or result.changed or result.checked):
+                redraw()
+            try:
+                root.after(200, on_idle)
+            except tk.TclError:
+                return
+
+        root.after_idle(on_idle)
         root.mainloop()
         return tuple(errors)
     finally:
