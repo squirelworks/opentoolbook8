@@ -117,6 +117,33 @@ def split_if(lines: list[str], index: int) -> tuple[list[str], list[str], int]:
     return taken, skipped, index
 
 
+def _opens(low: str) -> bool:
+    return (
+        block_if(low) is not None
+        or low == "conditions"
+        or low.startswith(("step ", "while ", "linkdll"))
+    )
+
+
+def _closes(low: str) -> bool:
+    return low == "end" or low.startswith("end ")
+
+
+def skip_block(lines: list[str], index: int) -> int:
+    """The index after the block that opens at ``index``. Nested blocks are counted."""
+    depth = 0
+    while index < len(lines):
+        low = norm(lines[index])
+        if _opens(low):
+            depth += 1
+        elif _closes(low):
+            depth -= 1
+            if depth == 0:
+                return index + 1
+        index += 1
+    return index
+
+
 def walk(
     lines: list[str],
     flow: Flow,
@@ -124,11 +151,16 @@ def walk(
     condition: Condition,
     statement: Statement,
     returns: Returns | None = None,
+    skipped: Callable[[str], None] | None = None,
+    block: Callable[[str, list[str]], bool] | None = None,
 ) -> object:
     """Run ``lines``. Returns the ``return`` value, or None.
 
     ``statement(raw, low)`` sees every line the walker does not own.
     ``returns(expression)`` is the value of ``return expression``.
+    When ``skipped`` is given, a ``conditions``, ``step``, or ``while``
+    block is not run. ``skipped`` gets its first line. ``block(first
+    line, body)`` may run that block instead, and returns True when it did.
     """
     index = 0
     while index < len(lines):
@@ -153,18 +185,28 @@ def walk(
         if low == "forward":
             index += 1
             continue
+        if skipped is not None and (low == "conditions" or low.startswith(("step ", "while "))):
+            after = skip_block(lines, index)
+            if block is None or not block(raw.strip(), lines[index + 1:after - 1]):
+                skipped(raw.strip())
+            index = after
+            if flow.returning or flow.breaking:
+                return flow.return_value
+            continue
         if low == "break":
             flow.breaking = True
             return None
         test = block_if(low)
         if test is not None:
             index += 1
-            taken, skipped, index = split_if(lines, index)
+            taken, other, index = split_if(lines, index)
             known = condition(test)
             if known is True:
-                walk(taken, flow, condition=condition, statement=statement, returns=returns)
+                walk(taken, flow, condition=condition, statement=statement, returns=returns,
+                     skipped=skipped, block=block)
             elif known is False:
-                walk(skipped, flow, condition=condition, statement=statement, returns=returns)
+                walk(other, flow, condition=condition, statement=statement, returns=returns,
+                     skipped=skipped, block=block)
             if flow.returning or flow.breaking:
                 return flow.return_value
             continue
