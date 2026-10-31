@@ -89,7 +89,7 @@ class LessonTests(unittest.TestCase):
         def call(name):
             return goto_menu_page(handlers, pages, props) if name == "gotomenupage" else None
 
-        followed = follow_click(data, "P450", "Menu", pages, call)
+        followed = follow_click(data, "P450", "Menu", pages, call=call)
         self.assertEqual((followed.page_id, followed.book), ("P10001", None))
         self.assertEqual(props.get("__quizDisableMenuKey"), 1)
 

@@ -79,9 +79,17 @@ A class `0x09` button's graphics block starts with `0x0202`. The unaligned word 
 
 A class `0x09` button's graphics block starts with `0x0202`. The unaligned word at byte `0x39` of that block is the disabled picture. It is a type-1 resource id plus one, or 0 when there is no disabled picture. The reader returns it. On `9e954d01.tbk` the A button on `P10301` is 128, the stored id of bitmap 127. The MenuFrame button on `P300` is 0. Every such block in `nida81.tbk` is 0.
 
+## Disabled button picture
+
+The window draws a disabled button's disabled picture. When bit 0 of button `+0x26` is 0 and the word at byte `0x39` of the graphics block is not 0, that stored id is the picture. When the word is 0 the up picture stays. On `9e954d01.tbk` the A button on `P10302` is disabled, and the window draws stored id 128, bitmap 127. The A button on `P10301` stores 128 too, but its enabled bit is 1, so it keeps up picture 116. On the `Test` background, `Back`, `Help`, `Next`, and `Skip` are disabled on the pages that store them that way, and they draw their disabled pictures 103, 109, 115, and 112. No button in either book is both disabled with a disabled picture and checked. Every button in `nida81.tbk` stores 0 at byte `0x39`, so those buttons keep their up pictures.
+
 ## Button border
 
 A class `0x09` button is 43 bytes. The byte at `+0x27` is the border. The reader returns that byte. On `9e954d01.tbk` the Next button on `P300` is 1 and the A button on `P10210` is 9. The export calls 1 `none`, 9 `radioButton3d`, and 7 `pushButton`. In `nida81.tbk` every such button is 1 or 7.
+
+## Button border frame
+
+A button's border byte at `+0x27` is drawn as a frame in the button's stroke color, the color at `+0x17`. `pushButton` (7) is a frame on the bounds the reader returns. `radioButton3d` (9) is a smaller frame, one pixel (15 page units) inside the bounds. No byte stores that inset; it is the window's choice. `none` (1) and any other byte draw no frame. The picture is drawn first and the frame on top. A button's stroke is `+0x17` and its fill is `+0x1B`, the same offsets as a draw object: the export's `RgbStroke` and `RgbFill` match those bytes on all 382 buttons in `9e954d01.tbk`. On `9e954d01.tbk`, `Next` on `P300` is border 1 and has no frame. `A` on `P10210` is border 9, bounds `2430,1635,2715,1920`, and its frame is `2445,1650,2700,1905` in black. The `OK` button on `P30000` is border 7 and its frame is its bounds `4111,3945,5323,4245`. In `nida81.tbk`, `Retry` on `P12000` is border 7 and its frame is its bounds `603,2295,3339,2721` in black. A button caption is not drawn.
 
 ## Button enabled
 
@@ -90,6 +98,10 @@ A class `0x09` button is 43 bytes. Bit 0 of the byte at `+0x26` is enabled. The 
 ## Button checked
 
 A class `0x09` button is 43 bytes. Bit 4 of the byte at `+0x26` is checked. The reader returns that bit. On `9e954d01.tbk` the B button on `P10211` is 1 and the A button on `P10210` is 0. The export calls 1 `true` and 0 `false`. Every such button in `nida81.tbk` is 0. The checked picture at byte `0x4b` of the graphics block is a different field.
+
+## Letter click checks the letter
+
+On a page whose background calls `handleQuizClick`, a click on a button named `A` through `E` is `manageQuizButtons` in `nc81test.sbk`: `set checked of button vLabel to true`, then every other `ansiToChar(96 + i)` button that is checked is set to false. `initializeTest` sets `__quizMaxResponse` to 5, so the letters are `a` to `e`, compared regardless of case. The page stays. The window keeps that letter for the page and the book, and draws the page again: the clicked letter uses the checked picture at byte `0x4b` and the other letters use the up picture at byte `0x15`, whatever bit 4 of `+0x26` stores. On `9e954d01.tbk`, after a click on `A` on `P10210`, the display list has picture 118 for `A`, 119 for `B`, 122 for `C`, and 125 for `D`. Before the click `A` is 116. On `P10211`, where `B` is stored checked, a click on `A` draws `A` checked and `B` up. A page the window has not had a letter click on keeps its stored bits. The letter is also the `checked` that `quiz_click` reads.
 
 ## Page ids
 
@@ -229,7 +241,7 @@ The book record stores the page width at `+0x20` and the page height at `+0x1E`.
 
 ## Page window
 
-`python3 -m opentoolbook --show P300 path/to/9e954d01.tbk` opens that page. The display list is the same list without a screen. The background is painted from the class 4 reader. Pattern 254 is a solid fill of the color at `+0x5B`. Pattern 253 paints no fill. A rectangle, ellipse, or polygon uses the color at `+0x1B` as its fill and the color at `+0x17` as its stroke. A line is the two endpoints at `+0x26`, in the stroke color. A polygon is the stored points. A field paints its text, its bounds, and the style-run faces. A button paints its bounds and the picture at byte `0x15` of the graphics block. The picture at byte `0x4B` is drawn only when bit 4 of button `+0x26` is set. On `P10210` the A button is not checked, so the window uses picture 116 and not picture 118. A field whose bounds contain a non-text shape is painted under that shape. A label whose bounds contain no shape is painted in front of a later shape or button that contains the label. On `P300` the selection text is in front of `MenuFrame`. On `P400` the part number is in front of the chip rectangle. On `P410` the label stored behind the chip rectangle is painted in front of it. On `P1110` the field that contains a line is painted under that line, and the label that contains nothing is painted in front of the ellipse.
+`python3 -m opentoolbook --show P300 path/to/9e954d01.tbk` opens that page. The display list is the same list without a screen. The background is painted from the class 4 reader. Pattern 254 is a solid fill of the color at `+0x5B`. Pattern 253 paints no fill. A rectangle, ellipse, or polygon uses the color at `+0x1B` as its fill and the color at `+0x17` as its stroke. A line is the two endpoints at `+0x26`, in the stroke color. A polygon is the stored points. A field paints its text, its bounds, and the style-run faces. A button paints its bounds and the picture at byte `0x15` of the graphics block. The picture at byte `0x4B` is drawn only when bit 4 of button `+0x26` is set. A button whose enabled bit, bit 0 of `+0x26`, is 0 draws the picture at byte `0x39` when that word is not 0, and keeps the up picture when it is 0. On `P10210` the A button is not checked, so the window uses picture 116 and not picture 118. After a click on A it uses picture 118. A field whose bounds contain a non-text shape is painted under that shape. A label whose bounds contain no shape is painted in front of a later shape or button that contains the label. On `P300` the selection text is in front of `MenuFrame`. On `P400` the part number is in front of the chip rectangle. On `P410` the label stored behind the chip rectangle is painted in front of it. On `P1110` the field that contains a line is painted under that line, and the label that contains nothing is painted in front of the ellipse.
 
 An inline type-1 picture stores a `BM` file eight bytes after `01 02 01 00`. On `9e954d01.tbk` that marker is at byte 18 of all 63 inline pictures. On `nida81.tbk` it is at byte 18 of 21 pictures and at byte 36 of the other 2. A huge-table picture keeps the `BM` file after the 8-byte prefix.
 
@@ -248,6 +260,10 @@ Resizing the window refits the page. The canvas fills the window. A `Configure` 
 ## Window close
 
 The window's close button ends the Tk loop. `open_page` returns, and `python3 -m opentoolbook --show PAGE book.tbk` exits 0. Before this, closing the window raised `TclError` from the destroyed root. A click whose handler raises `ValueError` or `OSError` prints that error's one line on stderr and the window stays up on the same page. Any other exception keeps its traceback and the window also stays up. The smoke test opens `otb-line-rect.tbk` and presses close. It is skipped with a message when `DISPLAY` is unset or the Python has no `tkinter`.
+
+## Page photos
+
+Drawing a page deletes the Tk images of the page drawn before it, then makes the new page's images. The window holds the photos of one page at a time. On `9e954d01.tbk` P300 has five button pictures and P400 has four, and P300, Next to P400, Back to P300, and so on keeps the window at five and four images, whether or not something else still holds a reference to an old photo. There is no bitmap cache across pages or books.
 
 ## Export DLL in the window
 
