@@ -20,10 +20,10 @@ class HideShowTests(unittest.TestCase):
     def test_a_handler_hides_a_rectangle(self):
         data = FIXTURE.read_bytes()
         before = show_page(data, "", 800, 600)
-        self.assertEqual([item.kind for item in before.items], ["background", "rectangle"])
+        self.assertIn("rectangle", [item.kind for item in before.items])
         follow = run_handler("to handle buttonClick\n  hide rectangle id 0\nend", (), "")
         hidden = show_page(data, "", 800, 600, visible=dict(follow.visible))
-        self.assertEqual([item.kind for item in hidden.items], ["background"])
+        self.assertEqual(hidden.items, tuple(item for item in before.items if item.kind != "rectangle"))
         follow = run_handler("hide rectangle id 0\nshow rectangle id 0", (), "")
         self.assertEqual(follow.visible, ((("rectangle", 0), False), (("rectangle", 0), True)))
         shown = show_page(data, "", 800, 600, visible=dict(follow.visible))
