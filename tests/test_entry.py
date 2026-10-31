@@ -190,12 +190,12 @@ class OpeningPageTests(unittest.TestCase):
         path = logic_families_path()
         if path is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
-        entry = opening_page(lesson)
+        entry = opening_page(path)
         self.assertEqual(entry.page_id, "P0")
         self.assertIn(entry.book.name.lower(), {"nida81.tbk", "logo81.tbk", "mrj81.tbk"})
-        self.assertNotEqual(entry.book.resolve(), lesson.resolve())
+        self.assertNotEqual(entry.book.resolve(), path.resolve())
         self.assertGreater(len(entry.data), 1000)
-        nida = companion(lesson, "nida81.tbk")
+        nida = companion(path, "nida81.tbk")
         if nida.is_file():
             shell = opening_page(nida)
             self.assertEqual(shell.page_id, "P0")

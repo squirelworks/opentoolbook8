@@ -64,12 +64,16 @@ class SendTests(unittest.TestCase):
         from opentoolbook.entry import opening_page
         from opentoolbook.shelf import search_roots
 
+        from opentoolbook.shelf import find_file
+
         lesson = Path(path)
         roots = search_roots(lesson, None)
         sysbooks = opening_page(lesson).sysbooks
         self.assertEqual(sysbooks, ("nc81trnr.sbk", "nc81recs.sbk", "nc81test.sbk", "nc81base.sbk", "tb80anm.sbk", "tb80r.sbk"))
         chain = handler_chain(lesson.read_bytes(), lesson.name, roots, sysbooks)
-        self.assertEqual([book.lower() for book, _ in chain.books[1:]], list(sysbooks))
+        # A sysBooks name the shelf does not find stays in the list and answers no handler.
+        on_shelf = [name for name in sysbooks if find_file(roots, name) is not None]
+        self.assertEqual([book.lower() for book, _ in chain.books[1:]], on_shelf)
         sent = send_message(chain, "getLogoBook", roots=roots, book_name=lesson.name)
         self.assertEqual(sent.book.lower(), "nc81base.sbk")
         self.assertFalse(sent.skipped)
