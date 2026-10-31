@@ -16,6 +16,7 @@ from __future__ import annotations
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
 from opentoolbook.props import UserProperties
 from opentoolbook.script import _script, resource_scripts
+from opentoolbook.userprops import book_properties
 from opentoolbook.walk import Flow, reader_condition, this_name, walk
 
 _PAGE = 5
@@ -35,10 +36,13 @@ def concatenate(
     student_first: str | None = None,
     page_id: str | None = None,
     book_name: str | None = None,
+    book: dict[str, str] | None = None,
 ) -> str:
     """Join one expression. ``&&`` inserts a space. ``&`` does not.
 
     ``name of this page`` is ``page_id`` and ``name of this book`` is ``book_name``.
+    ``book`` maps a lower-case user property name to the text the book stores.
+    ``__nidaVersion of this book`` reads that property when the book stores it.
     """
     tokens = list(_tokens(expression))
     parts: list[list[tuple[str, str, str]]] = [[]]
@@ -49,7 +53,7 @@ def concatenate(
             operators.append(kind)
             continue
         parts[-1].append((kind, value, source))
-    values = [_operand(part, student_first, page_id, book_name) for part in parts]
+    values = [_operand(part, student_first, page_id, book_name, book) for part in parts]
     result = values[0] if values else ""
     for operator, value in zip(operators, values[1:]):
         result = f"{result} {value}" if operator == "andand" else result + value
@@ -122,10 +126,11 @@ def enter_fields(
         return fields
     reader = (sys_level is None) or sys_level.lower() == "reader"
     names = tuple(name for name, _text, _runs in fields)
+    stored = book_properties(data)
     found = []
     for source in [handler, *backdrop, book]:
         if source:
-            found.extend(_assignments(source.splitlines(), reader, student_first, page_id, names, book_name))
+            found.extend(_assignments(source.splitlines(), reader, student_first, page_id, names, book_name, stored))
     out = list(fields)
     for name, value in found:
         if blocks_write(value):
@@ -165,6 +170,7 @@ def _assignments(
     page_id: str,
     names: tuple[str, ...],
     book_name: str | None = None,
+    stored: dict[str, str] | None = None,
 ) -> list[tuple[str, str]]:
     found: list[tuple[str, str]] = []
 
@@ -172,7 +178,7 @@ def _assignments(
         written = _set_text(raw)
         if written is not None:
             name, expression = written
-            found.append((name, concatenate(expression, student_first=student_first, page_id=page_id, book_name=book_name)))
+            found.append((name, concatenate(expression, student_first=student_first, page_id=page_id, book_name=book_name, book=stored)))
 
     walk(
         lines,
@@ -264,6 +270,7 @@ def _operand(
     student_first: str | None,
     page_id: str | None,
     book_name: str | None = None,
+    book: dict[str, str] | None = None,
 ) -> str:
     if len(tokens) == 1 and tokens[0][0] == "str":
         return tokens[0][1]
@@ -278,6 +285,9 @@ def _operand(
     named = this_name(_source(tokens), page_id, book_name)
     if named is not None:
         return named
+    words = _source(tokens).lower().split()
+    if book and len(words) == 4 and words[1:] == ["of", "this", "book"] and words[0] in book:
+        return book[words[0]]
     return _source(tokens)
 
 
