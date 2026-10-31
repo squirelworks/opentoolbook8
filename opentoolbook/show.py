@@ -342,6 +342,36 @@ def open_page(
                 return
             paint(refit(listed, *view))
 
+        def set_hover(target: tuple[str, str] | None) -> None:
+            listed = getattr(canvas, "listed", None)
+            if listed is None:
+                return
+            prior = state.get("hover")
+            if target == prior:
+                return
+            changed = False
+            if prior is not None:
+                left = nav.message(*prior, "mouseLeave", field_texts(listed))
+                if left is not None and (left.moved or left.changed or left.checked):
+                    changed = True
+                    listed = getattr(canvas, "listed", listed)
+            state["hover"] = target
+            if target is not None:
+                entered = nav.message(*target, "mouseEnter", field_texts(listed))
+                if entered is not None and (entered.moved or entered.changed or entered.checked):
+                    changed = True
+            if changed:
+                redraw()
+
+        def on_motion(event) -> None:
+            listed = getattr(canvas, "listed", None)
+            if listed is None:
+                return
+            set_hover(object_at(listed, event.x, event.y))
+
+        def on_leave(_event) -> None:
+            set_hover(None)
+
         def on_press(event) -> None:
             listed = getattr(canvas, "listed", None)
             if listed is None:
@@ -416,6 +446,8 @@ def open_page(
             if result.moved or result.changed or result.checked:
                 redraw()
 
+        canvas.bind("<Motion>", on_motion)
+        canvas.bind("<Leave>", on_leave)
         canvas.bind("<ButtonPress-1>", on_press)
         canvas.bind("<ButtonRelease-1>", on_click)
         root.bind("<Right>", on_key)
@@ -543,7 +575,8 @@ def button_at(listed: DisplayList, x: float, y: float) -> str | None:
 def object_at(listed: DisplayList, x: float, y: float) -> tuple[str, str] | None:
     """``(kind, name)`` of the topmost named button or field at the point.
 
-    A ``buttonDown`` or ``buttonUp`` goes to that object.
+    ``buttonDown``, ``buttonUp``, ``mouseEnter``, and ``mouseLeave`` go to
+    that object.
     """
     for item in reversed(listed.items):
         if item.kind not in ("button", "field") or item.bounds is None or not item.name:

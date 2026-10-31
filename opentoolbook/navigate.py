@@ -161,10 +161,11 @@ class Navigator:
         return self._apply(acted)
 
     def message(self, kind: str, name: str, message: str, shown: dict[str, str] | None = None) -> Clicked | None:
-        """Send ``buttonDown`` or ``buttonUp`` to one object. None when its script has no such handler.
+        """Send a pointer message to one object. None when its script has no such handler.
 
-        ``kind`` is ``button`` or ``field``. ``set invert of button`` lines
-        go to ``inverted``. ``isObject`` asks the page on screen.
+        ``kind`` is ``button`` or ``field``. Used for ``buttonDown``,
+        ``buttonUp``, ``mouseEnter``, and ``mouseLeave``. ``set invert of
+        button`` lines go to ``inverted``. ``isObject`` asks the page on screen.
         """
         source = object_handler(self.data, self.page_id, kind, name, message)
         if source is None:

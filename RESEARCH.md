@@ -1552,3 +1552,7 @@ Source: OpenScript keyword list (`OPENCODE.md` / keyword resource) and `nc81trnr
 ## idle
 
 Source: ToolBook OpenScript `idle` message (keyword list) and the handoff M5 note that the window should send it when idle. `firstIdle` already runs in the opening sequence (TB80RTM trace). The window schedules `idle` with Tk `after_idle` and then every 200 ms.
+
+## mouseEnter and mouseLeave
+
+Source: handler_sites on Logic Families and nida81 (SETTLED hover counts) and the handoff M5 note. The books use those messages on field scripts, not enterButton/leaveButton. The window now dispatches them on Motion and Leave.

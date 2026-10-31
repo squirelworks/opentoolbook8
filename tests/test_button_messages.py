@@ -1,13 +1,13 @@
-"""Item 49: ``buttonDown`` and ``buttonUp`` handlers run on press and release."""
+"""``buttonDown``, ``buttonUp``, ``mouseEnter``, and ``mouseLeave`` on the pointer."""
 
 import unittest
 
 from engine_run import run
 from opentoolbook.navigate import Navigator
 from opentoolbook.script import handler_sites
-from opentoolbook.show import object_at, show_page, unit_to_px
+from opentoolbook.show import object_at, unit_to_px
 
-from lesson import SKIP, companion, lesson_path
+from lesson import SKIP, companion, logic_families_path
 
 PAGES = ("P1", "P2", "P3")
 
@@ -22,11 +22,17 @@ class FixtureTests(unittest.TestCase):
         source = 'to handle buttonUp\n\tif isObject(button "A") then\n\t\tset invert of button "A" to false\n\tend if\nend\n'
         self.assertEqual(run(source, PAGES, "P1").inverts, ())
 
+    def test_mouse_enter_and_leave_handlers_run(self):
+        entered = run('to handle mouseEnter\n\tgo to page "P2"\nend\n', PAGES, "P1")
+        self.assertEqual(entered.page_id, "P2")
+        left = run('to handle mouseLeave\n\tgo to page "P3"\nend\n', PAGES, "P1")
+        self.assertEqual(left.page_id, "P3")
 
-@unittest.skipIf(lesson_path() is None, SKIP)
+
+@unittest.skipIf(logic_families_path() is None, SKIP)
 class LessonTests(unittest.TestCase):
     def setUp(self):
-        self.path = lesson_path()
+        self.path = logic_families_path()
         self.data = self.path.read_bytes()
 
     def test_the_lesson_has_nineteen_of_each_and_the_system_books_none(self):
@@ -69,6 +75,14 @@ class LessonTests(unittest.TestCase):
         nav = Navigator(self.data, "P300", self.path)
         self.assertIsNone(nav.message("button", "Next", "buttonDown"))
         self.assertIsNone(nav.message("field", "Selection1", "buttonDoubleClick"))
+
+    def test_mouse_enter_on_selection1_runs_its_inline_handler(self):
+        nav = Navigator(self.data, "P300", self.path)
+        # Selection1's mouseEnter is the same invert pattern as buttonDown on that field.
+        entered = nav.message("field", "Selection1", "mouseEnter")
+        self.assertIsNotNone(entered)
+        left = nav.message("field", "Selection1", "mouseLeave")
+        self.assertIsNotNone(left)
 
     def test_a_page_change_drops_the_invert(self):
         nav = Navigator(self.data, "P300", self.path)
