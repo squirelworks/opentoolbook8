@@ -72,5 +72,26 @@ class FieldDisplayTests(unittest.TestCase):
         self.assertEqual(runs[0][0], 0)
 
 
+class NavigatorFieldTests(unittest.TestCase):
+    def test_the_window_keeps_the_written_text_until_the_page_changes(self):
+        from unittest.mock import patch
+
+        from opentoolbook import navigate
+        from opentoolbook.click import Follow
+
+        nav = navigate.Navigator.__new__(navigate.Navigator)
+        nav.data, nav.pages, nav.page_id, nav.book, nav.home, nav.fields = b"", ("P1", "P2"), "P1", None, None, {}
+        wrote = Follow("P1", None, (("Stem", "new"),))
+        with patch.object(navigate, "follow_click", return_value=wrote) as called:
+            clicked = nav.click("Check", {"Stem": "old"})
+        self.assertEqual(called.call_args.args[4], {"Stem": "old"})
+        self.assertEqual((clicked.moved, clicked.changed), (False, True))
+        self.assertEqual(nav.fields, {"Stem": "new"})
+        with patch.object(navigate, "follow_click", return_value=Follow("P2", None)):
+            clicked = nav.click("Next", {"Stem": "new"})
+        self.assertTrue(clicked.moved)
+        self.assertEqual(nav.fields, {})
+
+
 if __name__ == "__main__":
     unittest.main()
