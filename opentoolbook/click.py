@@ -6,13 +6,15 @@ those two system variables when a handler this runner executed assigned
 them a string; otherwise the page stays. ``send next`` and
 ``send previous`` are the next and previous pages in the stored page
 list. ``if``, ``break``, and ``return`` are the shared walker in
-``walk.py``. A line that is not one of those is not a page change.
+``walk.py``. ``get gotoMenuPage()`` opens the page that system-book
+handler names. A line that is not one of those is not a page change.
 """
 
 from __future__ import annotations
 
 import re
 import struct
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
@@ -27,6 +29,7 @@ _NAMED_GO_TO = re.compile(
     r"(?:\s*of\s+book\s*\(\s*([a-z_][a-z0-9_]*)\s*\))?\s*$",
     re.IGNORECASE,
 )
+_GET = re.compile(r"^get\s+([a-z_][a-z0-9_]*)\s*\(\s*\)$")
 
 
 @dataclass(frozen=True)
@@ -42,12 +45,13 @@ def follow_click(
     page_id: str,
     button: str,
     pages: tuple[str, ...],
+    call: Callable[[str], str | None] | None = None,
 ) -> Follow | None:
     """The quoted page this button's handler opens, or None when it has no handler."""
     source = _handler(data, page_id, button)
     if source is None:
         return None
-    return run_handler(source, pages, page_id)
+    return run_handler(source, pages, page_id, call=call)
 
 
 def page_click(data: bytes, page_id: str, pages: tuple[str, ...], variables=None) -> Follow | None:
@@ -66,11 +70,15 @@ def run_handler(
     pages: tuple[str, ...],
     page_id: str,
     variables: dict[str, object] | None = None,
+    *,
+    call: Callable[[str], str | None] | None = None,
 ) -> Follow:
     """Run the ``go to page``, ``send next``, and ``send previous`` lines.
 
     ``variables`` maps a lower-case system variable name to the value a
-    handler this runner executed assigned it.
+    handler this runner executed assigned it. ``call`` runs a
+    ``get name()`` line and returns the page that handler goes to, or
+    None when it does not change the page.
     """
     known = variables or {}
     landed = {"page": page_id, "book": None}
@@ -89,6 +97,12 @@ def run_handler(
             if named.group(2) and (not isinstance(book_value, str) or not book_value):
                 return
             landed["page"], landed["book"] = page_value, book_value
+            return
+        called = _GET.match(low)
+        if called is not None and call is not None:
+            moved = call(called.group(1))
+            if moved is not None:
+                landed["page"], landed["book"] = moved, None
             return
         if low in {"send next", "send previous"}:
             landed["page"] = _step(pages, page_id, 1 if low == "send next" else -1)

@@ -205,11 +205,11 @@ def open_page(
         if status:
             tk.Label(root, text=status, anchor="w").pack(side="bottom", fill="x")
         canvas.pack(fill="both", expand=True)
-        nav = Navigator(data, page_id, book, home, lesson, variables)
         state = {
             "props": props if props is not None else UserProperties(),
             "view": (view_w, view_h),
         }
+        nav = Navigator(data, page_id, book, home, lesson, variables, state["props"])
 
         def redraw() -> None:
             listed = show_page(nav.data, nav.page_id, *state["view"], state["props"])

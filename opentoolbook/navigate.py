@@ -20,6 +20,7 @@ from pathlib import Path
 
 from opentoolbook.click import follow_click, page_click, quiz_background
 from opentoolbook.field import page_ids
+from opentoolbook.props import UserProperties
 from opentoolbook.quiznav import quiz_click
 from opentoolbook.shelf import find_file, search_roots
 
@@ -53,6 +54,7 @@ class Navigator:
         home: Path | str | None = None,
         lesson: Path | str | None = None,
         variables: dict[str, object] | None = None,
+        props: UserProperties | None = None,
     ) -> None:
         self.data = data
         self.pages = page_ids(data)
@@ -63,6 +65,9 @@ class Navigator:
         self.lesson = Path(lesson) if lesson else self.book
         # System variables a handler this runner executed assigned, by lower-case name.
         self.variables: dict[str, object] = {key.lower(): value for key, value in (variables or {}).items()}
+        # The __ names this window's handlers read and write.
+        self.props = props if props is not None else UserProperties()
+        self._handlers: dict[Path | None, dict[str, str]] = {}
 
     @property
     def book_name(self) -> str:
@@ -95,7 +100,7 @@ class Navigator:
         """
         acted = None
         if button:
-            acted = follow_click(self.data, self.page_id, button, self.pages)
+            acted = follow_click(self.data, self.page_id, button, self.pages, self.call)
         if acted is None:
             acted = page_click(self.data, self.page_id, self.pages, self.variables)
         if acted is None:
@@ -119,6 +124,32 @@ class Navigator:
         self.data, self.pages, self.book = data, pages, book
         self.page_id = page
         return Clicked(True)
+
+
+    def call(self, name: str) -> str | None:
+        """The page a ``get name()`` line in a click goes to, or None.
+
+        ``gotoMenuPage`` is the one call that opens a page.
+        """
+        from opentoolbook.menu import goto_menu_page
+
+        if name.lower() != "gotomenupage":
+            return None
+        return goto_menu_page(self.handlers(), self.pages, self.props)
+
+    def handlers(self) -> dict[str, str]:
+        """Handler bodies this book and the books it names define, by lower-case name."""
+        from opentoolbook.entry import _companion_handlers, _handler_map
+        from opentoolbook.shelf import open_book
+
+        key = self.book
+        if key not in self._handlers:
+            found: dict[str, str] = {}
+            if self.book is not None:
+                found.update(_companion_handlers(open_book(self.book, self.home)))
+            found.update(_handler_map(self.data))
+            self._handlers[key] = found
+        return self._handlers[key]
 
 
 def _match(pages: tuple[str, ...], page_id: str) -> str | None:
