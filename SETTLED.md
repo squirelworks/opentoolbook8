@@ -332,3 +332,7 @@ A page whose byte at `+0x30` has low bits 0 stores its script inline. The word a
 ## `it`
 
 `it` is the value of the last `get`. `get name()` stores what that handler returns. `get 1`, `get "text"`, `get true`, and `get` of a name the handler already assigned store that value. Another `get` replaces it. `if it is 1` and `if it = 1` compare against that value. A quoted value compares without case. `it` that was never set is 0. `openSession` returns 0 when `__studentRecords` is unset, so `if it is 1` in `enterSystem` does not run and `gotoPageList` does not run. After `get` of an expression the reader cannot evaluate, `it` is unset again.
+
+## Name of this page and this book
+
+`name of this page` is the page id. `name of this book` is the book's file name, such as `9e954d01.tbk`. Startup, a startup `get` handler's `return`, and `enterPage` field text read both from one function in `walk.py`. `enterPage` on the display list does not know the file, so there `name of this book` stays the source text, as before. The book `enterPage` of `9e954d01.tbk` says `set text of field "page#" of parent of this page to name of this page`, so field `Page#` on `P300` reads `P300` from that expression. No page id is special-cased.

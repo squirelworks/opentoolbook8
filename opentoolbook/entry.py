@@ -25,7 +25,7 @@ from opentoolbook.field import page_ids
 from opentoolbook.props import UserProperties
 from opentoolbook.script import book_handlers, quoted_go_to, resource_scripts
 from opentoolbook.shelf import MissingBook, find_file, open_book, search_roots
-from opentoolbook.walk import norm, reader_condition, walk
+from opentoolbook.walk import norm, reader_condition, this_name, walk
 
 _GET = re.compile(r"^get\s+([a-z_][a-z0-9_]*)\s*\((.*)\)\s*$")
 _ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$")
@@ -369,8 +369,9 @@ def _value(expr: str, state: _State) -> object | None:
     low = expr.lower()
     if low in {"false", "true"} or re.fullmatch(r"-?\d+", expr):
         return _literal(low)
-    if low == "name of this book":
-        return state.book_file
+    named = this_name(low, state.page_id, state.book_file)
+    if named is not None:
+        return named
     if len(expr) >= 2 and expr[0] == '"' and expr[-1] == '"':
         return expr[1:-1]
     return None
