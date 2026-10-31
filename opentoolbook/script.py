@@ -414,6 +414,12 @@ def _u32(data: bytes, offset: int) -> int:
 
 
 def _button_click(text: str) -> str | None:
+    return named_handler(text, "buttonclick")
+
+
+def named_handler(text: str, message: str) -> str | None:
+    """The ``to handle message`` handler in ``text`` (CR LF lines), or None."""
+    wanted = message.lower()
     lines = text.split("\r\n")
     start = None
     name = None
@@ -423,7 +429,7 @@ def _button_click(text: str) -> str | None:
             len(parts) >= 3
             and parts[0].lower() == "to"
             and parts[1].lower() == "handle"
-            and parts[2].lower() == "buttonclick"
+            and parts[2].lower() == wanted
         ):
             start = index
             name = parts[2].lower()

@@ -311,6 +311,14 @@ def open_page(
                 return
             name = hotword_hit(canvas, event.x, event.y) or button_at(listed, event.x, event.y)
             state["pressed"] = name
+            target = object_at(listed, event.x, event.y)
+            state["target"] = target
+            if target is not None:
+                down = nav.message(*target, "buttonDown", field_texts(listed))
+                if down is not None:
+                    # The object's own buttonDown runs instead of the stored invert picture.
+                    redraw()
+                    return
             if not name:
                 return
             held = pressed(nav.data, listed, name)
@@ -323,6 +331,16 @@ def open_page(
             if listed is None:
                 return
             name = state.pop("pressed", None)
+            target = state.pop("target", None)
+            if target is not None:
+                up = nav.message(*target, "buttonUp", field_texts(listed))
+                if up is not None:
+                    if up.beep:
+                        root.bell()
+                    redraw()
+                    if up.moved:
+                        return
+                    listed = canvas.listed
             if name:
                 canvas.delete("all")
                 draw_page(canvas, listed)
@@ -468,16 +486,30 @@ def button_at(listed: DisplayList, x: float, y: float) -> str | None:
     return None
 
 
+def object_at(listed: DisplayList, x: float, y: float) -> tuple[str, str] | None:
+    """``(kind, name)`` of the topmost named button or field at the point.
+
+    A ``buttonDown`` or ``buttonUp`` goes to that object.
+    """
+    for item in reversed(listed.items):
+        if item.kind not in ("button", "field") or item.bounds is None or not item.name:
+            continue
+        left, top, right, bottom = (unit_to_px(value, listed.scale) for value in item.bounds)
+        if left <= x < right and top <= y < bottom:
+            return item.kind, item.name
+    return None
+
+
 def pressed(data: bytes, listed: DisplayList, name: str) -> DisplayList:
     """The display list while the named button is held down.
 
-    A button with an invert picture draws it. A button without one, and
-    every other item, is unchanged. Letting go is the list without this
+    A button with an invert picture draws it. The name matches in any
+    case. A button without one, and every other item, is unchanged. Letting go is the list without this
     call, so the up picture comes back.
     """
     items = []
     for item in listed.items:
-        if item.kind == "button" and item.name == name and item.invert_id:
+        if item.kind == "button" and item.name.lower() == name.lower() and item.invert_id:
             try:
                 picture = picture_rgb(data, item.invert_id)
             except ValueError:
