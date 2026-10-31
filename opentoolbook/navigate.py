@@ -4,8 +4,10 @@ This is the click path of the Tk window without the window. A button
 whose ``buttonClick`` quotes a page opens that page. A quoted ``of book``
 is found with the same search as opening a book: the book directory, its
 parent, ``--home``, ``--home/courses``, and ``--home/Nida98/Lessons``,
-regardless of case. A file that search does not find is an error that
-names the file and the page. A quiz button on a page whose background
+regardless of case. After the window changes books, the search still
+starts from the lesson the user opened, then the book on screen, then
+``--home``. A file that search does not find is an error that names the
+file and the page. A quiz button on a page whose background
 calls ``handleQuizClick`` uses the stored page list.
 """
 
@@ -47,20 +49,31 @@ class Navigator:
         page_id: str,
         book: Path | str | None = None,
         home: Path | str | None = None,
+        lesson: Path | str | None = None,
     ) -> None:
         self.data = data
         self.pages = page_ids(data)
         self.page_id = page_id
         self.book = Path(book) if book else None
         self.home = Path(home) if home else None
+        # The path the user passed. It stays when the window changes books.
+        self.lesson = Path(lesson) if lesson else self.book
 
     @property
     def book_name(self) -> str:
         return self.book.name if self.book is not None else ""
 
     def roots(self) -> tuple[Path, ...]:
-        """Where a quoted ``of book`` is looked for."""
-        return search_roots(self.book, self.home)
+        """Where a quoted ``of book`` is looked for.
+
+        The lesson's directory and its parent, then the directory of the
+        book on screen and its parent, then the ``--home`` folders.
+        """
+        found: list[Path] = []
+        for root in search_roots(self.lesson, None) + search_roots(self.book, self.home):
+            if root not in found:
+                found.append(root)
+        return tuple(found)
 
     def find_book(self, name: str, page_id: str) -> Path:
         """The file a quoted ``of book`` names. Raises :class:`MissingBook`."""

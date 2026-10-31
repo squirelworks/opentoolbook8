@@ -89,6 +89,7 @@ def main(argv: list[str]) -> int:
             args.home,
             entry.props,
             status=unshipped_dll(entry.book, home),
+            lesson=args.book,
         )
         return 0
     if not any((args.book, args.catalog, args.cailt, args.keydisk, args.home)):
