@@ -70,6 +70,7 @@ class Navigator:
         home: Path | str | None = None,
         lesson: Path | str | None = None,
         variables: dict[str, object] | None = None,
+        props: UserProperties | None = None,
     ) -> None:
         self.data = data
         self.pages = page_ids(data)
@@ -81,6 +82,8 @@ class Navigator:
         # System variables a handler this runner executed assigned, by lower-case name.
         self.variables: dict[str, object] = {key.lower(): value for key, value in (variables or {}).items()}
         self._handlers: dict[Path | None, dict[str, str]] = {}
+        # The __ names this window's handlers read and write.
+        self.props = props if props is not None else UserProperties()
         # Pages shown before this one, oldest first: (book, page id, book bytes).
         self.history: list[tuple[Path | None, str, bytes]] = []
         # Field text a click wrote, by field name. Cleared when the page changes.
@@ -150,7 +153,7 @@ class Navigator:
         acted = None
         if button:
             acted = follow_click(
-                self.data, self.page_id, button, self.pages, self.variables, self.book_name, shown
+                self.data, self.page_id, button, self.pages, self.variables, self.book_name, shown, call=self.call
             )
         if acted is None:
             acted = page_click(self.data, self.page_id, self.pages, self.variables, self.book_name, shown)
@@ -191,6 +194,17 @@ class Navigator:
         self.visible = {}
         self.enter()
         return Clicked(True, beep, asked)
+
+    def call(self, name: str) -> str | None:
+        """The page a ``get name()`` line in a click goes to, or None.
+
+        ``gotoMenuPage`` is the one call that opens a page.
+        """
+        from opentoolbook.menu import goto_menu_page
+
+        if name.lower() != "gotomenupage":
+            return None
+        return goto_menu_page(self.handlers(), self.pages, self.props)
 
     def display(self, view_width: int, view_height: int, props: UserProperties | None = None):
         """The display list of the page on screen, after its ``enterPage``."""

@@ -258,12 +258,12 @@ def open_page(
         )
         if status:
             tk.Label(root, text=status, anchor="w").pack(side="bottom", fill="x")
-        nav = Navigator(data, page_id, book, home, lesson, variables)
-        root.title(nav.title())
         state = {
             "props": props if props is not None else UserProperties(),
             "view": (view_w, view_h),
         }
+        nav = Navigator(data, page_id, book, home, lesson, variables, state["props"])
+        root.title(nav.title())
         errors: list[str] = []
 
         def on_back() -> None:
