@@ -8,6 +8,10 @@ regardless of case. A file that search does not find is an error that
 names the file and the page. A quiz button on a page whose background
 calls ``handleQuizClick`` uses the stored page list.
 
+The navigator keeps the stack of ``(book, page)`` it has shown, apart from
+the stored page list. ``back`` pops that stack. A book button that says
+``send previous`` still uses the stored page list.
+
 The page a click lands on runs its ``enterPage`` the way the opening
 page does. A quoted ``go to page`` there moves the window again, to
 another book when it names one. Its field writes are in the display list.
@@ -65,6 +69,8 @@ class Navigator:
         # System variables a handler this runner executed assigned, by lower-case name.
         self.variables: dict[str, object] = {key.lower(): value for key, value in (variables or {}).items()}
         self._handlers: dict[Path | None, dict[str, str]] = {}
+        # Pages shown before this one, oldest first: (book, page id, book bytes).
+        self.history: list[tuple[Path | None, str, bytes]] = []
 
     @property
     def book_name(self) -> str:
@@ -83,7 +89,27 @@ class Navigator:
         return found
 
     def click(self, button: str) -> Clicked:
-        """Run the named button's click. The page and book change in place."""
+        """Run the named button's click. The page and book change in place.
+
+        The page shown before a click that moves is pushed on ``history``.
+        """
+        shown = (self.book, self.page_id, self.data)
+        result = self._click(button)
+        if result.moved:
+            self.history.append(shown)
+        return result
+
+    def back(self) -> bool:
+        """Pop the viewer's history. False when nothing was shown before."""
+        if not self.history:
+            return False
+        book, page_id, data = self.history.pop()
+        if data is not self.data:
+            self.pages = page_ids(data)
+        self.book, self.page_id, self.data = book, page_id, data
+        return True
+
+    def _click(self, button: str) -> Clicked:
         acted = follow_click(self.data, self.page_id, button, self.pages)
         if acted is None:
             if not quiz_background(self.data, self.page_id):

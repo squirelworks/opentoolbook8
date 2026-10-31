@@ -137,7 +137,8 @@ def open_page(
     book that search does not find is reported on stderr with the file
     and the page, and the window stays. A quiz page with no quiz running
     still uses OK, Next, and Skip for the next page and Back for the
-    previous page.
+    previous page. The window's own "Viewer back" control returns to the
+    page it showed before, which is not the book's stored previous page.
     """
     import sys
     import tkinter as tk
@@ -158,8 +159,19 @@ def open_page(
             highlightthickness=0,
             background="#ffffff",
         )
-        canvas.pack()
         nav = Navigator(data, page_id, book, home)
+
+        def on_back() -> None:
+            if nav.back():
+                redraw()
+            else:
+                root.bell()
+
+        bar = tk.Frame(root)
+        bar.pack(fill="x")
+        # A viewer control, not a book button: it pops the pages this window showed.
+        tk.Button(bar, text="\u25c0 Viewer back", command=on_back).pack(side="left")
+        canvas.pack()
 
         def redraw() -> None:
             listed = nav.display(view_w, view_h)
