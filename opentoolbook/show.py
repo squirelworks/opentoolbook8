@@ -507,6 +507,25 @@ def open_page(
             if result.moved or result.changed or result.checked:
                 redraw()
 
+        def on_char(event) -> None:
+            """A printable key sends ``keyChar`` with that character."""
+            char = event.char
+            if not char or not char.isprintable() or len(char) != 1:
+                return
+            if event.keysym in {"Return", "KP_Enter", "Escape", "Tab"}:
+                return
+            result = nav.key_char(char)
+            if result is None:
+                return
+            if result.beep:
+                root.bell()
+            for text in result.requests:
+                from tkinter import messagebox
+
+                messagebox.showinfo(nav.book_name or "ToolBook", text, parent=root)
+            if result.moved or result.changed or result.checked:
+                redraw()
+
         canvas.bind("<Motion>", on_motion)
         canvas.bind("<Leave>", on_leave)
         canvas.bind("<ButtonPress-1>", on_press)
@@ -516,6 +535,7 @@ def open_page(
         root.bind("<Left>", on_key)
         root.bind("<Return>", on_key)
         root.bind("<KP_Enter>", on_key)
+        root.bind("<Key>", on_char)
         root.bind("<Escape>", lambda _event: root.quit())
         canvas.bind("<Configure>", on_configure)
         root.protocol("WM_DELETE_WINDOW", root.quit)

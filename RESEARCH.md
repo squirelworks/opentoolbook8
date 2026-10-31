@@ -1588,3 +1588,7 @@ Source: handoff M4 section 2 and the TB80RTM trace already cited in SETTLED. The
 ## buttonStillDown
 
 Source: handoff M5 and the OpenScript message list. ToolBook repeats `buttonStillDown` while the mouse button is held. This reader uses a 100 ms Tk `after` timer on the pressed object, cancelled on release or double-click.
+
+## keyChar
+
+Source: handoff M5. ToolBook sends `keyChar` with the typed character. The window binds Tk `<Key>` for a single printable character and calls `Navigator.key_char`, which sends `keyChar` with that character on the page path.

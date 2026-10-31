@@ -411,6 +411,7 @@ def send_click(
     state: dict | None = None,
     ask=None,
     to: Ref | None = None,
+    args: tuple = (),
 ) -> Follow | None:
     """Send ``message`` to ``button`` (kind, name), or to the page when None.
 
@@ -419,8 +420,9 @@ def send_click(
     path at the page. ``state`` is the properties earlier clicks set in
     this book, as ``ClickHost`` keeps them; it is not changed here. The
     result's ``writes`` are this click's. ``to`` sends the message to that
-    reference instead, such as the book or a page's background. Returns
-    None when no handler on the path takes the message.
+    reference instead, such as the book or a page's background. ``args``
+    are the message arguments (for example the character of ``keyChar``).
+    Returns None when no handler on the path takes the message.
     """
     if not beyond_page:
         chain_books = []
@@ -451,7 +453,7 @@ def send_click(
     engine = Engine(lookup, host, props=props, variables=variables, sysbooks=sysbooks)
     host.engine = engine
     try:
-        engine.send(message, (), target)
+        engine.send(message, args, target)
     except ScriptError as exc:
         engine.errors.append(str(exc))
     page = host.page_id or page_id

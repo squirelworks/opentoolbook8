@@ -182,7 +182,14 @@ class Navigator:
             self.history.append(before)
         return result
 
-    def _send(self, target: tuple[str, str] | None, message: str, shown: dict[str, str] | None, to=None):
+    def _send(
+        self,
+        target: tuple[str, str] | None,
+        message: str,
+        shown: dict[str, str] | None,
+        to=None,
+        args: tuple = (),
+    ):
         """Send ``message`` along the object path on the interpreter. None when nothing takes it."""
         from opentoolbook.clickrun import send_click
         from opentoolbook.show import show_page
@@ -211,6 +218,7 @@ class Navigator:
             to=to,
             message=message,
             groups=groups,
+            args=args,
         )
 
     def _apply(self, acted) -> Clicked:
@@ -372,6 +380,27 @@ class Navigator:
 
         where = (self.book, self.page_id)
         acted = self._send(None, "idle", None, to=Ref("page", "this", None, None))
+        if acted is None:
+            return None
+        result = self._apply(acted)
+        if result.moved and where != (self.book, self.page_id):
+            self.history.append(where)
+        return result
+
+    def key_char(self, char: str) -> Clicked | None:
+        """Send ``keyChar`` with the typed character to the page on screen."""
+        from opentoolbook.openscript.interp import Ref
+
+        if char == "":
+            return None
+        where = (self.book, self.page_id)
+        acted = self._send(
+            None,
+            "keychar",
+            None,
+            to=Ref("page", "this", None, None),
+            args=(char,),
+        )
         if acted is None:
             return None
         result = self._apply(acted)

@@ -490,6 +490,8 @@ Opening a book sends `enterSystem`, `enterApplication` and `enterBook` to the bo
 
 `sysTime` is milliseconds since local midnight. `sysDate` is today's local date as text, shaped by `sysDateFormat` (default `m/d/yy`). The format tokens are `yyyy`, `yy`, `mm`, `m`, `dd`, and `d`. Setting `sysDateFormat` changes later `sysDate` reads. A synthetic handler that sets `yyyy-mm-dd` then `m/d/yy` returns both spellings for a fixed clock.
 
+A printable key in the window sends `keyChar` to the page with that one character as the argument, then up the page, background, book, `sysBooks` path. Right, Left, Return, and Escape keep their own bindings and do not send `keyChar`. A synthetic `keyChar` that goes to another page when the character is `a` opens that page for `a` and stays for `b`.
+
 ## TB80.INI
 
 The reader looks for `TB80.INI` in the book's folder, then `<windows>\asym\runtime`, then `<windows>`. `--windows` names that Windows directory. `--ini PATH` uses that file and skips the search. The keys read are `startupSysBooks` (comma list, lower-cased), `startupBook`, `startupWidth`, and `startupHeight`. A missing file or key keeps the default: no startup system books, no startup book, and no startup size. `otb-line-rect.tbk` with no INI still opens with `sysBooks` empty. An INI next to a copy of that fixture that says `startupSysBooks=seed.sbk,Other.SBK` leaves `sysBooks` as `seed.sbk`, `other.sbk` before any bound names, and `--report` prints those names. Bound names already listed by the INI are not repeated.
