@@ -21,9 +21,10 @@ where class ``0x8`` does, and the window paints it as those bounds. A
 paint object is its stored bitmap drawn at the left and top of its
 bounds. A picture is its packed metafile drawn into its bounds, clear
 where the metafile leaves the page showing. It does not paint arcs
-(``0x11``). A group is not a paint; its children are. Class ``0x12`` pies
-are on the walk and are not painted. Class ``0x17`` records are outside
-that walk, and they are not painted.
+(``0x11``). A page's and a background's objects paint in the order of their
+class ``0x06`` layer list. A group is not a paint; its children are. Class
+``0x12`` pies are on the walk and are not painted. Class ``0x17`` records are
+outside that walk, and they are not painted.
 """
 
 from __future__ import annotations
@@ -46,7 +47,7 @@ from opentoolbook.field import (
     _trailer,
     _u16,
 )
-from opentoolbook.page import _child_nears, _object_name, _objects
+from opentoolbook.page import _child_nears, _object_name, _objects, layer_nears
 from opentoolbook.paintobject import paint_object_rgb
 from opentoolbook.picture import picture_pixels
 from opentoolbook.props import UserProperties
@@ -470,9 +471,7 @@ def _walk(data, segment, trailer, base: int, known: set[int], parent: int) -> li
     found = _objects(data, segment)
     by_near = {at - segment.base: (at, kind) for at, kind in found}
     items: list[Paint] = []
-    for at, kind in found:
-        if _u16(data, at + 4) != parent:
-            continue
+    for at, kind in _layered(data, segment, trailer, found, parent):
         near = at - segment.base
         if kind == _GROUP:
             for child in _child_nears(data, segment, at):
@@ -482,6 +481,17 @@ def _walk(data, segment, trailer, base: int, known: set[int], parent: int) -> li
         if painted is not None:
             items.append(painted)
     return items
+
+
+def _layered(data, segment, trailer, found, parent: int):
+    """The parent's objects in the order of its layer list, else stored order."""
+    children = [(at, kind) for at, kind in found if _u16(data, at + 4) == parent]
+    layers = layer_nears(data, segment, trailer, parent)
+    nears = {at - segment.base for at, _kind in children}
+    if not layers or set(layers) != nears:
+        return children
+    place = {near: index for index, near in enumerate(layers)}
+    return sorted(children, key=lambda child: place[child[0] - segment.base])
 
 
 def _child(data, segment, trailer, base, known, by_near, near: int) -> list[Paint]:
