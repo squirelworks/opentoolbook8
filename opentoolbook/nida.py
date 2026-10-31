@@ -103,6 +103,66 @@ def parse_catalog(text: str) -> Catalog:
     return Catalog(courses)
 
 
+class MissingLesson(ValueError):
+    """A catalog lesson whose ``.tbk`` the shelf search does not find."""
+
+    def __init__(
+        self,
+        lesson_id: str,
+        name: str,
+        roots: tuple[Path, ...],
+        discs: tuple[str, ...] | None = None,
+    ) -> None:
+        self.lesson_id = lesson_id
+        self.name = name
+        self.roots = roots
+        self.discs = discs
+        text = f"{name} was not found; lesson {lesson_id} does not open"
+        if discs:
+            label = "disc" if len(discs) == 1 else "discs"
+            text += f"; CAILT.DAT puts it on {label} {', '.join(discs)}"
+        elif discs is not None:
+            text += "; CAILT.DAT names no disc for it"
+        super().__init__(text)
+
+
+def catalog_lesson(catalog: Catalog, folder: Path, lesson_id: str, home: Path | None = None) -> Path:
+    """The ``.tbk`` for one catalog lesson id, found with the shelf rules.
+
+    The file name is the lesson id in lower case plus ``.tbk``. It is looked
+    for in the catalog folder, its parent, ``home``, ``home/courses``, and
+    ``home/Nida98/Lessons``, regardless of case. An id the catalog does
+    not list is an error, and so is a file the search does not find. That
+    error names the discs ``CAILT.DAT`` maps for the lesson when the same
+    search finds the table.
+    """
+    from opentoolbook.shelf import find_file, search_roots
+
+    wanted = lesson_id.strip().upper()
+    if wanted not in {item.upper() for item in catalog.lesson_ids()}:
+        raise ValueError(f"{lesson_id} is not a lesson in the catalog")
+    name = f"{wanted.lower()}.tbk"
+    roots = search_roots(folder, home)
+    found = find_file(roots, name)
+    if found is None:
+        raise MissingLesson(wanted, name, roots, _lesson_discs(roots, wanted))
+    return found
+
+
+def _lesson_discs(roots: tuple[Path, ...], lesson_id: str) -> tuple[str, ...] | None:
+    """The disc codes ``CAILT.DAT`` maps for a lesson, or None with no table on the shelf."""
+    from opentoolbook.shelf import find_file
+
+    table = find_file(roots, "CAILT.DAT")
+    if table is None:
+        return None
+    try:
+        rules = parse_cailt(table.read_text(encoding="latin1"))
+    except ValueError:
+        return ()
+    return discs_for(rules, lesson_id)
+
+
 def discs_for(rules: tuple[DiscRule, ...], lesson_id: str) -> tuple[str, ...]:
     """Disc codes for one lesson id. The longest literal pattern wins."""
     match = match_discs(rules, lesson_id)
