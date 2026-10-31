@@ -155,6 +155,7 @@ def show_page(
     view_width: int,
     view_height: int,
     props: UserProperties | None = None,
+    fields: dict[str, str] | None = None,
     *,
     sys_level: str | None = None,
     checked: Mapping[str, bool] | None = None,
@@ -162,6 +163,7 @@ def show_page(
     """The display list for one page. It does not open a window.
 
     ``props`` holds the ``__`` names the page's ``enterPage`` reads.
+    ``fields`` is field text a handler wrote after ``enterPage``.
     ``sys_level`` ``None`` is missing, and a missing ``sysLevel`` is ``reader``.
     ``checked`` maps a button name, in any case, to the checked state a
     click gave it. It wins over bit 4 of that button's ``+0x26``.
@@ -169,6 +171,8 @@ def show_page(
     width, height = page_size(data)
     scale = fit_scale(width, height, view_width, view_height)
     items = _entered(data, page_id, _ordered(_stored(data, page_id, width, height)), props, sys_level)
+    if fields:
+        items = _written(items, fields)
     if checked:
         items = _checked(data, items, checked)
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
@@ -287,7 +291,7 @@ def open_page(
                 draw_page(canvas, listed)
             if button_at(listed, event.x, event.y) != name:
                 return
-            result = click_reported(nav, name, errors)
+            result = click_reported(nav, name, errors, shown=field_texts(listed))
             if result is None:
                 root.bell()
                 return
@@ -297,7 +301,7 @@ def open_page(
                 from tkinter import messagebox
 
                 messagebox.showinfo(nav.book_name or "ToolBook", text, parent=root)
-            if result.moved or result.checked:
+            if result.moved or result.changed or result.checked:
                 redraw()
 
         def on_key(event) -> None:
@@ -317,7 +321,7 @@ def open_page(
                 return
             if result.beep:
                 root.bell()
-            if result.moved or result.checked:
+            if result.moved or result.changed or result.checked:
                 redraw()
 
         canvas.bind("<ButtonPress-1>", on_press)
@@ -355,17 +359,18 @@ def _report_click_error(kind, value, trace) -> None:
     traceback.print_exception(kind, value, trace, file=sys.stderr)
 
 
-def click_reported(nav, name: str, errors: list[str], stream=None):
+def click_reported(nav, name: str | None, errors: list[str], stream=None, shown=None):
     """Run one click. A reader error prints its one line and returns None.
 
     The line is the same sentence the open prints, for example
     ``nida81.tbk was not found; P310 of that book does not open``. The
-    page and book stay where they were.
+    page and book stay where they were. ``shown`` is the field text the
+    page shows now.
     """
     import sys
 
     try:
-        return nav.click(name)
+        return nav.click(name, shown)
     except ValueError as exc:
         print(exc, file=stream if stream is not None else sys.stderr)
         errors.append(str(exc))
@@ -501,6 +506,24 @@ def _entered(
     for index, (_name, text, runs) in zip(indexes, changed):
         if text != (out[index].text or "") or runs != out[index].runs:
             out[index] = replace(out[index], text=text, runs=runs)
+    return tuple(out)
+
+
+def field_texts(listed: DisplayList) -> dict[str, str]:
+    """Each field name on the display list and the text it shows."""
+    return {item.name: item.text or "" for item in listed.items if item.kind == "field" and item.name}
+
+
+def _written(items: tuple[Paint, ...], fields: dict[str, str]) -> tuple[Paint, ...]:
+    from opentoolbook.enter import cover_style
+
+    wanted = {name.lower(): text for name, text in fields.items()}
+    out = list(items)
+    for index, item in enumerate(out):
+        if item.kind != "field" or item.name.lower() not in wanted:
+            continue
+        text = wanted[item.name.lower()]
+        out[index] = replace(item, text=text, runs=cover_style(item.text or "", text, item.runs))
     return tuple(out)
 
 
