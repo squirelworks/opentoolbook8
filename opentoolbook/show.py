@@ -123,6 +123,12 @@ def show_page(data: bytes, page_id: str, view_width: int, view_height: int) -> D
     return DisplayList(page_id, width, height, view_width, view_height, scale, items)
 
 
+def refit(listed: DisplayList, view_width: int, view_height: int) -> DisplayList:
+    """The same display list in a view of another size. Only the scale changes."""
+    scale = fit_scale(listed.width, listed.height, view_width, view_height)
+    return replace(listed, view_width=view_width, view_height=view_height, scale=scale)
+
+
 def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
     """Open a Tk window on the page id given, at 96 dpi, fitted once.
 
@@ -131,7 +137,8 @@ def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
     that page. A quoted book is that filename in the directory of
     ``book``, exact case, and nowhere else. A quiz page with no quiz
     running still uses OK, Next, and Skip for the next page and Back
-    for the previous page.
+    for the previous page. Resizing the window refits the page: the
+    scale is computed again from the page size and the new view.
     """
     import tkinter as tk
     from pathlib import Path
@@ -150,21 +157,35 @@ def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
             highlightthickness=0,
             background="#ffffff",
         )
-        canvas.pack()
+        canvas.pack(fill="both", expand=True)
         state = {
             "data": data,
             "pages": page_ids(data),
             "page": page_id,
             "book": Path(book).name if book else "",
             "folder": Path(book).parent if book else None,
+            "view": (view_w, view_h),
         }
 
         def redraw() -> None:
-            listed = show_page(state["data"], state["page"], view_w, view_h)
+            listed = show_page(state["data"], state["page"], *state["view"])
+            paint(listed)
+
+        def paint(listed: DisplayList) -> None:
             canvas.delete("all")
             draw_page(canvas, listed)
             canvas.listed = listed
             root.title(state["page"])
+
+        def on_configure(event) -> None:
+            view = (max(1, event.width), max(1, event.height))
+            if view == state["view"]:
+                return
+            state["view"] = view
+            listed = getattr(canvas, "listed", None)
+            if listed is None:
+                return
+            paint(refit(listed, *view))
 
         def on_click(event) -> None:
             listed = getattr(canvas, "listed", None)
@@ -200,6 +221,7 @@ def open_page(data: bytes, page_id: str, book: str | None = None) -> None:
             redraw()
 
         canvas.bind("<Button-1>", on_click)
+        canvas.bind("<Configure>", on_configure)
         redraw()
         root.mainloop()
     finally:
