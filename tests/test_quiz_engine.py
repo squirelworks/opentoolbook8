@@ -166,6 +166,24 @@ class QuizOnTheEngineTests(unittest.TestCase):
         self.assertEqual(nav.props.get("__quizIndex"), 1)
         self.assertEqual(nav.title(), "9e954d01.tbk - P10210")
 
+    def test_menu_with_lesson_mode_0_opens_assessment_and_begin_starts_it(self):
+        opened = _opened()
+        path = logic_families_path()
+        props = type(opened.props)(dict(opened.props.items()))
+        props.set("__lessonMode", 0)
+        props.set("__quizAssessment", 0)
+        nav = Navigator(path.read_bytes(), "P450", path, props=props, sysbooks=opened.sysbooks)
+        self.assertTrue(nav.click("Menu").moved)
+        self.assertEqual(nav.page_id, "P10001")
+        self.assertEqual(nav.props.get("__quizDisableMenuKey"), 1)
+        self.assertEqual(nav.title(), "9e954d01.tbk - P10001")
+        self.assertTrue(nav.click("selection1").moved)
+        self.assertEqual(nav.page_id, "P10210")
+        self.assertEqual(nav.props.get("__quizPass"), 1)
+        self.assertEqual(nav.props.get("__quizType"), 0)
+        self.assertEqual(nav.props.get("__quizIndex"), 1)
+        self.assertEqual(nav.title(), "9e954d01.tbk - P10210")
+
 
 if __name__ == "__main__":
     unittest.main()
