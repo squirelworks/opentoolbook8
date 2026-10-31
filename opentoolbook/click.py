@@ -1,12 +1,16 @@
 """A ``buttonClick`` the reader already expanded.
 
 A quoted ``go to page`` opens that page. ``of book`` names the other
-file when the line quotes one. ``go to page (name) of book(name)`` reads
-those two system variables when a handler this runner executed assigned
-them a string; otherwise the page stays. ``send next`` and
+file when the line quotes one. ``go to page (name) of book(name)`` and
+``go to page name of book name`` read those two system variables when a
+handler this runner executed assigned them a string; otherwise the page
+stays. A handler line ``name = "text"``, ``name = name of this book``, or
+``name = name of this page`` assigns that system variable. ``send next`` and
 ``send previous`` are the next and previous pages in the stored page
 list. ``if``, ``break``, and ``return`` are the shared walker in
 ``walk.py``. A line that is not one of those is not a page change.
+``beep`` does nothing and returns. ``request "..."`` records its text and
+does not change the page.
 """
 
 from __future__ import annotations
@@ -17,7 +21,7 @@ from dataclasses import dataclass
 
 from opentoolbook.field import _book, _chars, _page_handles, _segments, _u16
 from opentoolbook.script import _button_click, _script, button_clicks, quoted_go_to
-from opentoolbook.walk import Flow, reader_condition, walk
+from opentoolbook.walk import Flow, is_beep, reader_condition, request_text, walk
 
 _PAGE = 5
 _BACKGROUND = 4
@@ -27,6 +31,12 @@ _NAMED_GO_TO = re.compile(
     r"(?:\s*of\s+book\s*\(\s*([a-z_][a-z0-9_]*)\s*\))?\s*$",
     re.IGNORECASE,
 )
+# go to page nextpage of book lastbook: the same two names without parentheses.
+_BARE_GO_TO = re.compile(
+    r"^go\s+to\s+page\s+([a-z_][a-z0-9_]*)(?:\s+of\s+book\s+([a-z_][a-z0-9_]*))?\s*$",
+    re.IGNORECASE,
+)
+_ASSIGN = re.compile(r"^([a-z_][a-z0-9_]*)\s*=\s*(.+?)\s*$", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -35,6 +45,8 @@ class Follow:
 
     page_id: str
     book: str | None
+    requests: tuple[str, ...] = ()
+    beeps: int = 0
 
 
 def follow_click(
@@ -42,15 +54,27 @@ def follow_click(
     page_id: str,
     button: str,
     pages: tuple[str, ...],
+    variables: dict[str, object] | None = None,
+    book: str = "",
 ) -> Follow | None:
-    """The quoted page this button's handler opens, or None when it has no handler."""
+    """The page this button's handler opens, or None when it has no handler.
+
+    ``variables`` is the window's system variables. The handler's
+    assignments are written into it. ``book`` is ``name of this book``.
+    """
     source = _handler(data, page_id, button)
     if source is None:
         return None
-    return run_handler(source, pages, page_id)
+    return run_handler(source, pages, page_id, variables, book)
 
 
-def page_click(data: bytes, page_id: str, pages: tuple[str, ...], variables=None) -> Follow | None:
+def page_click(
+    data: bytes,
+    page_id: str,
+    pages: tuple[str, ...],
+    variables=None,
+    book: str = "",
+) -> Follow | None:
     """The page's own ``buttonClick``, or None when the page script has none."""
     from opentoolbook.enter import page_source
 
@@ -58,7 +82,7 @@ def page_click(data: bytes, page_id: str, pages: tuple[str, ...], variables=None
     source = _button_click(text.replace("\r\n", "\n").replace("\n", "\r\n")) if text else None
     if source is None:
         return None
-    return run_handler(source, pages, page_id, variables)
+    return run_handler(source, pages, page_id, variables, book)
 
 
 def run_handler(
@@ -66,21 +90,39 @@ def run_handler(
     pages: tuple[str, ...],
     page_id: str,
     variables: dict[str, object] | None = None,
+    book_name: str = "",
 ) -> Follow:
-    """Run the ``go to page``, ``send next``, and ``send previous`` lines.
+    """Run the assignment, ``go to page``, ``send next``, and ``send previous`` lines.
 
     ``variables`` maps a lower-case system variable name to the value a
-    handler this runner executed assigned it.
+    handler this runner executed assigned it. This handler's assignments
+    are written into it. ``book_name`` is ``name of this book``.
     """
-    known = variables or {}
+    known = variables if variables is not None else {}
     landed = {"page": page_id, "book": None}
+    asked: list[str] = []
+    beeps = [0]
 
     def statement(raw: str, low: str) -> None:
+        if is_beep(raw):
+            beeps[0] += 1
+            return
+        asked_text = request_text(raw)
+        if asked_text is not None:
+            asked.append(asked_text)
+            return
+        text = raw.strip()
         found = quoted_go_to(raw)
         if found is not None:
             landed["page"], landed["book"] = found
             return
-        named = _NAMED_GO_TO.match(raw.strip())
+        assigned = _ASSIGN.match(text)
+        if assigned is not None and not assigned.group(1).startswith("__"):
+            value = _assigned(assigned.group(2), page_id, book_name)
+            if value is not None:
+                known[assigned.group(1).lower()] = value
+            return
+        named = _NAMED_GO_TO.match(text) or _BARE_GO_TO.match(text)
         if named is not None:
             page_value = known.get(named.group(1).lower())
             book_value = known.get(named.group(2).lower()) if named.group(2) else None
@@ -95,7 +137,18 @@ def run_handler(
             landed["book"] = None
 
     walk(source.splitlines(), Flow(), condition=reader_condition, statement=statement)
-    return Follow(landed["page"], landed["book"])
+    return Follow(landed["page"], landed["book"], tuple(asked), beeps[0])
+
+
+def _assigned(expression: str, page_id: str, book_name: str) -> str | None:
+    low = " ".join(expression.lower().split())
+    if low == "name of this page":
+        return page_id
+    if low == "name of this book":
+        return book_name or None
+    if len(expression) >= 2 and expression[0] == '"' and expression[-1] == '"':
+        return expression[1:-1]
+    return None
 
 
 def quiz_background(data: bytes, page_id: str) -> bool:
