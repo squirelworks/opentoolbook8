@@ -245,7 +245,6 @@ def open_page(
     home: str | None = None,
     props: UserProperties | None = None,
     *,
-    status: str | None = None,
     lesson: str | None = None,
     variables: dict[str, object] | None = None,
     sysbooks: tuple[str, ...] = (),
@@ -270,9 +269,8 @@ def open_page(
     scale is computed again from the page size and the new view. The
     close button ends the Tk loop and this
     function returns. A click that raises prints the error and the window
-    stays up. ``status`` is one line shown once under the page, such as
-    ``MINSTB32.dll named, not shipped``. It does not stop the paint.
-    ``lesson`` is the path the user passed when the window opens on
+    stays up. A missing export DLL is not shown under the page; ``--report``
+    names it. ``lesson`` is the path the user passed when the window opens on
     another book. A click still searches beside it.
     ``variables`` are the system variables startup assigned.
     ``sysBooks`` is the list startup left. A click looks up a handler in
@@ -301,8 +299,6 @@ def open_page(
             highlightthickness=0,
             background="#ffffff",
         )
-        if status:
-            tk.Label(root, text=status, anchor="w").pack(side="bottom", fill="x")
         state = {
             "props": props if props is not None else UserProperties(),
             "view": (view_w, view_h),

@@ -279,7 +279,7 @@ Drawing a page deletes the Tk images of the page drawn before it, then makes the
 
 ## Export DLL in the window
 
-The book's PE export directory names `MINSTB32.dll`. When the shelf search the open uses does not find a file of that name, ignoring case, the window shows one line under the page: `MINSTB32.dll named, not shipped`. The line is shown once, for `--show` and for the bare command. It is not loaded, it does not stop the open, and the page still paints. On `9e954d01.tbk` with no DLL on disk the bare command still opens `P0` of `nida81.tbk`. A `MINSTB32.DLL` that the search finds removes the line.
+The book's PE export directory names `MINSTB32.dll`. When the shelf search the open uses does not find a file of that name, ignoring case, `unshipped_dll` returns `MINSTB32.dll named, not shipped`. The window does not show that line under the page. `--report` prints it on the named-files list as `MINSTB32.dll  named, not shipped` when the DLL is absent. It is not loaded, it does not stop the open, and the page still paints. On `9e954d01.tbk` with no DLL on disk the bare command still opens `P0` of `nida81.tbk`. A `MINSTB32.DLL` that the search finds clears the note.
 
 ## One missing-book sentence
 
@@ -307,7 +307,7 @@ The window binds one of those keys. Enter is `keyEnter` in the book's `keyUp`: o
 
 ## Report stays headless
 
-After the window changes, `--report` still prints only the record count, the follow-up reads, the files the book names, and the startup call names, and it opens no window. `--report book.tbk` and `book.tbk --report` print the same report. With `--home`, all four orders of `--home DIR`, `--report`, and the book print the same install-and-book report, and none opens a window. `--home` without a book still prints the install folder and opens nothing. A book with `--home` and no `--report` opens the window and prints nothing. The report runs in a Python that cannot import `tkinter`. On `otb-line-rect.tbk` the report is five lines: `records 11`, `follow-up reads 3`, `named by the book 1`, `MINSTB32.dll`, and `calls 0`. With an install list that does not name it, that DLL line reads `MINSTB32.dll  named, not shipped`, as it did before this work.
+After the window changes, `--report` still prints only the record count, the follow-up reads, the files the book names, and the startup call names, and it opens no window. `--report book.tbk` and `book.tbk --report` print the same report. With `--home`, all four orders of `--home DIR`, `--report`, and the book print the same install-and-book report, and none opens a window. `--home` without a book still prints the install folder and opens nothing. A book with `--home` and no `--report` opens the window and prints nothing. The report runs in a Python that cannot import `tkinter`. On `otb-line-rect.tbk` with no DLL on the shelf the report names `MINSTB32.dll  named, not shipped` on the named-files list. With an install list that does not name it, that same note appears.
 
 ## Enter page greeting
 

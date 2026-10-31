@@ -71,7 +71,6 @@ def main(argv: list[str]) -> int:
                 args.show,
                 str(opened),
                 args.home,
-                status=unshipped_dll(opened, home),
                 sysbooks=_startup_sysbooks(opened, home),
                 enter=True,
             )
@@ -92,7 +91,6 @@ def main(argv: list[str]) -> int:
             str(entry.book),
             args.home,
             entry.props,
-            status=unshipped_dll(entry.book, home),
             lesson=args.book,
             variables=entry.variables,
             sysbooks=entry.sysbooks,
@@ -121,14 +119,20 @@ def _print_book(path: Path, home: Path | None) -> None:
     print(f"records {len(book.records)}")
     print(f"follow-up reads {len(follow)}")
     calls = named_calls(book.data)
+    missing = unshipped_dll(path, home)
+    missing_name = missing.split()[0].lower() if missing else None
     print(f"named by the book {len(opened.files)}")
     for item in opened.files:
         if item.path is not None:
             print(f"  {item.name}  {item.path}")
         elif item.note:
             print(f"  {item.name}  {item.note}")
+        elif missing_name is not None and item.name.lower() == missing_name:
+            print(f"  {item.name}  named, not shipped")
         else:
             print(f"  {item.name}")
+    if missing is not None and not any(item.name.lower() == missing_name for item in opened.files):
+        print(f"  {missing}")
     sysbooks = _startup_sysbooks(path, home)
     print(f"sysBooks {len(sysbooks)}")
     for name in sysbooks:

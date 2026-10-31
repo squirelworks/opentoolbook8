@@ -265,11 +265,16 @@ class UnshippedDllTests(unittest.TestCase):
         import opentoolbook.__main__ as entry
 
         calls = []
-        with mock.patch.object(entry, "open_page", lambda *a, **k: calls.append(a + (k.get("status"),))):
+
+        def capture(*a, **k):
+            calls.append((a, k))
+            return ()
+
+        with mock.patch.object(entry, "open_page", capture):
             code = entry.main(["opentoolbook", *argv])
         return code, calls
 
-    def test_the_window_line_names_the_export_dll_once(self):
+    def test_the_window_does_not_show_the_export_dll_line(self):
         from opentoolbook.shelf import unshipped_dll
         from opentoolbook.show import show_page
 
@@ -281,19 +286,15 @@ class UnshippedDllTests(unittest.TestCase):
             code, calls = self._run_main(["--show", "", str(book)])
             self.assertEqual(code, 0)
             self.assertEqual(len(calls), 1)
-            self.assertEqual(calls[0][-1], "MINSTB32.dll named, not shipped")
+            self.assertNotIn("status", calls[0][1])
             code, calls = self._run_main([str(book)])
             self.assertEqual(code, 0)
-            self.assertEqual(calls[0][1], "")
-            self.assertEqual(calls[0][-1], "MINSTB32.dll named, not shipped")
-            # The line does not stop the paint.
-            kinds = [item.kind for item in show_page(calls[0][0], "", 600, 400).items]
+            self.assertEqual(calls[0][0][1], "")
+            self.assertNotIn("status", calls[0][1])
+            kinds = [item.kind for item in show_page(calls[0][0][0], "", 600, 400).items]
             self.assertEqual(kinds[:2], ["background", "rectangle"])
-            # A DLL the shelf finds, here in the parent and in another case, is not named.
             (Path(tmp) / "minstb32.DLL").write_bytes(b"")
             self.assertIsNone(unshipped_dll(book))
-            code, calls = self._run_main(["--show", "", str(book)])
-            self.assertIsNone(calls[0][-1])
 
     def test_the_lesson_opens_with_no_dll_on_disk(self):
         from opentoolbook.entry import opening_page
@@ -311,14 +312,18 @@ class UnshippedDllTests(unittest.TestCase):
         self.assertGreater(len(show_page(entry.data, entry.page_id, 624, 442).items), 1)
         code, calls = self._run_main([str(path)])
         self.assertEqual(code, 0)
-        self.assertEqual((calls[0][1], calls[0][2], calls[0][-1]), ("P0", str(entry.book), "MINSTB32.dll named, not shipped"))
+        self.assertEqual((calls[0][0][1], calls[0][0][2]), ("P0", str(entry.book)))
+        self.assertNotIn("status", calls[0][1])
 
 
 class ReportStaysHeadlessTests(unittest.TestCase):
     """After the window work, ``--report`` still prints and opens no window."""
 
     FIXTURE = Path(__file__).parent / "fixtures" / "otb-line-rect.tbk"
-    REPORT = "records 11\nfollow-up reads 3\nnamed by the book 1\n  MINSTB32.dll\nsysBooks 0\ncalls 0\n"
+    REPORT = (
+        "records 11\nfollow-up reads 3\nnamed by the book 1\n"
+        "  MINSTB32.dll  named, not shipped\nsysBooks 0\ncalls 0\n"
+    )
 
     def _run(self, argv):
         import contextlib

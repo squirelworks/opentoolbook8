@@ -1536,3 +1536,7 @@ Source: the type 10 scripts of `tb80.sbk`, `tb80a.sbk`, and `tb80r.sbk` as `reso
 ## Test paths for private books
 
 Source: the Cursor handoff that lists M1 test hygiene (2026-10-31). Lesson-specific tests take `OPENTOOLBOOK_TBK` only when that file is named `9e954d01.tbk`, so pointing the variable at another book skips instead of asserting Logic Families pages. Companions open through the same case-insensitive shelf as `open_book`. `OPENTOOLBOOK_BOOKS` names a flat folder of `.tbk` files for a startup-and-paint smoke; it is optional and skips when unset.
+
+## Missing export DLL is a report note
+
+Source: the Cursor handoff M2 (2026-10-31). A missing PE export DLL such as the one Instructor books name stays a shelf note for `--report`. The page window no longer draws a permanent status line for it.
