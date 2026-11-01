@@ -140,7 +140,9 @@ class SceneTests(unittest.TestCase):
         self.assertEqual(ellipse.bounds, (5040, 4395, 5145, 4515))
         polygon = next(item for item in chip.items if item.kind == "polygon" and item.object_id == 14)
         self.assertEqual(polygon.points, polygon_points(data, "P400", 14))
-        self.assertNotIn("arc", [item.kind for item in chip.items])
+        arc = next(item for item in chip.items if item.kind == "arc")
+        self.assertEqual(arc.fill, None)
+        self.assertEqual(len(arc.points), 2)
 
         later = show_page(data, "P410", 400, 300)
         self.assertLess(_index(later, "rectangle", 5), _index(later, "field", 25))

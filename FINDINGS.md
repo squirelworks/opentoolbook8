@@ -188,19 +188,9 @@ Words `+0x06` and `+0x08` are 65535. Words `+0x02` and `+0x20` are 0. Word `+0x2
 110000008802ffffffff08000026009213c70bae15f20dffffff00ffff00000100000400004a07c91317070c121707ed120e01e1000300000f000f0069
 ```
 
-### Class `0x11` third pair, and why the window does not paint arcs
+### Class `0x11` word at `+0x35`
 
-The signed pair at `+0x2D` is a third point. On all 62 arcs in `9e954d01.tbk` and both in `nida81.tbk` the three pairs at `+0x25`, `+0x29`, and `+0x2D` are one of three triples, and each triple occurs on arcs whose rectangles at `+0x0F` differ:
-
-| book | count | `+0x25` | `+0x29` | `+0x2D` | words `+0x31`, `+0x33`, `+0x35` |
-|---|---|---|---|---|---|
-| `9e954d01.tbk` | 43 | (5433, 3955) | (5428, 3544) | (5385, 3750) | 255, 210, 3 |
-| `9e954d01.tbk` | 19 | (1866, 5065) | (1815, 4620) | (1815, 4845) | 270, 225, 3 |
-| `nida81.tbk` | 2 | (3465, 4126) | (3316, 4320) | (3465, 4320) | 150, 195, 22 |
-
-The words at `+0x37` and `+0x39` are 3840 on all 64. In the first two rows the y of the third pair is within 3 of halfway between the first two (3750 against 3749.5, 4845 against 4842.5). In the third row it is not.
-
-On P1140 objects 17, 65, and 80 store the second triple. Their rectangles are (5010, 3015, 5550, 3570), (2985, 3030, 3525, 3585), and (5010, 3675, 5550, 4230). Drawing the stored pairs would put all three arcs on the same spot, outside every one of those rectangles. The TBKX export's arc `Vertices` sit inside the rectangle: object 80 is `5331,4224,5280,3675`. Against the rectangle's left and top, the export x offsets differ by 51, the same 51 as the stored x values (1866 and 1815). The export y span is 549 where the stored y span is 445, so the y mapping is not a shift. On the first triple the spans are equal (411). The source rectangle that would map the stored pairs onto the rectangle at `+0x0F` is not named by bytes that repeat, so the arc stays off the display list. The words at `+0x31` and `+0x33` may be angles. That is not settled.
+The signed words at `+0x31` and `+0x33` are the prototype radii the arc reader maps through; see `SETTLED.md`. The word at `+0x35` is 3 on all 62 arcs in `9e954d01.tbk` and 22 on both arcs in `nida81.tbk`. It is not the stroke, the fill, a pattern, or a radius. The window does not read it. The words at `+0x37` and `+0x39` are 3840 on all 64.
 
 ### Class `0x13`, 55 bytes, 66 records
 
@@ -542,7 +532,7 @@ A button `BorderStyle` is the byte at `+0x27`, on all 382 buttons. `none` is 1, 
 
 A field `BorderStyle` is the byte at `+0x36`, on 496 fields. `none` is 1, `scrolling` is 2, `shadowed` is 3, `raised` is 4, `inset` is 5, and `rectangle` is 0. One export field is not that record. That field is one example. `nida81.tbk` stores 1 on 222 of these fields, 5 on 22, and 4 on 2.
 
-The export arc `Vertices` are not the stored pairs at `+0x25` and `+0x29`, on any of the 62 arcs.
+The export arc `Vertices` are not the stored pairs at `+0x25` and `+0x29`, on any of the 62 arcs. They are the page endpoints the arc reader maps; see `SETTLED.md`.
 
 The words `0x0013` and `0x0068` sit in the 55 bytes after the page record on all twenty quiz pages, and on none of the 91 other pages with that same gap. `0x0068` is 104. The export calls the shared script id 103. That pair occurs once. `HelpPage` is not the `0x0009` value slot. `SourceLesson` is that slot on 19 pages. On `P10210` the word in that place is `0x0004`. That page is one example. Line `LineStyle` is not the byte at `+0x25`.
 

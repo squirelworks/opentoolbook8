@@ -1,14 +1,21 @@
 """The points stored on a class ``0x11`` arc.
 
 They are the signed pairs at ``+0x25`` and ``+0x29``, and a third pair at
-``+0x2D``. The record is not filled, and the points are not moved onto
-the bounds. Arcs with different bounds store the same three pairs, so
-the pairs are not page positions. The page window does not paint this
-record.
+``+0x2D``. The words at ``+0x31`` and ``+0x33`` are the half-width and
+half-height of the ellipse those pairs sit on. The third pair is that
+ellipse's center. Arcs with different bounds reuse the same three pairs
+and the same two radii, so the pairs are not page positions.
+
+The page vertices are the first two pairs mapped through the bounds at
+``+0x0F``: the bounds center is the image of the third pair, and each
+axis scales by the bounds half-size over the stored radius. The window
+strokes the open arc of that ellipse from the first mapped point to the
+second, counter-clockwise. The arc is not filled.
 """
 
 from __future__ import annotations
 
+import math
 import struct
 from dataclasses import dataclass
 
@@ -22,11 +29,12 @@ PAGE = 5
 
 @dataclass(frozen=True)
 class Arc:
-    """One class ``0x11`` record: its id, the rectangle at ``+0x0F``, and three stored pairs."""
+    """One class ``0x11`` record: bounds, three prototype pairs, and two radii."""
 
     object_id: int
     bounds: tuple[int, int, int, int]
     points: tuple[tuple[int, int], tuple[int, int], tuple[int, int]]
+    radii: tuple[int, int]
 
 
 def stored_arcs(data: bytes) -> tuple[Arc, ...]:
@@ -55,7 +63,56 @@ def _arc_record(data: bytes, at: int) -> Arc:
             struct.unpack_from("<hh", data, at + 0x29),
             struct.unpack_from("<hh", data, at + 0x2D),
         ),
+        struct.unpack_from("<hh", data, at + 0x31),
     )
+
+
+def page_vertices(arc: Arc) -> tuple[tuple[int, int], tuple[int, int]]:
+    """The two page endpoints: prototype pairs mapped onto ``bounds``."""
+    left, top, right, bottom = arc.bounds
+    center_x = (left + right) / 2
+    center_y = (top + bottom) / 2
+    radius_x = (right - left) / 2
+    radius_y = (bottom - top) / 2
+    proto_x, proto_y = arc.radii
+    origin_x, origin_y = arc.points[2]
+    scale_x = radius_x / proto_x
+    scale_y = radius_y / proto_y
+
+    def mapped(point: tuple[int, int]) -> tuple[int, int]:
+        x = center_x + (point[0] - origin_x) * scale_x
+        y = center_y + (point[1] - origin_y) * scale_y
+        return round(x), round(y)
+
+    return mapped(arc.points[0]), mapped(arc.points[1])
+
+
+def arc_angles(
+    bounds: tuple[int, int, int, int],
+    start: tuple[int, int],
+    end: tuple[int, int],
+) -> tuple[float, float]:
+    """Tk ``start`` and counter-clockwise ``extent`` for the mapped endpoints.
+
+    Angles are measured as if the oval were a circle, then stretched to the
+    bounds — the same rule Tk's ``create_arc`` uses.
+    """
+    left, top, right, bottom = bounds
+    center_x = (left + right) / 2
+    center_y = (top + bottom) / 2
+    radius_x = (right - left) / 2
+    radius_y = (bottom - top) / 2
+    if radius_x == 0 or radius_y == 0:
+        return 0.0, 0.0
+
+    def theta(point: tuple[int, int]) -> float:
+        return math.degrees(
+            math.atan2((center_y - point[1]) / radius_y, (point[0] - center_x) / radius_x)
+        )
+
+    start_angle = theta(start)
+    extent = (theta(end) - start_angle) % 360.0
+    return start_angle, extent
 
 
 def arc_points(data: bytes, page_id: str, object_id: int) -> tuple[tuple[int, int], tuple[int, int]]:
