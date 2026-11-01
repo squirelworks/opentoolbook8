@@ -1625,6 +1625,10 @@ Source: handoff M6 (MENU → Begin starts the quiz); driver on `9e954d01.tbk` wi
 
 Source: handoff M6 (MENU → `P10001`; Begin starts the quiz). With `__lessonMode` 0 and `__quizAssessment` 0, `Menu` on `P450` opens `P10001` and Begin (`selection1`) starts Assessment (`__quizType` 0) on `P10210`.
 
+## Menu to P10002 Pre-Test
+
+Source: handoff M6 / `getMenuPage` in `nc81base.sbk`. With `__lessonMode` 1 and `__quizPreTest` 0, `Menu` on `P450` opens `P10002` and Begin starts Pre-Test (`__quizType` 1) on `P10210`.
+
 ## `send exit` closes the window
 
 Source: handoff M6 Exit (`send keyUp keyF2 to this page` on the `Exit` button; book's `keyUp` then `send exit`). No book in the Logic Families chain defines `to handle exit`. The reader treats an unanswered `exit` message as close-the-window, matching Escape and the title-bar close.
