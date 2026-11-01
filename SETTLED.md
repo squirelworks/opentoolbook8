@@ -429,7 +429,11 @@ From that opening, `Next` on the lesson turns the intro pages in order: `P10`, `
 
 ## TTL Discussion Next and Back
 
-From `P900`, `selection1` opens `P1001`, and `selection1` there (Discussion) opens `P1040`. `Next` turns the discussion pages in order: `P1040`, `P1050`, `P1060`, `P1070`, … through `P1290`. Each step is that page's `Next` button on the interpreter; the window title and field `Page#` follow (`9e954d01.tbk - P1050` on `P1050`). `Back` on those discussion pages opens `P1040` again (the section start), not the previous page in the list.
+From `P900`, `selection1` opens `P1001`, and `selection1` there (Discussion) opens `P1040`. `Next` turns the discussion pages in order: `P1040`, `P1050`, `P1060`, `P1070`, … through `P1290`. Each step is that page's `Next` button on the interpreter; the window title and field `Page#` follow (`9e954d01.tbk - P1050` on `P1050`). `Back` on `P1050`–`P1080` opens `P1040` again (the section start), not the previous page in the list. Later discussion pages' own `Back` handlers open their sub-section starts (for example `P1150` → `P1140`).
+
+## Other ICs Discussion Next and Back
+
+From `P900`, `selection2` opens `P2001`, and `selection1` there (Discussion) opens `P2040`. An unnamed field reads `DISCUSSION`, and field `Page#` reads `P2040`. `Next` turns `P2040`, `P2050`, `P2060`, `P2070`, …. `Back` on `P2050`–`P2070` opens `P2040` again (the section start). Later discussion pages' own `Back` handlers open their sub-section starts (for example `P2150` → `P2130`).
 
 ## TTL Summary Next and Back
 
