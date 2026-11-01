@@ -206,6 +206,24 @@ class QuizOnTheEngineTests(unittest.TestCase):
         )
         self.assertEqual(stem, "The test is complete and your score is 100%.  Do you want to _________")
 
+    def test_score_page_ok_returns_to_the_menu(self):
+        from opentoolbook.quiz import questions
+
+        nav = self.nav
+        by_page = {item.page_id: item for item in questions(nav.data)}
+        self.assertTrue(nav.click("selection1").moved)
+        for _ in range(15):
+            if nav.page_id.startswith("P103"):
+                break
+            answer = (by_page[nav.page_id].answer or "A").upper()
+            nav.click(answer)
+            self.assertTrue(nav.click("OK").moved)
+        self.assertEqual(nav.page_id, "P10303")
+        self.assertEqual(nav.checked_buttons().get("b"), True)
+        self.assertTrue(nav.click("OK").moved)
+        self.assertEqual(nav.page_id, "P900")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P900")
+
 
 if __name__ == "__main__":
     unittest.main()

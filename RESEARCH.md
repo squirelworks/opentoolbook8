@@ -1649,3 +1649,7 @@ Source: handoff M4 (`startupBook` in `TB80.INI`). The key was parsed with the ot
 
 Source: handoff M6 (Begin, answer every question, read the score page); in-process driver on `9e954d01.tbk` with companions under `/tmp/otb-books`. With startup `__quizMode` 0, answering all ten pool questions with each page's `Answer` then `OK` lands on `P10303` and field `stem` shows `getQuizScore` as a percent.
 
+## Score page OK to menu
+
+Source: handoff M6 end of quiz; driver on `9e954d01.tbk`. After pass 1 lands on `P10303`, `enterPage` has checked `B`, and `OK` opens `P900` through the page/background handlers on the interpreter.
+
