@@ -471,6 +471,10 @@ The quiz menu group runs `get clearpool()`, then `addObjectiveToPool(1, 110, 119
 
 With the props startup leaves (`__quizMode` 0), `selection1` on `P10002` starts the Pre-Test and, with `random` at its lowest value, opens the ten pool questions in order. Answering every one with that page's stored `Answer` letter then `OK` ends pass 1 on `P10303`. The page's `enterPage` runs `getQuizScore` from `nc81test.sbk` and writes field `stem` as `The test is complete and your score is N%.  Do you want to _________`. All ten correct is `100%`. The window title is `9e954d01.tbk - P10303`.
 
+## Score page OK returns to the menu
+
+On `P10303` after a finished Pre-Test with `__quizMode` 0, `enterPage` leaves button `B` checked and `A` disabled. `OK` then runs on the interpreter and opens `P900`, the same menu page `Menu` opens under startup `__lessonMode` 2. The window title becomes `9e954d01.tbk - P900`.
+
 ## Correct mark
 
 The rectangle `Correct` on a question page is shown by one line in `setupQuizPage` of `nc81test.sbk`: `set visible of rectangle("correct") of page iPage to true`. That line runs at the author level, and at the reader level under `when __quizPass = 4 or __quizPass = 5` and `when __quizPass = 8`. Under `when __quizPass = 1`, `= 2`, and `= 3` it is set to false. The display list leaves `Correct` off until a script sets it visible. Pass 8 is set only by `initializeBase` when the command line has `/Quester` and at least six words, so a reader opening the lesson does not reach it.
