@@ -1649,6 +1649,10 @@ Source: handoff M6 Exit (`send keyUp keyF2 to this page` on the `Exit` button; b
 
 Source: handoff M6 (open → logo → click → `P10` → Next/Back through the intro); in-process driver on `9e954d01.tbk` with companions under `/tmp/otb-books`. After the logo click, `Next` walks `P10`→`P100`→`P300`→`P400`→`P410`→`P420`→`P430`→`P440`→`P450`; `Back` from `P450` returns to `P440`. The facts the driver pins are in `SETTLED.md`.
 
+## Intro Help
+
+Source: Logic Families intro `Help` button; driver on `P10`. Same `nida81.tbk` `P20001` HELP page as section menus; `Next` returns to intro `P10`.
+
 ## TTL Discussion page chain
 
 Source: Logic Families section menus; driver from `P900` → `P1001` → Discussion `P1040`, then `Next`/`Back`. `Next` advances through the discussion pages; the pages' own `Back` handlers return to `P1040`, not the prior page.
@@ -1656,6 +1660,10 @@ Source: Logic Families section menus; driver from `P900` → `P1001` → Discuss
 ## TTL Summary pages
 
 Source: Logic Families section menus; driver from `P900` → `P1001` → Summary `P1920`. `Next`/`Back` step between summary pages; unlike Discussion, `Back` from `P1930` returns to `P1920`.
+
+## Other ICs Summary pages
+
+Source: Logic Families Other ICs section; driver from `P900` → `P2001` → Summary `P2920`. Same Next/Back stepping as TTL Summary.
 
 ## P10301 completion pass
 
