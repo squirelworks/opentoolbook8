@@ -184,6 +184,28 @@ class QuizOnTheEngineTests(unittest.TestCase):
         self.assertEqual(nav.props.get("__quizIndex"), 1)
         self.assertEqual(nav.title(), "9e954d01.tbk - P10210")
 
+    def test_answering_every_question_opens_the_score_page(self):
+        from opentoolbook.quiz import questions
+
+        nav = self.nav
+        by_page = {item.page_id: item for item in questions(nav.data)}
+        self.assertTrue(nav.click("selection1").moved)
+        self.assertEqual(nav.props.get("__quizMode"), 0)
+        for _ in range(15):
+            if nav.page_id.startswith("P103"):
+                break
+            answer = (by_page[nav.page_id].answer or "A").upper()
+            nav.click(answer)
+            self.assertTrue(nav.click("OK").moved)
+        self.assertEqual(nav.page_id, "P10303")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P10303")
+        stem = next(
+            item.text
+            for item in nav.display(800, 600).items
+            if item.kind == "field" and item.name.lower() == "stem"
+        )
+        self.assertEqual(stem, "The test is complete and your score is 100%.  Do you want to _________")
+
 
 if __name__ == "__main__":
     unittest.main()
