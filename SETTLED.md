@@ -463,6 +463,10 @@ The quiz menu group runs `get clearpool()`, then `addObjectiveToPool(1, 110, 119
 
 `gotoNextQuestionEx` in `nc81test.sbk` opens a question page on a running pass, on the interpreter. `setupQuizEx` sets `__quizPass` to 1. On pass 1, 2, or 3 it calls `getNextQuestion`, and on pass 2 it skips numbers that already have a response. It then steps `i` from `__quizStartPage` to `pageCount of this book` and opens the first page whose `questionNo` is that number, after `setupQuizPage(i)`. On `9e954d01.tbk` the twenty pages `P10210` through `P10229` hold question numbers 110 through 129. After the last question, pass 1 opens element 3, 1, or 2 of `__quizPages` by `__quizMode` 0, 1, or 2; startup leaves `__quizMode` 0, so pass 1 ends on `P10303`. With no quiz running, `__quizPass` is null and no branch names a page, so the page stays.
 
+## Pre-Test answers open the score page
+
+With the props startup leaves (`__quizMode` 0), `selection1` on `P10002` starts the Pre-Test and, with `random` at its lowest value, opens the ten pool questions in order. Answering every one with that page's stored `Answer` letter then `OK` ends pass 1 on `P10303`. The page's `enterPage` runs `getQuizScore` from `nc81test.sbk` and writes field `stem` as `The test is complete and your score is N%.  Do you want to _________`. All ten correct is `100%`. The window title is `9e954d01.tbk - P10303`.
+
 ## Correct mark
 
 The rectangle `Correct` on a question page is shown by one line in `setupQuizPage` of `nc81test.sbk`: `set visible of rectangle("correct") of page iPage to true`. That line runs at the author level, and at the reader level under `when __quizPass = 4 or __quizPass = 5` and `when __quizPass = 8`. Under `when __quizPass = 1`, `= 2`, and `= 3` it is set to false. The display list leaves `Correct` off until a script sets it visible. Pass 8 is set only by `initializeBase` when the command line has `/Quester` and at least six words, so a reader opening the lesson does not reach it.
