@@ -1653,6 +1653,10 @@ Source: Logic Families section menus; driver from `P900` → `P1001` → Discuss
 
 Source: Logic Families section menus; driver from `P900` → `P1001` → Summary `P1920`. `Next`/`Back` step between summary pages; unlike Discussion, `Back` from `P1930` returns to `P1920`.
 
+## Definition page HelpNext
+
+Source: hotword definition pages on Logic Families; driver from `P2070` → `P2075`. That page's `HelpNext`/`HelpBack` scripts use `go to page lastpage`, so the return lands on the page that opened the definition. (`P1085` and `P1205` hard-code other page ids in their own scripts.)
+
 ## P10301 completion pass
 
 Source: handoff M6 (answers / skipped questions); `startCompletionPass` in `nc81test.sbk`. Choosing A on the skipped-count page runs that handler on the interpreter and opens the first unanswered question under `__quizPass` 2.

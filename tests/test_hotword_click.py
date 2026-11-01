@@ -64,6 +64,33 @@ class LessonHotwordTests(unittest.TestCase):
             self.assertEqual(nav.page_id, target, page_id)
             self.assertEqual(nav.variables.get("lastpage"), page_id)
 
+    def test_impedance_definition_helpnext_returns_via_lastpage(self):
+        from opentoolbook.entry import opening_page
+
+        path = _lesson()
+        opened = opening_page(path)
+        nav = Navigator(
+            self.data,
+            "P2070",
+            path,
+            props=opened.props,
+            sysbooks=opened.sysbooks,
+            variables=dict(opened.variables),
+        )
+        self.assertTrue(nav.click("impedance").moved)
+        self.assertEqual(nav.page_id, "P2075")
+        self.assertEqual(nav.variables.get("lastpage"), "P2070")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P2075")
+        texts = {
+            item.name: item.text
+            for item in nav.display(800, 600).items
+            if item.kind == "field"
+        }
+        self.assertEqual(texts.get(""), "DEFINITION")
+        self.assertTrue(nav.click("HelpNext").moved)
+        self.assertEqual(nav.page_id, "P2070")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P2070")
+
     def test_a_drawn_hotword_is_hit_in_the_window(self):
         root = _tk()
         if root is None:
