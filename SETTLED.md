@@ -487,6 +487,10 @@ On `P900`, button `selection2` opens `P2001` on the interpreter. The window titl
 
 `Help` on `P1001` opens `P20001` of `nida81.tbk` on the interpreter. The window title is `nida81.tbk - P20001`. An unnamed field reads `HELP`, and field `Page#` reads `P20001`. `Next` or `Back` returns to the section menu that opened it: from `P1001`, `Next` opens `9e954d01.tbk - P1001` again.
 
+## Section Menu returns to P900
+
+`Menu` on `P1001` and on `P2001` runs `get gotoMenuPage()` with the props startup leaves (`__lessonMode` 2), so it opens `P900`. The window title becomes `9e954d01.tbk - P900`.
+
 ## Menu to Assessment Begin
 
 With `__lessonMode` 0 and `__quizAssessment` 0, `Menu` on `P450` opens `P10001` and sets `__quizDisableMenuKey` to 1. `selection1` on that page is Begin for Assessment: with `random` at its lowest value it opens `P10210` with `__quizPass` 1 and `__quizType` 0. The window title follows to `9e954d01.tbk - P10210`.

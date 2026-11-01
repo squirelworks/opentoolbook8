@@ -1633,6 +1633,10 @@ Source: Logic Families `P900` section menus; driver on `9e954d01.tbk`. `selectio
 
 Source: Logic Families Help buttons; driver from `P1001`. Opens `P20001` of `nida81.tbk` (HELP); `Next` returns to the lesson section menu, same cross-book pattern as quiz Directions.
 
+## Section Menu back to P900
+
+Source: `gotoMenuPage` / startup `__lessonMode` 2; driver from `P1001` and `P2001`. `Menu` returns to the main menu `P900`.
+
 ## Menu to P10001 Assessment
 
 Source: handoff M6 (MENU → `P10001`; Begin starts the quiz). With `__lessonMode` 0 and `__quizAssessment` 0, `Menu` on `P450` opens `P10001` and Begin (`selection1`) starts Assessment (`__quizType` 0) on `P10210`.
