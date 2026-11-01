@@ -1635,7 +1635,7 @@ Source: handoff M6 (open → logo → click → `P10` → Next/Back through the 
 
 ## TTL Discussion page chain
 
-Source: Logic Families section menus; driver from `P900` → `P1001` → Discussion `P1040`, then `Next`/`Back`. Pins the same interpreter Next/Back path used in the intro, on the TTL discussion pages.
+Source: Logic Families section menus; driver from `P900` → `P1001` → Discussion `P1040`, then `Next`/`Back`. `Next` advances through the discussion pages; the pages' own `Back` handlers return to `P1040`, not the prior page.
 
 ## P10301 completion pass
 

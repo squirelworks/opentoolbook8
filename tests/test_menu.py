@@ -52,7 +52,8 @@ class LessonTests(unittest.TestCase):
             self.assertEqual(nav.page_id, page_id)
             self.assertEqual(nav.title(), f"9e954d01.tbk - {page_id}")
         self.assertTrue(nav.click("Back").moved)
-        self.assertEqual(nav.page_id, "P1060")
+        self.assertEqual(nav.page_id, "P1040")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P1040")
 
 
 if __name__ == "__main__":

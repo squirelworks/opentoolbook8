@@ -421,7 +421,7 @@ From that opening, `Next` on the lesson turns the intro pages in order: `P10`, `
 
 ## TTL Discussion Next and Back
 
-From `P900`, `selection1` opens `P1001`, and `selection1` there (Discussion) opens `P1040`. `Next` turns the discussion pages in order: `P1040`, `P1050`, `P1060`, `P1070`, … through `P1290`. Each step is that page's `Next` button on the interpreter; the window title and field `Page#` follow (`9e954d01.tbk - P1050` on `P1050`). `Back` from `P1070` opens `P1060`.
+From `P900`, `selection1` opens `P1001`, and `selection1` there (Discussion) opens `P1040`. `Next` turns the discussion pages in order: `P1040`, `P1050`, `P1060`, `P1070`, … through `P1290`. Each step is that page's `Next` button on the interpreter; the window title and field `Page#` follow (`9e954d01.tbk - P1050` on `P1050`). `Back` on those discussion pages opens `P1040` again (the section start), not the previous page in the list.
 
 ## Cross-book fixtures
 
