@@ -48,7 +48,7 @@ From the bytes, recorded in `FINDINGS.md`:
 - The directory walk yields 206 records. `nida81.tbk` yields 114 by the same rule.
 - Class `0x5` is an 81-byte page. There are 131. The object starts 14 bytes into the body. Body offset 9 is `0x80` on 129 pages and `0x81` on `P440` and `P2920`. The next three bytes are `65 00 05` on all 131. `nida81.tbk` uses `0x81` once, on `P22100`.
 - The page-id walk includes `P0`, `P430`, `P440`, and `P2920`.
-- Class `0x10` polygons and class `0x11` arcs are counted in `FINDINGS.md`. The readers return the stored points. The window paints the polygons. It does not paint the arcs.
+- Class `0x10` polygons and class `0x11` arcs are counted in `FINDINGS.md`. The readers return the stored points. The window paints the polygons and the arcs.
 
 The decompile record's 11.5 export of this book has 131 `Page.xml` files, 654 `IrregularPolygon` tags, and 62 `Arc` tags. Those three counts match the class `0x5`, `0x10`, and `0x11` scans. Equal counts are not a class-name binding.
 
@@ -84,7 +84,7 @@ The default command runs `enterSystem` and `enterApplication`, and the `get` cal
 
 Book script is expanded to source. The page window runs a subset of it: the `enterPage` field writes in `SETTLED.md`, a quoted `go to page`, `send next`, `send previous`, and the quiz-button cases. It does not execute a handler as a language. `forward` has no body in the lesson or the four system books, and the reader does not invent one. A `linkDLL` line is not called.
 
-The page walk names classes `0x8`, `0x9`, `0xA`, `0xB`, `0xC`, `0xD`, `0xE`, `0x10`, `0x11`, `0x13`, `0x15`, and `0x19`. Of those, the window paints rectangles, ellipses, lines, class `0x10` polygons, fields, and buttons (the up picture, or the checked picture when the button is checked), plus the class 4 background. It does not paint `0xD`, arcs (`0x11`), class `0x13` point lists, `0x15`, or `0x19`. A group is not a paint; its children are. Class `0x12` pies and class `0x17` records are outside that walk, and the window does not paint them. Invert and disabled button pictures are read and not drawn. Pattern 254 is a solid fill and pattern 253 is no fill. Another pattern byte is not drawn as a hatch.
+The page walk names classes `0x8`, `0x9`, `0xA`, `0xB`, `0xC`, `0xD`, `0xE`, `0x10`, `0x11`, `0x13`, `0x15`, and `0x19`. Of those, the window paints rectangles, ellipses, lines, class `0x10` polygons, class `0x11` arcs, class `0x13` angled lines, fields, and buttons (the up picture, or the checked picture when the button is checked), plus class `0xD`, class `0x15` paint objects, class `0x19` pictures, and the class 4 background. A group is not a paint; its children are. Class `0x12` pies are on that walk and are not painted. Class `0x17` hotwords are under their field. Invert and disabled button pictures are read and not drawn. Pattern 254 is a solid fill and pattern 253 is no fill. Another pattern byte is not drawn as a hatch.
 
 A quoted `of book` click looks for that filename in the directory of the book passed to `--show`. The report's search of the parent directory is a different path.
 
@@ -1711,5 +1711,9 @@ Source: handoff M6 end of quiz; driver on `9e954d01.tbk`. After pass 1 lands on 
 
 ## Live Tk window and `python3-tk`
 
-Source: cloud agent verification on Ubuntu 24.04 with `DISPLAY=:1` (2026-11-01). Before `apt-get update`, `apt-cache policy python3-tk` showed Candidate none, so install failed. After a normal `apt-get update`, `python3-tk` 3.12.3-0ubuntu1 from noble/main installs and `import tkinter` works on `/usr/bin/python3`. With that package, `python3 -m opentoolbook --show P300 /tmp/otb-books/9e954d01.tbk` paints the page (background, fields, button pictures). Closing while the 200 ms `idle` timer was pending printed Tcl `invalid command name …on_idle` until the window cancelled that after id before `destroy`. Arcs (`0x11`) and pies (`0x12`) stay unpainted as in SETTLED/FINDINGS.
+Source: cloud agent verification on Ubuntu 24.04 with `DISPLAY=:1` (2026-11-01). Before `apt-get update`, `apt-cache policy python3-tk` showed Candidate none, so install failed. After a normal `apt-get update`, `python3-tk` 3.12.3-0ubuntu1 from noble/main installs and `import tkinter` works on `/usr/bin/python3`. With that package, `python3 -m opentoolbook --show P300 /tmp/otb-books/9e954d01.tbk` paints the page (background, fields, button pictures). Closing while the 200 ms `idle` timer was pending printed Tcl `invalid command name …on_idle` until the window cancelled that after id before `destroy`. Pies (`0x12`) stay unpainted as in SETTLED/FINDINGS.
+
+## Class `0x11` prototype radii
+
+Source: the 62 class `0x11` records in `9e954d01.tbk` and both in `nida81.tbk`, checked 2026-11-01. The three pairs at `+0x25` through `+0x2D` and the words at `+0x31` and `+0x33` form three repeating prototypes: 43 arcs share one, 19 share another, and both `nida81.tbk` arcs share a third. Within each prototype the first two pairs lie on the ellipse centered at the third pair with those two radii. Mapping that ellipse onto the bounds at `+0x0F` (center to center, each axis scaled by bounds half-size over the stored radius) puts object 80's endpoints on `5331,4224` and `5280,3675`, the TBKX export `Vertices` already quoted in `FINDINGS.md`. The same map puts every other arc's endpoints on its own bounds ellipse. The words are radii, not angles. The word at `+0x35` still has no repeating role in the paint. Pie wedge end angle stays unsettled; `otb-pie.tbk` still does not store the second `draw pie` point.
 
