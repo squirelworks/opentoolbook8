@@ -1659,7 +1659,11 @@ Source: Logic Families intro `Help` button; driver on `P10`. Same `nida81.tbk` `
 
 ## TTL Discussion page chain
 
-Source: Logic Families section menus; driver from `P900` → `P1001` → Discussion `P1040`, then `Next`/`Back`. `Next` advances through the discussion pages; the pages' own `Back` handlers return to `P1040`, not the prior page.
+Source: Logic Families section menus; driver from `P900` → `P1001` → Discussion `P1040`, then `Next`/`Back`. `Next` advances through the discussion pages; `Back` on `P1050`–`P1080` returns to `P1040`, not the prior page. Later pages return to their own sub-section starts (for example `P1150` → `P1140`).
+
+## Other ICs Discussion page chain
+
+Source: Logic Families Other ICs section; driver from `P900` → `P2001` → Discussion `P2040`. `Next` advances through the discussion pages; `Back` on `P2050`–`P2070` returns to `P2040`. Later pages return to their own sub-section starts (for example `P2150` → `P2130`).
 
 ## TTL Summary pages
 
