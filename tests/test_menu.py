@@ -121,6 +121,24 @@ class LessonTests(unittest.TestCase):
         self.assertTrue(nav.click("Back").moved)
         self.assertEqual(nav.page_id, "P1920")
 
+    def test_section_menu_returns_to_p900(self):
+        if logic_families_path() is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from opentoolbook.entry import opening_page
+        from opentoolbook.navigate import Navigator
+
+        path = logic_families_path()
+        opened = opening_page(path)
+        for selection in ("selection1", "selection2"):
+            with self.subTest(selection=selection):
+                nav = Navigator(
+                    path.read_bytes(), "P900", path, props=opened.props, sysbooks=opened.sysbooks
+                )
+                self.assertTrue(nav.click(selection).moved)
+                self.assertTrue(nav.click("Menu").moved)
+                self.assertEqual(nav.page_id, "P900")
+                self.assertEqual(nav.title(), "9e954d01.tbk - P900")
+
 
 if __name__ == "__main__":
     unittest.main()
