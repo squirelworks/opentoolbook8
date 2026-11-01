@@ -471,6 +471,10 @@ The quiz menu group runs `get clearpool()`, then `addObjectiveToPool(1, 110, 119
 
 With the props startup leaves (`__quizMode` 0), `selection1` on `P10002` starts the Pre-Test and, with `random` at its lowest value, opens the ten pool questions in order. Answering every one with that page's stored `Answer` letter then `OK` ends pass 1 on `P10303`. The page's `enterPage` runs `getQuizScore` from `nc81test.sbk` and writes field `stem` as `The test is complete and your score is N%.  Do you want to _________`. All ten correct is `100%`. The window title is `9e954d01.tbk - P10303`.
 
+## Score page percent from getQuizScore
+
+With `__quizMode` 0, finishing the ten-question pool opens `P10303` and field `stem` is `The test is complete and your score is N%.  Do you want to _________`, where `N` is `getQuizScore` from `nc81test.sbk` (the average of the stored `__quizScore` cells, integer `div`). One wrong letter among ten correct is `90%`.
+
 ## Score page OK returns to the menu
 
 On `P10303` after a finished Pre-Test with `__quizMode` 0, `enterPage` leaves button `B` checked and `A` disabled. `OK` then runs on the interpreter and opens `P900`, the same menu page `Menu` opens under startup `__lessonMode` 2. The window title becomes `9e954d01.tbk - P900`.

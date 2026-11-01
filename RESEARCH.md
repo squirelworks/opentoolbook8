@@ -1571,7 +1571,11 @@ Source: OpenScript system properties (keyword list) and the handoff M5 note. `sy
 
 ## Preventing_Fraud.tbk (M3)
 
-Source: handoff M3. Google Drive has many `.tbk` course files (readable via download) including `9e954d01.tbk`, `nida81.tbk`, and the `nc81*.sbk` / `tb80r.sbk` / `tb80anm.sbk` companions, but no `Preventing_Fraud.tbk` and no Instructor `Walkthrough.tbk` (exact-name and title searches). Diagnosis of Preventing_Fraud vs TB80 still waits on that file.
+Source: handoff M3. Google Drive still has no `Preventing_Fraud.tbk`, no Instructor `Walkthrough.tbk`, and no `nida71.tbk` (exact-name and title searches, 2026-11-01). Many other NIDA `9395*.TBK` lesson files appear in Drive but are not readable to this agent. Diagnosis of Preventing_Fraud vs TB80 still waits on that file or another non-NIDA TB80 book.
+
+## Score page percent
+
+Source: handoff M6 score page; driver on `9e954d01.tbk`. `P10303` `enterPage` writes `getQuizScore` into `stem` as an integer percent. One wrong of ten pool answers is `90%`.
 
 ## Viewer back leave/enter (M5)
 
