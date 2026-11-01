@@ -427,6 +427,10 @@ From `P900`, `selection1` opens `P1001`, and `selection1` there (Discussion) ope
 
 From `P900`, `selection1` opens `P1001`, and `selection2` there (Summary) opens `P1920`. An unnamed field reads `SUMMARY`, and field `Page#` reads `P1920`. The window title is `9e954d01.tbk - P1920`. `Next` opens `P1930`. `Back` from `P1930` opens `P1920`.
 
+## Other ICs Summary Next and Back
+
+From `P900`, `selection2` opens `P2001`, and `selection2` there (Summary) opens `P2920`. An unnamed field reads `SUMMARY`, and field `Page#` reads `P2920`. The window title is `9e954d01.tbk - P2920`. `Next` opens `P2930`. `Back` from `P2930` opens `P2920`.
+
 ## Cross-book fixtures
 
 A page whose byte at `+0x30` has low bits 0 stores its script inline. The word at `+0x2A` is a near pointer into the page's segment. At that pointer is a skip word, that many bytes, a count word, and that many bytes that expand to the source. The block's end word, at the pointer minus 4, is the pointer plus 2, the skip, 2, the count, and 1 or 2 more bytes. That holds on all 18 inline page scripts in `9e954d01.tbk` and the one in `nida81.tbk`, and the class word at the pointer minus 2 is 0 on all 19. A byte below `0x80` expands to itself and a 0 byte ends the handler.

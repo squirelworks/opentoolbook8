@@ -1653,6 +1653,10 @@ Source: Logic Families section menus; driver from `P900` → `P1001` → Discuss
 
 Source: Logic Families section menus; driver from `P900` → `P1001` → Summary `P1920`. `Next`/`Back` step between summary pages; unlike Discussion, `Back` from `P1930` returns to `P1920`.
 
+## Other ICs Summary pages
+
+Source: Logic Families Other ICs section; driver from `P900` → `P2001` → Summary `P2920`. Same Next/Back stepping as TTL Summary.
+
 ## P10301 completion pass
 
 Source: handoff M6 (answers / skipped questions); `startCompletionPass` in `nc81test.sbk`. Choosing A on the skipped-count page runs that handler on the interpreter and opens the first unanswered question under `__quizPass` 2.
