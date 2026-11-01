@@ -1621,6 +1621,10 @@ Source: handoff M8 keyboard; RESEARCH note that live `keyUp` was unwired. The wi
 
 Source: handoff M6 (MENU → Begin starts the quiz); driver on `9e954d01.tbk` with startup `__lessonMode` 2. `Menu` opens `P900`; `selectiont` opens `P10004`; `selection1` starts the Quiz and lands on `P10210`.
 
+## Menu Selection 2 to Other ICs section
+
+Source: Logic Families `P900` section menus; driver on `9e954d01.tbk`. `selection2` opens `P2001` with menutext `OTHER INTEGRATED CIRCUITS`.
+
 ## Menu to P10001 Assessment
 
 Source: handoff M6 (MENU → `P10001`; Begin starts the quiz). With `__lessonMode` 0 and `__quizAssessment` 0, `Menu` on `P450` opens `P10001` and Begin (`selection1`) starts Assessment (`__quizType` 0) on `P10210`.

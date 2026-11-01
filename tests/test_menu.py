@@ -27,6 +27,26 @@ class LessonTests(unittest.TestCase):
         self.assertEqual(nav.page_id, "P10001")
         self.assertEqual(nav.props.get("__quizDisableMenuKey"), 1)
 
+    def test_p900_selection2_opens_the_other_ics_section_menu(self):
+        if logic_families_path() is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from opentoolbook.entry import opening_page
+        from opentoolbook.navigate import Navigator
+
+        path = logic_families_path()
+        opened = opening_page(path)
+        nav = Navigator(path.read_bytes(), "P900", path, props=opened.props, sysbooks=opened.sysbooks)
+        self.assertTrue(nav.click("selection2").moved)
+        self.assertEqual(nav.page_id, "P2001")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P2001")
+        texts = {
+            item.name: item.text
+            for item in nav.display(800, 600).items
+            if item.kind == "field"
+        }
+        self.assertEqual(texts.get("menutext"), "OTHER INTEGRATED CIRCUITS")
+        self.assertEqual(texts.get("Page#"), "P2001")
+
     def test_ttl_discussion_next_and_back(self):
         if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
