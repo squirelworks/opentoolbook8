@@ -1633,6 +1633,10 @@ Source: handoff M6 (open → logo → click → `P10` → Next/Back through the 
 
 Source: handoff M6 (answers / skipped questions); `startCompletionPass` in `nc81test.sbk`. Choosing A on the skipped-count page runs that handler on the interpreter and opens the first unanswered question under `__quizPass` 2.
 
+## Completion pass ends with zero skipped
+
+Source: handoff M6; driver on `9e954d01.tbk` with `__quizMode` 1. After pass 2 answers every previously skipped pool question, `gotoNextQuestionEx` returns to `P10301` and `getSkippedCount` writes `You skipped 0 questions…` into `stem`.
+
 ## Zero skipped then score
 
 Source: handoff M6; driver on `9e954d01.tbk`. After pass 2 clears the skips, `OK` with `B` on `P10301` opens `P10303` and `stem` shows `getQuizScore` the same way a no-skip Pre-Test does.

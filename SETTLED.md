@@ -283,6 +283,10 @@ The window's close button ends the Tk loop. `open_page` returns, and `python3 -m
 
 With `__quizMode` 1, pass 1 ends on `P10301`. Its reader `enterPage` calls `getSkippedCount()` and writes field `stem` as `You skipped N question(s).  Do you want to _________` — the count, not a literal `X`. With four skips the stem reads `You skipped 4 questions.  Do you want to _________`. `OK` with `B` checked opens `P10303`.
 
+## Completion pass clears the skipped count
+
+With `__quizMode` 1 and four skips on pass 1, `OK` with `A` on `P10301` starts pass 2 (`startCompletionPass`). Answering each remaining unanswered question with that page's `Answer` then `OK` returns to `P10301` still on `__quizPass` 2. `enterPage` writes field `stem` as `You skipped 0 questions.  Do you want to _________`.
+
 ## Zero skipped then B opens the score
 
 After a completion pass that answers every skipped question, `P10301` shows `You skipped 0 questions.  Do you want to _________`. `OK` with `B` checked then opens `P10303`. Field `stem` there is `The test is complete and your score is N%.  Do you want to _________` from `getQuizScore`. Answering every pool question correctly is `100%`. The window title is `9e954d01.tbk - P10303`.
