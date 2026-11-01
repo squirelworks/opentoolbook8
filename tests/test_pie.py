@@ -1,11 +1,11 @@
-"""Class 0x12 pies are on the page walk with their stored words. They are not painted."""
+"""Class 0x12 pies share arc geometry slots. They are not painted as wedges."""
 
 import unittest
 from pathlib import Path
 
 from opentoolbook.field import _segments
 from opentoolbook.page import page_records
-from opentoolbook.pie import PIE, pie_bounds, pie_pairs
+from opentoolbook.pie import PIE, pie_bounds, pie_pairs, pie_record
 from opentoolbook.show import show_page
 from lesson import logic_families_path
 
@@ -36,6 +36,41 @@ class PieWalkTests(unittest.TestCase):
         self.assertEqual([item.kind for item in shown.items], ["background", "ellipse"])
 
 
+class PieGeometryTests(unittest.TestCase):
+    """The eight words are the same five fields TB80BAS reads for an arc."""
+
+    EXPECTED = {
+        0: (
+            (600, 600, 3000, 3000),
+            ((1500, 3500), (1500, 1500)),
+            (1500, 3500),
+            (0, 2000),
+        ),
+        2: (
+            (-1400, 500, 2400, 500),
+            ((500, 500), (2400, 500)),
+            (500, 500),
+            (1900, 0),
+        ),
+    }
+
+    def test_the_words_are_the_arc_geometry_slots(self):
+        data = PIE_BOOK.read_bytes()
+        page = page_records(data, "")
+        segment = next(s for s in _segments(data) if s.key == 0x9000)
+        for obj in page.objects:
+            if obj.kind != PIE:
+                continue
+            pie = pie_record(data, segment.base + obj.near)
+            bounds, points, center, radii = self.EXPECTED[obj.object_id]
+            self.assertEqual(pie.object_id, obj.object_id)
+            self.assertEqual(pie.bounds, bounds)
+            self.assertEqual(pie.points, points)
+            self.assertEqual(pie.center, center)
+            self.assertEqual(pie.radii, radii)
+            self.assertIn(0, pie.radii)
+
+
 class LastObjectTests(unittest.TestCase):
     def test_the_last_field_of_p10410_is_on_the_walk(self):
         path = logic_families_path()
@@ -48,12 +83,8 @@ class LastObjectTests(unittest.TestCase):
         self.assertEqual(review.text, "2.  Other Integrated Circuits")
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class PieWedgeTests(unittest.TestCase):
-    """Both pies agree on how the words are stored, and neither names a wedge."""
+    """Both pies agree on the draw-pie coincidence, and neither names a wedge."""
 
     DRAWN = {
         0: ((1500, 1500), (3500, 3500), (1500, 3500)),
@@ -93,3 +124,7 @@ class PieWedgeTests(unittest.TestCase):
                 self.assertEqual(box, stored)
             else:
                 self.assertNotEqual(box, stored)
+
+
+if __name__ == "__main__":
+    unittest.main()
