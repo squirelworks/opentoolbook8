@@ -411,6 +411,35 @@ class LessonTests(unittest.TestCase):
         self.assertTrue(nav.click("Back").moved)
         self.assertEqual((nav.page_id, nav.title()), ("P440", "9e954d01.tbk - P440"))
 
+    def test_intro_help_opens_nida81_then_next_returns(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from opentoolbook.entry import opening_page
+
+        entry = opening_page(path)
+        nav = Navigator(
+            path.read_bytes(),
+            "P10",
+            path,
+            props=entry.props,
+            sysbooks=entry.sysbooks,
+        )
+        self.assertTrue(nav.click("Help").moved)
+        self.assertEqual(nav.page_id, "P20001")
+        self.assertEqual(nav.book_name, "nida81.tbk")
+        self.assertEqual(nav.title(), "nida81.tbk - P20001")
+        texts = {
+            item.name: item.text
+            for item in nav.display(800, 600).items
+            if item.kind == "field"
+        }
+        self.assertEqual(texts.get(""), "HELP")
+        self.assertTrue(nav.click("Next").moved)
+        self.assertEqual(nav.page_id, "P10")
+        self.assertEqual(nav.book_name, "9e954d01.tbk")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P10")
+
 
 if __name__ == "__main__":
     unittest.main()
