@@ -107,6 +107,54 @@ class SkippedCountPageTests(unittest.TestCase):
         }
         self.assertEqual(texts.get("Index"), "Question 1.")
 
+    def test_zero_skipped_ok_with_b_opens_the_score(self):
+        from opentoolbook.entry import opening_page
+        from opentoolbook.quiz import questions
+
+        path = logic_families_path()
+        entry = opening_page(path)
+        props = type(entry.props)(dict(entry.props.items()))
+        props.set("__quizMode", 1)
+        by_page = {item.page_id: item for item in questions(path.read_bytes())}
+        nav = Navigator(path.read_bytes(), "P10002", path, props=props, sysbooks=entry.sysbooks)
+        with patch.object(interp._random, "randint", lambda low, high: low):
+            self.assertTrue(nav.click("selection1").moved)
+            for index in range(15):
+                if nav.page_id.startswith("P103"):
+                    break
+                if index % 3 == 0:
+                    nav.ask = lambda prompt, buttons: "Yes"
+                    self.assertTrue(nav.click("Skip").moved)
+                else:
+                    answer = (by_page[nav.page_id].answer or "A").upper()
+                    nav.click(answer)
+                    self.assertTrue(nav.click("OK").moved)
+            nav.click("A")
+            self.assertTrue(nav.click("OK").moved)
+            for _ in range(10):
+                if nav.page_id.startswith("P103"):
+                    break
+                answer = (by_page[nav.page_id].answer or "A").upper()
+                nav.click(answer)
+                self.assertTrue(nav.click("OK").moved)
+            self.assertEqual(nav.page_id, "P10301")
+            stem = next(
+                item.text
+                for item in nav.display(800, 600).items
+                if item.kind == "field" and item.name.lower() == "stem"
+            )
+            self.assertEqual(stem, "You skipped 0 questions.  Do you want to _________")
+            nav.click("B")
+            self.assertTrue(nav.click("OK").moved)
+        self.assertEqual(nav.page_id, "P10303")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P10303")
+        score = next(
+            item.text
+            for item in nav.display(800, 600).items
+            if item.kind == "field" and item.name.lower() == "stem"
+        )
+        self.assertEqual(score, "The test is complete and your score is 100%.  Do you want to _________")
+
 
 if __name__ == "__main__":
     unittest.main()
