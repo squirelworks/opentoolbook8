@@ -1645,6 +1645,10 @@ Source: handoff M6 (open → logo → click → `P10` → Next/Back through the 
 
 Source: Logic Families section menus; driver from `P900` → `P1001` → Discussion `P1040`, then `Next`/`Back`. `Next` advances through the discussion pages; the pages' own `Back` handlers return to `P1040`, not the prior page.
 
+## TTL Summary pages
+
+Source: Logic Families section menus; driver from `P900` → `P1001` → Summary `P1920`. `Next`/`Back` step between summary pages; unlike Discussion, `Back` from `P1930` returns to `P1920`.
+
 ## P10301 completion pass
 
 Source: handoff M6 (answers / skipped questions); `startCompletionPass` in `nc81test.sbk`. Choosing A on the skipped-count page runs that handler on the interpreter and opens the first unanswered question under `__quizPass` 2.
