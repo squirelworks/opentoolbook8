@@ -224,6 +224,30 @@ class QuizOnTheEngineTests(unittest.TestCase):
         self.assertEqual(nav.page_id, "P900")
         self.assertEqual(nav.title(), "9e954d01.tbk - P900")
 
+    def test_one_wrong_answer_shows_ninety_percent_on_the_score_page(self):
+        from opentoolbook.quiz import questions
+
+        nav = self.nav
+        by_page = {item.page_id: item for item in questions(nav.data)}
+        self.assertTrue(nav.click("selection1").moved)
+        for index in range(15):
+            if nav.page_id.startswith("P103"):
+                break
+            answer = (by_page[nav.page_id].answer or "A").upper()
+            if index == 0:
+                pick = "A" if answer != "A" else "B"
+            else:
+                pick = answer
+            nav.click(pick)
+            self.assertTrue(nav.click("OK").moved)
+        self.assertEqual(nav.page_id, "P10303")
+        stem = next(
+            item.text
+            for item in nav.display(800, 600).items
+            if item.kind == "field" and item.name.lower() == "stem"
+        )
+        self.assertEqual(stem, "The test is complete and your score is 90%.  Do you want to _________")
+
 
 if __name__ == "__main__":
     unittest.main()
