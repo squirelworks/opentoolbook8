@@ -1657,6 +1657,10 @@ Source: handoff M6 (`P10301` skipped count and OK). `same()` compared object ref
 
 Source: handoff M4 (`startupBook` in `TB80.INI`). The key was parsed with the other startup keys but unused. A bare `python3 -m opentoolbook` with `--ini` / `--windows` now resolves that filename on the shelf and opens it.
 
+## Quiz menu Directions on nida81
+
+Source: handoff M6 breadth (quiz menus); driver on `9e954d01.tbk` with `nida81.tbk` on the shelf. `selection2` on the Pre-Test menu opens `P10020` of the logo book; `Next` returns to the lesson's quiz menu page.
+
 ## Pre-Test through the score page
 
 Source: handoff M6 (Begin, answer every question, read the score page); in-process driver on `9e954d01.tbk` with companions under `/tmp/otb-books`. With startup `__quizMode` 0, answering all ten pool questions with each page's `Answer` then `OK` lands on `P10303` and field `stem` shows `getQuizScore` as a percent.

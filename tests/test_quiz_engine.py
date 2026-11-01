@@ -266,6 +266,25 @@ class QuizOnTheEngineTests(unittest.TestCase):
         )
         self.assertEqual(stem, "The test is complete and your score is 90%.  Do you want to _________")
 
+    def test_selection2_opens_directions_then_next_returns(self):
+        nav = self.nav
+        self.assertEqual(nav.book_name, "9e954d01.tbk")
+        self.assertTrue(nav.click("selection2").moved)
+        self.assertEqual(nav.page_id, "P10020")
+        self.assertEqual(nav.book_name, "nida81.tbk")
+        self.assertEqual(nav.title(), "nida81.tbk - P10020")
+        texts = {
+            item.name: item.text
+            for item in nav.display(800, 600).items
+            if item.kind == "field"
+        }
+        self.assertEqual(texts.get(""), "Directions")
+        self.assertEqual(texts.get("Page#"), "P10020")
+        self.assertTrue(nav.click("Next").moved)
+        self.assertEqual(nav.page_id, "P10002")
+        self.assertEqual(nav.book_name, "9e954d01.tbk")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P10002")
+
 
 if __name__ == "__main__":
     unittest.main()
