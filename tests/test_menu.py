@@ -27,5 +27,33 @@ class LessonTests(unittest.TestCase):
         self.assertEqual(nav.page_id, "P10001")
         self.assertEqual(nav.props.get("__quizDisableMenuKey"), 1)
 
+    def test_ttl_discussion_next_and_back(self):
+        if logic_families_path() is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from opentoolbook.entry import opening_page
+        from opentoolbook.navigate import Navigator
+
+        path = logic_families_path()
+        opened = opening_page(path)
+        nav = Navigator(path.read_bytes(), "P900", path, props=opened.props, sysbooks=opened.sysbooks)
+        self.assertTrue(nav.click("selection1").moved)
+        self.assertEqual(nav.page_id, "P1001")
+        self.assertTrue(nav.click("selection1").moved)
+        self.assertEqual(nav.page_id, "P1040")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P1040")
+        texts = {
+            item.name: item.text
+            for item in nav.display(800, 600).items
+            if item.kind == "field"
+        }
+        self.assertEqual(texts.get("Page#"), "P1040")
+        for page_id in ("P1050", "P1060", "P1070"):
+            self.assertTrue(nav.click("Next").moved)
+            self.assertEqual(nav.page_id, page_id)
+            self.assertEqual(nav.title(), f"9e954d01.tbk - {page_id}")
+        self.assertTrue(nav.click("Back").moved)
+        self.assertEqual(nav.page_id, "P1060")
+
+
 if __name__ == "__main__":
     unittest.main()

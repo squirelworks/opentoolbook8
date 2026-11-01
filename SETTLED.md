@@ -419,6 +419,10 @@ There is no statement walker. Startup, `enterPage`, every click, and `send_messa
 
 From that opening, `Next` on the lesson turns the intro pages in order: `P10`, `P100`, `P300`, `P400`, `P410`, `P420`, `P430`, `P440`, `P450`. Each step is the page's own `Next` button on the interpreter, the same path as a click, including `enterPage` on the page it lands on. The window title follows the book and page (`9e954d01.tbk - P410` on `P410`). On `P10` field `first` still reads the greeting startup left; on `P450` field `Page#` reads `P450`. A further `Next` on `P450` does not move. `Back` from `P450` opens `P440`.
 
+## TTL Discussion Next and Back
+
+From `P900`, `selection1` opens `P1001`, and `selection1` there (Discussion) opens `P1040`. `Next` turns the discussion pages in order: `P1040`, `P1050`, `P1060`, `P1070`, … through `P1290`. Each step is that page's `Next` button on the interpreter; the window title and field `Page#` follow (`9e954d01.tbk - P1050` on `P1050`). `Back` from `P1070` opens `P1060`.
+
 ## Cross-book fixtures
 
 A page whose byte at `+0x30` has low bits 0 stores its script inline. The word at `+0x2A` is a near pointer into the page's segment. At that pointer is a skip word, that many bytes, a count word, and that many bytes that expand to the source. The block's end word, at the pointer minus 4, is the pointer plus 2, the skip, 2, the count, and 1 or 2 more bytes. That holds on all 18 inline page scripts in `9e954d01.tbk` and the one in `nida81.tbk`, and the class word at the pointer minus 2 is 0 on all 19. A byte below `0x80` expands to itself and a 0 byte ends the handler.
