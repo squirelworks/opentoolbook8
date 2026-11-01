@@ -283,6 +283,10 @@ The window's close button ends the Tk loop. `open_page` returns, and `python3 -m
 
 With `__quizMode` 1, pass 1 ends on `P10301`. Its reader `enterPage` calls `getSkippedCount()` and writes field `stem` as `You skipped N question(s).  Do you want to _________` — the count, not a literal `X`. With four skips the stem reads `You skipped 4 questions.  Do you want to _________`. `OK` with `B` checked opens `P10303`.
 
+## Zero skipped then B opens the score
+
+After a completion pass that answers every skipped question, `P10301` shows `You skipped 0 questions.  Do you want to _________`. `OK` with `B` checked then opens `P10303`. Field `stem` there is `The test is complete and your score is N%.  Do you want to _________` from `getQuizScore`. Answering every pool question correctly is `100%`. The window title is `9e954d01.tbk - P10303`.
+
 ## Completion pass from `P10301`
 
 `okClicked` on `P10301` with button `A` checked runs `get startCompletionPass()` from `nc81test.sbk`. That sets `__quizIndex` to 0 and `__quizPass` to 2, then `get gotoNextQuestionEx()`. On pass 2, `gotoNextQuestionEx` skips question numbers that already have a response and opens the first unanswered one. After four skips in the pool with `random` at its lowest value, `OK` with `A` opens `P10210` again (question 110 was skipped), field `Index` reads `Question 1.`, and the window title is `9e954d01.tbk - P10210`.

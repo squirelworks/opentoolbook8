@@ -1633,6 +1633,10 @@ Source: handoff M6 (open → logo → click → `P10` → Next/Back through the 
 
 Source: handoff M6 (answers / skipped questions); `startCompletionPass` in `nc81test.sbk`. Choosing A on the skipped-count page runs that handler on the interpreter and opens the first unanswered question under `__quizPass` 2.
 
+## Zero skipped then score
+
+Source: handoff M6; driver on `9e954d01.tbk`. After pass 2 clears the skips, `OK` with `B` on `P10301` opens `P10303` and `stem` shows `getQuizScore` the same way a no-skip Pre-Test does.
+
 ## Object `is` and P10301 OK
 
 Source: handoff M6 (`P10301` skipped count and OK). `same()` compared object refs as their `str` forms, so `button "OK"` never equalled `button "OK" of …`. The interpreter now compares refs by kind and name; that lets `Test2`'s `send okClicked` run. `getSkippedCount` already returned the real count on enterPage.
