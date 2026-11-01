@@ -75,6 +75,32 @@ class LessonTests(unittest.TestCase):
         self.assertEqual(nav.page_id, "P1040")
         self.assertEqual(nav.title(), "9e954d01.tbk - P1040")
 
+    def test_ttl_summary_opens_p1920_and_next_back(self):
+        if logic_families_path() is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from opentoolbook.entry import opening_page
+        from opentoolbook.navigate import Navigator
+
+        path = logic_families_path()
+        opened = opening_page(path)
+        nav = Navigator(path.read_bytes(), "P900", path, props=opened.props, sysbooks=opened.sysbooks)
+        self.assertTrue(nav.click("selection1").moved)
+        self.assertEqual(nav.page_id, "P1001")
+        self.assertTrue(nav.click("selection2").moved)
+        self.assertEqual(nav.page_id, "P1920")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P1920")
+        texts = {
+            item.name: item.text
+            for item in nav.display(800, 600).items
+            if item.kind == "field"
+        }
+        self.assertEqual(texts.get(""), "SUMMARY")
+        self.assertEqual(texts.get("Page#"), "P1920")
+        self.assertTrue(nav.click("Next").moved)
+        self.assertEqual(nav.page_id, "P1930")
+        self.assertTrue(nav.click("Back").moved)
+        self.assertEqual(nav.page_id, "P1920")
+
 
 if __name__ == "__main__":
     unittest.main()
