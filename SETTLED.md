@@ -459,6 +459,10 @@ The `Menu` button on `P450`, `P1001`, `P2001`, `P10003`, `P10004`, and `P10410` 
 
 On that `P900`, button `selectiont` (caption Selection T) runs `get setSection(text of field "selection T")` then `get gotoQuizPage()`. With the props startup leaves, that opens `P10004`, the Quiz menu. `selection1` there is Begin: it runs the same `setupQuizEx` / pool / `gotoNextQuestionEx` path as on `P10002`, and with `random` at its lowest value opens `P10210` with `__quizPass` 1 and `__quizType` 3.
 
+## Menu Selection 1 opens the TTL section
+
+On `P900`, button `selection1` opens `P1001` on the interpreter. The window title is `9e954d01.tbk - P1001`. Field `menutext` reads `TTL INTEGRATED CIRCUITS`, and field `Page#` reads `P1001`.
+
 ## Menu Selection 2 opens the Other ICs section
 
 On `P900`, button `selection2` opens `P2001` on the interpreter. The window title is `9e954d01.tbk - P2001`. Field `menutext` reads `OTHER INTEGRATED CIRCUITS`, and field `Page#` reads `P2001`.
