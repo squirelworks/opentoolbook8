@@ -275,7 +275,7 @@ Resizing the window refits the page. The canvas fills the window. A `Configure` 
 
 ## Window close
 
-The window's close button ends the Tk loop. `open_page` returns, and `python3 -m opentoolbook --show PAGE book.tbk` exits 0. Before this, closing the window raised `TclError` from the destroyed root. A click whose handler raises `ValueError` or `OSError` prints that error's one line on stderr and the window stays up on the same page. Any other exception keeps its traceback and the window also stays up. The smoke test opens `otb-line-rect.tbk` and presses close. It is skipped with a message when `DISPLAY` is unset or the Python has no `tkinter`.
+The window's close button ends the Tk loop. `open_page` returns, and `python3 -m opentoolbook --show PAGE book.tbk` exits 0. Before this, closing the window raised `TclError` from the destroyed root. A click whose handler raises `ValueError` or `OSError` prints that error's one line on stderr and the window stays up on the same page. Any other exception keeps its traceback and the window also stays up. When the loop ends, the window cancels its pending `idle` timer before `destroy`, so a scheduled `after` does not print `invalid command name` for `on_idle`. The smoke test opens `otb-line-rect.tbk`, lets idle run once, and presses close with a clean stderr. With `OPENTOOLBOOK_TBK` naming `9e954d01.tbk`, a second smoke opens `--show` page `P300`: the live canvas holds a background, fields, and at least one button picture. Both smokes are skipped with a message when `DISPLAY` is unset or the Python has no `tkinter`.
 
 ## `send exit`
 

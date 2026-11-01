@@ -587,8 +587,14 @@ def open_page(
         root.report_callback_exception = _report_click_error
         redraw()
 
+        # Cancel the idle timer when the loop ends so destroy does not run it.
+        idle = {"alive": True, "after": None}
+
         def on_idle() -> None:
             """ToolBook's ``idle`` while the window has nothing else to do."""
+            idle["after"] = None
+            if not idle["alive"]:
+                return
             try:
                 if not root.winfo_exists():
                     return
@@ -597,13 +603,24 @@ def open_page(
             result = nav.idle()
             if result is not None and (result.moved or result.changed or result.checked):
                 redraw()
+            if not idle["alive"]:
+                return
             try:
-                root.after(200, on_idle)
+                idle["after"] = root.after(200, on_idle)
             except tk.TclError:
                 return
 
-        root.after_idle(on_idle)
-        root.mainloop()
+        idle["after"] = root.after_idle(on_idle)
+        try:
+            root.mainloop()
+        finally:
+            idle["alive"] = False
+            pending = idle["after"]
+            if pending is not None:
+                try:
+                    root.after_cancel(pending)
+                except tk.TclError:
+                    pass
         return tuple(errors)
     finally:
         try:

@@ -1709,3 +1709,7 @@ Source: handoff M6 (Begin, answer every question, read the score page); in-proce
 
 Source: handoff M6 end of quiz; driver on `9e954d01.tbk`. After pass 1 lands on `P10303`, `enterPage` has checked `B`, and `OK` opens `P900` through the page/background handlers on the interpreter.
 
+## Live Tk window and `python3-tk`
+
+Source: cloud agent verification on Ubuntu 24.04 with `DISPLAY=:1` (2026-11-01). Before `apt-get update`, `apt-cache policy python3-tk` showed Candidate none, so install failed. After a normal `apt-get update`, `python3-tk` 3.12.3-0ubuntu1 from noble/main installs and `import tkinter` works on `/usr/bin/python3`. With that package, `python3 -m opentoolbook --show P300 /tmp/otb-books/9e954d01.tbk` paints the page (background, fields, button pictures). Closing while the 200 ms `idle` timer was pending printed Tcl `invalid command name …on_idle` until the window cancelled that after id before `destroy`. Arcs (`0x11`) and pies (`0x12`) stay unpainted as in SETTLED/FINDINGS.
+

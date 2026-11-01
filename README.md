@@ -42,10 +42,10 @@ Check Python:
 python3 --version
 ```
 
-If that is older than 3.11, install a newer Python before the block below. On Debian or Ubuntu, `python3 -m venv` also needs the venv package:
+If that is older than 3.11, install a newer Python before the block below. On Debian or Ubuntu, `python3 -m venv` also needs the venv package. The page window needs Tk for that same `python3`:
 
 ```bash
-sudo apt install python3-venv python3-pip
+sudo apt install python3-venv python3-pip python3-tk
 ```
 
 Paste this into a terminal after the zip is in `~/FU`. It unpacks the zip, renames the folder to `opentoolbook8`, makes a virtualenv, installs, and prints the command list. If the zip is still in Downloads, move it first: `mkdir -p ~/FU && mv ~/Downloads/opentoolbook8-main.zip ~/FU/`.
