@@ -467,6 +467,10 @@ On that `P900`, button `selectiont` (caption Selection T) runs `get setSection(t
 
 On `P900`, button `selection1` opens `P1001` on the interpreter. The window title is `9e954d01.tbk - P1001`. Field `menutext` reads `TTL INTEGRATED CIRCUITS`, and field `Page#` reads `P1001`.
 
+## Menu Selection 2 opens the Other ICs section
+
+On `P900`, button `selection2` opens `P2001` on the interpreter. The window title is `9e954d01.tbk - P2001`. Field `menutext` reads `OTHER INTEGRATED CIRCUITS`, and field `Page#` reads `P2001`.
+
 ## Menu to Assessment Begin
 
 With `__lessonMode` 0 and `__quizAssessment` 0, `Menu` on `P450` opens `P10001` and sets `__quizDisableMenuKey` to 1. `selection1` on that page is Begin for Assessment: with `random` at its lowest value it opens `P10210` with `__quizPass` 1 and `__quizType` 0. The window title follows to `9e954d01.tbk - P10210`.
