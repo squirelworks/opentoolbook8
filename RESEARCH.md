@@ -1629,6 +1629,10 @@ Source: Logic Families `P900` section menus; driver on `9e954d01.tbk`. `selectio
 
 Source: Logic Families `P900` section menus; driver on `9e954d01.tbk`. `selection2` opens `P2001` with menutext `OTHER INTEGRATED CIRCUITS`.
 
+## Section Help on nida81
+
+Source: Logic Families Help buttons; driver from `P1001`. Opens `P20001` of `nida81.tbk` (HELP); `Next` returns to the lesson section menu, same cross-book pattern as quiz Directions.
+
 ## Section Menu back to P900
 
 Source: `gotoMenuPage` / startup `__lessonMode` 2; driver from `P1001` and `P2001`. `Menu` returns to the main menu `P900`.
@@ -1649,6 +1653,10 @@ Source: handoff M6 Exit (`send keyUp keyF2 to this page` on the `Exit` button; b
 
 Source: handoff M6 (open → logo → click → `P10` → Next/Back through the intro); in-process driver on `9e954d01.tbk` with companions under `/tmp/otb-books`. After the logo click, `Next` walks `P10`→`P100`→`P300`→`P400`→`P410`→`P420`→`P430`→`P440`→`P450`; `Back` from `P450` returns to `P440`. The facts the driver pins are in `SETTLED.md`.
 
+## Intro Help
+
+Source: Logic Families intro `Help` button; driver on `P10`. Same `nida81.tbk` `P20001` HELP page as section menus; `Next` returns to intro `P10`.
+
 ## TTL Discussion page chain
 
 Source: Logic Families section menus; driver from `P900` → `P1001` → Discussion `P1040`, then `Next`/`Back`. `Next` advances through the discussion pages; the pages' own `Back` handlers return to `P1040`, not the prior page.
@@ -1656,6 +1664,14 @@ Source: Logic Families section menus; driver from `P900` → `P1001` → Discuss
 ## TTL Summary pages
 
 Source: Logic Families section menus; driver from `P900` → `P1001` → Summary `P1920`. `Next`/`Back` step between summary pages; unlike Discussion, `Back` from `P1930` returns to `P1920`.
+
+## Other ICs Summary pages
+
+Source: Logic Families Other ICs section; driver from `P900` → `P2001` → Summary `P2920`. Same Next/Back stepping as TTL Summary.
+
+## Definition page HelpNext
+
+Source: hotword definition pages on Logic Families; driver from `P2070` → `P2075`. That page's `HelpNext`/`HelpBack` scripts use `go to page lastpage`, so the return lands on the page that opened the definition. (`P1085` and `P1205` hard-code other page ids in their own scripts.)
 
 ## P10301 completion pass
 

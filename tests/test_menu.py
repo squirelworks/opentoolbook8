@@ -121,6 +121,59 @@ class LessonTests(unittest.TestCase):
         self.assertTrue(nav.click("Back").moved)
         self.assertEqual(nav.page_id, "P1920")
 
+    def test_other_ics_summary_opens_p2920_and_next_back(self):
+        if logic_families_path() is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from opentoolbook.entry import opening_page
+        from opentoolbook.navigate import Navigator
+
+        path = logic_families_path()
+        opened = opening_page(path)
+        nav = Navigator(path.read_bytes(), "P900", path, props=opened.props, sysbooks=opened.sysbooks)
+        self.assertTrue(nav.click("selection2").moved)
+        self.assertEqual(nav.page_id, "P2001")
+        self.assertTrue(nav.click("selection2").moved)
+        self.assertEqual(nav.page_id, "P2920")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P2920")
+        texts = {
+            item.name: item.text
+            for item in nav.display(800, 600).items
+            if item.kind == "field"
+        }
+        self.assertEqual(texts.get(""), "SUMMARY")
+        self.assertEqual(texts.get("Page#"), "P2920")
+        self.assertTrue(nav.click("Next").moved)
+        self.assertEqual(nav.page_id, "P2930")
+        self.assertTrue(nav.click("Back").moved)
+        self.assertEqual(nav.page_id, "P2920")
+
+    def test_section_help_opens_nida81_then_next_returns(self):
+        if logic_families_path() is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        from opentoolbook.entry import opening_page
+        from opentoolbook.navigate import Navigator
+
+        path = logic_families_path()
+        opened = opening_page(path)
+        nav = Navigator(path.read_bytes(), "P900", path, props=opened.props, sysbooks=opened.sysbooks)
+        self.assertTrue(nav.click("selection1").moved)
+        self.assertEqual(nav.page_id, "P1001")
+        self.assertTrue(nav.click("Help").moved)
+        self.assertEqual(nav.page_id, "P20001")
+        self.assertEqual(nav.book_name, "nida81.tbk")
+        self.assertEqual(nav.title(), "nida81.tbk - P20001")
+        texts = {
+            item.name: item.text
+            for item in nav.display(800, 600).items
+            if item.kind == "field"
+        }
+        self.assertEqual(texts.get(""), "HELP")
+        self.assertEqual(texts.get("Page#"), "P20001")
+        self.assertTrue(nav.click("Next").moved)
+        self.assertEqual(nav.page_id, "P1001")
+        self.assertEqual(nav.book_name, "9e954d01.tbk")
+        self.assertEqual(nav.title(), "9e954d01.tbk - P1001")
+
     def test_section_menu_returns_to_p900(self):
         if logic_families_path() is None:
             self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")

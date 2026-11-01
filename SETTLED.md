@@ -151,6 +151,10 @@ A page or a background stores one class `0x06` record of 15 bytes whose word at 
 
 A field's hotword character range is stored. A field style run whose word at byte 4 is the near of a class `0x17` hotword that names the field starts the hotword, and the range runs to the next run's offset or the end of the text. On `9e954d01.tbk` that range is the hotword's name in all five: `tolerance` at 87 to 96 on `P1080` and `P1082`, `propagation delay` at 31 to 48 on `P1200` and `P1207`, and `impedance` at 90 to 99 on `P2070`. The display list keeps each field's ranges and names. The window draws each style run from the stored text at its stored offset, with line breaks shown as breaks, so the hotword's run is the hotword's characters. A click on the text the window drew for that run is a click on the hotword, before buttons are tested. The click runs the hotword's `buttonClick` on the same path as a button. Each of the five assigns `lastpage = name of this page` and runs `go to page "p1085"`, `"p1205"`, or `"p2075"`. A page name in a quoted `go to page` matches regardless of case, so they open `P1085`, `P1205`, and `P2075`.
 
+## Definition HelpNext uses lastpage
+
+On `P2075`, buttons `HelpNext` and `HelpBack` run `go to page lastpage` on the interpreter. After `impedance` on `P2070` opens that definition page (unnamed field `DEFINITION`), `HelpNext` returns to `P2070`. The window title follows (`9e954d01.tbk - P2075`, then `9e954d01.tbk - P2070`).
+
 ## Style run size
 
 The list at the book record's `+0x28` names font-table entries. An entry starts with the face name, and the signed word at entry `+0x20` is minus the character height in page units. A field's own font is the entry its word at `+0x22` names. A style run's size is the entry its word at byte 2 names, and a run word of 1 is the field's font. No byte of the 11-byte run is the size, and byte `+6` stays the 0 or 4 the run reader returns. The display list keeps each run's offset and height, and the window draws each span at that height in pixels. On `9e954d01.tbk` the face and the height of the `+0x22` entry match the export's `FontFace` and `FontSize` on all 496 fields the export and the walk share: the height is the point size in 96-dpi pixels times 15, so 10 points is 195, 12 is 240, 14 is 285, 16 is 315, and 6 is 120. On `P100`, `Objective1Title` has an Arial run at 0 with height 240 and an MS Sans Serif run at 18 with height 280, so the window draws them at 16 and 19 pixels. On `P900`, `Exit` has a run at 2 whose word is 1, and it takes the field's 240. Every field in `nida81.tbk` gets a height from the same read. When a script changes a field's text, the sizes move with the runs.
@@ -419,6 +423,10 @@ There is no statement walker. Startup, `enterPage`, every click, and `send_messa
 
 From that opening, `Next` on the lesson turns the intro pages in order: `P10`, `P100`, `P300`, `P400`, `P410`, `P420`, `P430`, `P440`, `P450`. Each step is the page's own `Next` button on the interpreter, the same path as a click, including `enterPage` on the page it lands on. The window title follows the book and page (`9e954d01.tbk - P410` on `P410`). On `P10` field `first` still reads the greeting startup left; on `P450` field `Page#` reads `P450`. A further `Next` on `P450` does not move. `Back` from `P450` opens `P440`.
 
+## Intro Help opens nida81 HELP
+
+`Help` on intro `P10` opens `P20001` of `nida81.tbk`, the same HELP page section menus open. The window title is `nida81.tbk - P20001`, and an unnamed field reads `HELP`. `Next` returns to `9e954d01.tbk - P10`.
+
 ## TTL Discussion Next and Back
 
 From `P900`, `selection1` opens `P1001`, and `selection1` there (Discussion) opens `P1040`. `Next` turns the discussion pages in order: `P1040`, `P1050`, `P1060`, `P1070`, … through `P1290`. Each step is that page's `Next` button on the interpreter; the window title and field `Page#` follow (`9e954d01.tbk - P1050` on `P1050`). `Back` on those discussion pages opens `P1040` again (the section start), not the previous page in the list.
@@ -426,6 +434,10 @@ From `P900`, `selection1` opens `P1001`, and `selection1` there (Discussion) ope
 ## TTL Summary Next and Back
 
 From `P900`, `selection1` opens `P1001`, and `selection2` there (Summary) opens `P1920`. An unnamed field reads `SUMMARY`, and field `Page#` reads `P1920`. The window title is `9e954d01.tbk - P1920`. `Next` opens `P1930`. `Back` from `P1930` opens `P1920`.
+
+## Other ICs Summary Next and Back
+
+From `P900`, `selection2` opens `P2001`, and `selection2` there (Summary) opens `P2920`. An unnamed field reads `SUMMARY`, and field `Page#` reads `P2920`. The window title is `9e954d01.tbk - P2920`. `Next` opens `P2930`. `Back` from `P2930` opens `P2920`.
 
 ## Cross-book fixtures
 
@@ -470,6 +482,10 @@ On `P900`, button `selection1` opens `P1001` on the interpreter. The window titl
 ## Menu Selection 2 opens the Other ICs section
 
 On `P900`, button `selection2` opens `P2001` on the interpreter. The window title is `9e954d01.tbk - P2001`. Field `menutext` reads `OTHER INTEGRATED CIRCUITS`, and field `Page#` reads `P2001`.
+
+## Section Help opens nida81 HELP
+
+`Help` on `P1001` opens `P20001` of `nida81.tbk` on the interpreter. The window title is `nida81.tbk - P20001`. An unnamed field reads `HELP`, and field `Page#` reads `P20001`. `Next` or `Back` returns to the section menu that opened it: from `P1001`, `Next` opens `9e954d01.tbk - P1001` again.
 
 ## Section Menu returns to P900
 
