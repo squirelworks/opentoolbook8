@@ -1579,7 +1579,7 @@ Source: handoff M6 score page; driver on `9e954d01.tbk`. `P10303` `enterPage` wr
 
 ## Viewer back leave/enter (M5)
 
-Source: handoff M5. Whether Viewer back should send `leavePage` / `enterPage` (and matching background messages) is not settled from a Bochs or TB80RTM capture in this tree. The window already pops history and paints the prior page without those messages. Need a ToolBook 8 capture of Viewer back before changing that path.
+Source: handoff M5, then a ToolBook 8 capture on 2026-11-04 (Instructor 8 on the project's Bochs Windows 98 VM). `Go > Back` within a book sends `leavePage` to the page on screen and `enterPage` to the page it returns to; the window now does the same (`SETTLED.md` "Viewer history"). Background messages and a back across books were not captured.
 
 ## TB80.INI startup keys
 

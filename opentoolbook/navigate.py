@@ -21,7 +21,9 @@ regardless of case. A ``request`` the click runs is returned with the
 result, and the window shows it.
 
 The navigator keeps the stack of ``(book, page)`` it has shown, apart from
-the stored page list. ``back`` pops that stack. A book button that says
+the stored page list. ``back`` pops that stack. Within the book it sends
+``leavePage`` to the page on screen and then ``enterPage`` to the page it
+returns to. A book button that says
 ``send previous`` still uses the stored page list.
 
 A ``go`` within the book sends ``leavePage`` and ``enterPage`` while the
@@ -145,15 +147,37 @@ class Navigator:
         return result
 
     def back(self) -> bool:
-        """Pop the viewer's history. False when nothing was shown before."""
+        """Pop the viewer's history. False when nothing was shown before.
+
+        Within the book, ``leavePage`` goes to the page on screen and ``enterPage`` to the
+        page back pops to, as ToolBook 8's Go > Back does (``SETTLED.md`` "Viewer back"). A
+        back to another book sends neither; that path is not settled."""
+        from opentoolbook.openscript.interp import Ref
+
         if not self.history:
             return False
         book, page_id, data = self.history.pop()
+        same_book = book == self.book
+        if same_book:
+            self._page_message("leavepage")
         if data is not self.data:
             self.pages = page_ids(data)
         self.book, self.page_id, self.data = book, page_id, data
         self._load_inverted()
+        if same_book:
+            self._page_message("enterpage")
         return True
+
+    def _page_message(self, message: str) -> None:
+        """Send a page message to the page on screen. A page id the book does not hold gets none."""
+        from opentoolbook.openscript.interp import Ref
+
+        try:
+            acted = self._send(None, message, None, to=Ref("page", "this", None, None))
+        except ValueError:
+            return
+        if acted is not None:
+            self._apply(acted)
 
     def _click(self, button: str | None, shown: dict[str, str] | None) -> Clicked:
         if button and not self._enabled(button):

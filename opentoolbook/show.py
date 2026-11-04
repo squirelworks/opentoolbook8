@@ -295,7 +295,8 @@ def open_page(
     ``TB80.INI`` ``startupWidth`` / ``startupHeight`` when set; otherwise
     the view is the page size fitted to the screen.
     The window's own "Viewer back" control returns to the page it showed
-    before, which is not the book's stored previous page. The title is the
+    before, which is not the book's stored previous page. Within the book
+    it sends ``leavePage`` and then ``enterPage``. The title is the
     book file and the page id, and it changes on every navigation,
     including a book switch. The return is every click error the window printed,
     in order, so the caller can exit non-zero.
