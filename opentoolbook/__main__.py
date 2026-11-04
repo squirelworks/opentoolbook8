@@ -8,7 +8,7 @@ file to open (found beside the INI, then ``--home``, then ``--windows``).
 startup call names, and does not open a window. ``--show PAGE`` opens
 that page id and does not follow startup handlers.
 
-A ``linkDLL`` line is not called. ``forward`` is not executed.
+A ``linkDLL`` line is not called. ``forward`` passes the message up the object path.
 ``gotoPageList`` names pages that are not quoted, so a resumed session
 is not the page the window opens on. Record text is not printed.
 """

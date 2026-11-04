@@ -80,7 +80,7 @@ Settled behavior is in `SETTLED.md`. These are the gaps.
 
 The disk-to-object reader in `TB80BAS` has no export name. This tree does not call that DLL. There is no authoring path and no writer.
 
-The default command runs `enterSystem` and `enterApplication`, and the `get` calls those handlers make, as far as a quoted `go to page` and the reader branch go. `--report` prints the startup names and does not run them. `--show` draws the page id it is given and does not follow the startup handlers. `gotoPageList` is not a quoted page. `forward` is not executed. A `linkDLL` line is not called.
+The default command runs `enterSystem` and `enterApplication`, and the `get` calls those handlers make, as far as a quoted `go to page` and the reader branch go. `--report` prints the startup names and does not run them. `--show` draws the page id it is given and does not follow the startup handlers. `gotoPageList` is not a quoted page. `forward` passes the message up the path (SETTLED "Forward"). A `linkDLL` line is not called.
 
 Book script is expanded to source. The page window runs a subset of it: the `enterPage` field writes in `SETTLED.md`, a quoted `go to page`, `send next`, `send previous`, and the quiz-button cases. It does not execute a handler as a language. `forward` has no body in the lesson or the four system books, and the reader does not invent one. A `linkDLL` line is not called.
 

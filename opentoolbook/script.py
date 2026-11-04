@@ -14,7 +14,7 @@ window runs a subset of that text: ``enterPage`` field writes, a quoted
 ``go to page``, ``send next``, ``send previous``, and the quiz-button
 cases. Opening a book follows that same quoted ``go to page`` in the
 startup handlers and in the entry page's ``enterPage``. A ``linkDLL``
-line is not called, and ``forward`` is not executed.
+line is not called. The OpenScript engine runs ``forward`` (``openscript/interp.py``).
 """
 
 from __future__ import annotations
