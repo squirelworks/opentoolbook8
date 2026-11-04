@@ -1,4 +1,5 @@
-"""Class 0x12 pies share arc geometry slots. They are not painted as wedges."""
+"""Class 0x12 pies share arc geometry slots. A pie with both radii is painted as a wedge;
+the degenerate pies of otb-pie.tbk are not."""
 
 import unittest
 from pathlib import Path
@@ -6,10 +7,18 @@ from pathlib import Path
 from opentoolbook.field import _segments
 from opentoolbook.page import page_records
 from opentoolbook.pie import PIE, pie_bounds, pie_pairs, pie_record
-from opentoolbook.show import show_page
+from opentoolbook.arc import arc_angles
+from opentoolbook.show import _draw_item, show_page
 from lesson import logic_families_path
 
 PIE_BOOK = Path(__file__).parent / "fixtures" / "otb-pie.tbk"
+# Authored in ToolBook II Instructor 8 (Bochs, Win98) from the Command window:
+#   draw pie ..., then set bounds of pie id 0 to 1500,1500,4500,5500
+#   set vertices of pie id 0 to 4000,2000,2000,5000      (stored as 3996,2006,2004,4994)
+#   set bounds of pie id 1 to 6000,1500,9000,4500
+#   set vertices of pie id 1 to 8500,2000,6500,2500      (stored as 8560,1940,6159,2330)
+#   set fillColor of pie id 0 to 0,50,100; set fillColor of pie id 1 to 0,50,100   (HLS red)
+OFF_AXIS_BOOK = Path(__file__).parent / "fixtures" / "otb-pie2.tbk"
 
 
 class PieWalkTests(unittest.TestCase):
@@ -124,6 +133,69 @@ class PieWedgeTests(unittest.TestCase):
                 self.assertEqual(box, stored)
             else:
                 self.assertNotEqual(box, stored)
+
+
+class Canvas:
+    def __init__(self):
+        self.arcs = []
+
+    def create_arc(self, *args, **kwargs):
+        self.arcs.append((args, kwargs))
+
+    def __getattr__(self, name):
+        if name.startswith("create_"):
+            return lambda *a, **k: None
+        raise AttributeError(name)
+
+
+class OffAxisPieTests(unittest.TestCase):
+    """otb-pie2.tbk: two pies whose points are off the axes, as ToolBook 8 stored them.
+
+    ToolBook's reader drew pie id 0 as the half of its ellipse over the top and left, and
+    pie id 1 as the wedge over the top from its upper-right point to its upper-left point:
+    counter-clockwise from the first vertex to the second, filled red with a black edge.
+    """
+
+    def _pies(self):
+        shown = show_page(OFF_AXIS_BOOK.read_bytes(), "", 200, 100)
+        return [item for item in shown.items if item.kind == "pie"]
+
+    def test_the_points_are_the_vertices_and_the_center_is_the_bounds_center(self):
+        data = OFF_AXIS_BOOK.read_bytes()
+        segment = next(s for s in _segments(data) if s.key == 0x9000)
+        got = []
+        for obj in page_records(data, "").objects:
+            if obj.kind == PIE:
+                got.append(pie_record(data, segment.base + obj.near))
+        self.assertEqual([(p.bounds, p.points, p.center, p.radii) for p in got], [
+            ((1500, 1500, 4500, 5500), ((3996, 2006), (2004, 4994)), (3000, 3500), (1500, 2000)),
+            ((6000, 1500, 9000, 4500), ((8560, 1940), (6159, 2330)), (7500, 3000), (1500, 1500)),
+        ])
+
+    def test_both_pies_are_painted_red_with_a_black_edge(self):
+        pies = self._pies()
+        self.assertEqual([(p.object_id, p.fill, p.stroke, p.width) for p in pies],
+                         [(0, (255, 0, 0), (0, 0, 0), 1), (1, (255, 0, 0), (0, 0, 0), 1)])
+        self.assertEqual(pies[0].points, ((3996, 2006), (2004, 4994)))
+        self.assertEqual(pies[1].points, ((8560, 1940), (6159, 2330)))
+
+    def test_the_wedge_runs_counter_clockwise_from_the_first_point(self):
+        start, extent = arc_angles(*(lambda p: (p.bounds, *p.points))(self._pies()[1]))
+        self.assertAlmostEqual(start, 45.0, places=3)
+        self.assertAlmostEqual(extent, 108.452, places=3)
+        start, extent = arc_angles(*(lambda p: (p.bounds, *p.points))(self._pies()[0]))
+        self.assertAlmostEqual(start, 48.366, places=3)
+        self.assertAlmostEqual(extent, 180.0, places=3)
+
+    def test_the_window_draws_a_filled_pieslice(self):
+        canvas = Canvas()
+        _draw_item(canvas, 1.0, self._pies()[1], [])
+        (box, options), = canvas.arcs
+        self.assertEqual(options["style"], "pieslice")
+        self.assertEqual(options["fill"], "#ff0000")
+        self.assertEqual(options["outline"], "#000000")
+        self.assertAlmostEqual(options["start"], 45.0, places=3)
+        self.assertAlmostEqual(options["extent"], 108.452, places=3)
 
 
 if __name__ == "__main__":

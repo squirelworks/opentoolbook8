@@ -12,9 +12,10 @@ center at ``+0x2D``, and the half-width and half-height at ``+0x31`` and
 ``+0x33``. ``TB80BAS`` ``FUN_10d8_0d58`` and ``FUN_12d0_06d8`` read those
 offsets for both class ``0x11`` and class ``0x12``. Message ``0x4123`` in
 ``FUN_13d0_0128`` writes the two pairs from angles onto that ellipse.
-The reader returns those fields. The window does not fill a wedge: both
-pies on ``otb-pie.tbk`` store a zero radius on one axis, and the second
-``draw pie`` point is not among the pairs.
+The reader returns those fields. The window fills the wedge of the
+bounds ellipse counter-clockwise from the first pair to the second
+(``SETTLED.md`` "Pie wedge", from ``otb-pie2.tbk``). A pie that stores a
+zero radius, like both pies on ``otb-pie.tbk``, is not painted.
 """
 
 from __future__ import annotations
