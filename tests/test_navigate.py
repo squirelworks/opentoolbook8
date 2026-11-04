@@ -154,6 +154,59 @@ class TitleTests(unittest.TestCase):
         switched.click("Selection1")
         self.assertEqual(switched.title(), "nida81.tbk - P310")
 
+class Recording(Navigator):
+    """A navigator that records the page messages it sends and runs no script."""
+
+    def _send(self, target, message, shown, to=None, args=()):
+        self.sent = getattr(self, "sent", []) + [(message, self.page_id)]
+        return None
+
+
+class ViewerBackMessageTests(unittest.TestCase):
+    """ToolBook 8's Go > Back (Bochs capture, SETTLED "Viewer history"): leavePage to the
+    page on screen, then enterPage to the page back returns to."""
+
+    def test_back_within_the_book_sends_leave_then_enter(self):
+        nav = Recording(FIXTURE.read_bytes(), "", FIXTURE)
+        nav.history.append((nav.book, "", nav.data))
+        nav.page_id = "OTHER"
+        nav.sent = []
+        self.assertTrue(nav.back())
+        self.assertEqual(nav.sent, [("leavepage", "OTHER"), ("enterpage", "")])
+
+    def test_back_with_nothing_shown_before_sends_nothing(self):
+        nav = Recording(FIXTURE.read_bytes(), "", FIXTURE)
+        nav.sent = []
+        self.assertFalse(nav.back())
+        self.assertEqual(nav.sent, [])
+
+    def test_back_to_another_book_sends_neither(self):
+        nav = Recording(FIXTURE.read_bytes(), "", FIXTURE)
+        nav.history.append((FIXTURE.parent / "otb-pie.tbk", "", (FIXTURE.parent / "otb-pie.tbk").read_bytes()))
+        nav.sent = []
+        self.assertTrue(nav.back())
+        self.assertEqual(nav.sent, [])
+
+    def test_lesson_next_then_back_leaves_p400_and_enters_p300(self):
+        path = _lesson()
+        if path is None:
+            self.skipTest("set OPENTOOLBOOK_TBK to 9e954d01.tbk")
+        nav = Navigator(path.read_bytes(), "P300", path)
+        nav.click("Next")
+        self.assertEqual(nav.page_id, "P400")
+        sent = []
+        real = nav._send
+
+        def send(target, message, shown, to=None, args=()):
+            sent.append((message, nav.page_id))
+            return real(target, message, shown, to=to, args=args)
+
+        nav._send = send
+        self.assertTrue(nav.back())
+        self.assertEqual(nav.page_id, "P300")
+        self.assertEqual(sent, [("leavepage", "P400"), ("enterpage", "P300")])
+
+
 class HistoryTests(unittest.TestCase):
     def test_nothing_shown_before_is_a_viewer_back_that_stays(self):
         nav = Navigator(FIXTURE.read_bytes(), "", FIXTURE)
