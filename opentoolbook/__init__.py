@@ -5,7 +5,7 @@ The default command opens the book on the page its startup handlers
 name, or on the first stored page when they do not name one.
 ``--report`` prints the book report and does not open a window.
 ``--show PAGE`` draws that page id and does not follow startup handlers.
-``linkDLL`` and ``forward`` are not executed.
+``linkDLL`` is not executed. ``forward`` passes the message up the object path.
 """
 
 from opentoolbook.record import Book, handler_at, procedure_for_message
