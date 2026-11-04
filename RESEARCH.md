@@ -84,7 +84,7 @@ The default command runs `enterSystem` and `enterApplication`, and the `get` cal
 
 Book script is expanded to source. The page window runs a subset of it: the `enterPage` field writes in `SETTLED.md`, a quoted `go to page`, `send next`, `send previous`, and the quiz-button cases. It does not execute a handler as a language. `forward` has no body in the lesson or the four system books, and the reader does not invent one. A `linkDLL` line is not called.
 
-The page walk names classes `0x8`, `0x9`, `0xA`, `0xB`, `0xC`, `0xD`, `0xE`, `0x10`, `0x11`, `0x13`, `0x15`, and `0x19`. Of those, the window paints rectangles, ellipses, lines, class `0x10` polygons, class `0x11` arcs, class `0x13` angled lines, fields, and buttons (the up picture, or the checked picture when the button is checked), plus class `0xD`, class `0x15` paint objects, class `0x19` pictures, and the class 4 background. A group is not a paint; its children are. Class `0x12` pies are on that walk and are not painted. Class `0x17` hotwords are under their field. Invert and disabled button pictures are read and not drawn. Pattern 254 is a solid fill and pattern 253 is no fill. Another pattern byte is not drawn as a hatch.
+The page walk names classes `0x8`, `0x9`, `0xA`, `0xB`, `0xC`, `0xD`, `0xE`, `0x10`, `0x11`, `0x13`, `0x15`, and `0x19`. Of those, the window paints rectangles, ellipses, lines, class `0x10` polygons, class `0x11` arcs, class `0x13` angled lines, fields, and buttons (the up picture, or the checked picture when the button is checked), plus class `0xD`, class `0x15` paint objects, class `0x19` pictures, and the class 4 background. A group is not a paint; its children are. Class `0x12` pies are on that walk and are not painted. Class `0x17` hotwords are under their field. Invert and disabled button pictures are drawn: the invert picture while the mouse is held on the button (`SETTLED.md` "Invert picture on press"), and the disabled picture on a disabled button (`SETTLED.md` "Disabled button picture"). Pattern 254 is a solid fill and pattern 253 is no fill. Another pattern byte is not drawn as a hatch.
 
 A quoted `of book` click looks for that filename in the directory of the book passed to `--show`. The report's search of the parent directory is a different path.
 
@@ -1583,7 +1583,7 @@ Source: handoff M5. Whether Viewer back should send `leavePage` / `enterPage` (a
 
 ## TB80.INI startup keys
 
-Source: handoff M4 and the TB80RTM startup note in that handoff. Search order is the book's folder, then `<windows>\asym\runtime`, then `<windows>`. With no INI every key is its default and no system book is named for the reader. `startupSysBooks` seeds `sysBooks` before the class-table bound books and before the book's own `push` lines. `startupWidth` / `startupHeight` size the opening Tk canvas in pixels. `startupBook` is still parsed only; it does not yet choose the opening book.
+Source: handoff M4 and the TB80RTM startup note in that handoff. Search order is the book's folder, then `<windows>\asym\runtime`, then `<windows>`. With no INI every key is its default and no system book is named for the reader. `startupSysBooks` seeds `sysBooks` before the class-table bound books and before the book's own `push` lines. `startupWidth` / `startupHeight` size the opening Tk canvas in pixels. `startupBook` opens the runtime book when the command names none (`SETTLED.md` "TB80.INI", and "startupBook opens the runtime book" below).
 
 ## enterSystemBook / leaveSystemBook
 
