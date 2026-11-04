@@ -24,9 +24,9 @@ contains a shape is painted under that shape. A label that contains no
 shape is painted in front of a shape that contains the label.
 
 The page walk names classes ``0x8``, ``0x9``, ``0xA``, ``0xB``, ``0xC``,
-``0xD``, ``0xE``, ``0x10``, ``0x11``, ``0x13``, ``0x15``, and ``0x19``.
-Of those, the window paints rectangles, ellipses, lines, class ``0x10``
-polygons, class ``0x13`` angled lines, fields, buttons, class ``0x15``
+``0xD``, ``0xE``, ``0x10``, ``0x11``, ``0x12``, ``0x13``, ``0x15``, and
+``0x19``. Of those, the window paints rectangles, ellipses, lines, class
+``0x10`` polygons, class ``0x11`` arcs, class ``0x12`` pies, class ``0x13`` angled lines, fields, buttons, class ``0x15``
 paint objects, and class ``0x19`` pictures, plus the class 4 background.
 An angled line is its stored points, stroked in the color at ``+0x17``
 and not filled. A class ``0xD`` record stores its bounds and colors
@@ -36,9 +36,12 @@ bounds. A picture is its packed metafile drawn into its bounds, clear
 where the metafile leaves the page showing. A class ``0x11`` arc is the
 open stroke of its bounds ellipse from the first mapped endpoint to the
 second, counter-clockwise, in the stroke color at ``+0x17``. It is not
-filled. A page's and a background's objects paint in the order of their
-class ``0x06`` layer list. A group is not a paint; its children are. Class
-``0x12`` pies are on the walk and are not painted. Class ``0x17`` hotwords
+filled. A class ``0x12`` pie is the filled wedge of its bounds ellipse
+from the first mapped point to the second, counter-clockwise, in the fill
+color at ``+0x1B`` and the stroke color at ``+0x17``; a pie with a zero
+radius is not painted. A page's and a background's objects paint in the
+order of their class ``0x06`` layer list. A group is not a paint; its
+children are. Class ``0x17`` hotwords
 are on the walk under their field and are not painted a second time.
 """
 
@@ -48,7 +51,8 @@ import struct
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 
-from opentoolbook.arc import ARC, _arc_record, arc_angles, page_vertices
+from opentoolbook.arc import ARC, Arc, _arc_record, arc_angles, page_vertices
+from opentoolbook.pie import PIE, pie_record
 from opentoolbook.background import background
 from opentoolbook.bitmap import _graphic_word, caption_at
 from opentoolbook.field import (
@@ -94,6 +98,7 @@ _CLASS_D = 0xD
 _LINE = 0xE
 _POLYGON = 0x10
 _ARC = ARC
+_PIE = PIE
 _ANGLED = 0x13
 _PAINT_OBJECT = 0x15
 _PICTURE = 0x19
@@ -960,6 +965,8 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
         return Paint(_DRAW[kind], object_id, name, bounds, fill, stroke, data[at + 0x25], points, width=width)
     if kind == _ARC:
         return _arc_paint(data, at, object_id, name, bounds)
+    if kind == _PIE:
+        return _pie_paint(data, at, object_id, name, bounds)
     if kind == _CLASS_D:
         fill, stroke, width = _stroked(data, at)
         return Paint("class 0xD", object_id, name, bounds, fill, stroke, data[at + 0x25], width=width)
@@ -1287,6 +1294,21 @@ def _arc_paint(data: bytes, at: int, object_id: int, name: str, bounds) -> Paint
     return Paint("arc", object_id, name, bounds, None, stroke, None, vertices, width=width)
 
 
+def _pie_paint(data: bytes, at: int, object_id: int, name: str, bounds) -> Paint | None:
+    """A filled wedge of the bounds ellipse, counter-clockwise from the first point to the second.
+
+    The points map through the bounds as an arc's do. A pie that stores a zero radius on
+    either axis, or has empty bounds, is not painted (``SETTLED.md`` "Pie wedge")."""
+    pie = pie_record(data, at)
+    left, top, right, bottom = bounds
+    if 0 in pie.radii or right <= left or bottom <= top:
+        return None
+    fill = (data[at + 0x1B], data[at + 0x1C], data[at + 0x1D])
+    stroke = (data[at + 0x17], data[at + 0x18], data[at + 0x19])
+    vertices = page_vertices(Arc(pie.object_id, pie.bounds, (*pie.points, pie.center), pie.radii))
+    return Paint("pie", object_id, name, bounds, fill, stroke, None, vertices, width=line_width(data, at))
+
+
 def _bounds(data: bytes, at: int) -> tuple[int, int, int, int]:
     left, top, right, bottom = struct.unpack_from("<hhhh", data, at + 0x0F)
     return left, top, right, bottom
@@ -1423,6 +1445,18 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list, make_photo=None)
             extent=extent,
             style="arc",
             outline=_rgb(item.stroke) if item.stroke is not None else "#000000",
+            width=width,
+        )
+        return
+    if item.kind == "pie" and item.bounds is not None and len(item.points) == 2:
+        start, extent = arc_angles(item.bounds, item.points[0], item.points[1])
+        canvas.create_arc(
+            *_device_box(item.bounds, scale),
+            start=start,
+            extent=extent,
+            style="pieslice",
+            fill=_rgb(item.fill) if item.fill is not None else "",
+            outline=outline,
             width=width,
         )
         return
