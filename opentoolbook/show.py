@@ -50,7 +50,7 @@ from dataclasses import dataclass, replace
 
 from opentoolbook.arc import ARC, _arc_record, arc_angles, page_vertices
 from opentoolbook.background import background
-from opentoolbook.bitmap import _graphic_word
+from opentoolbook.bitmap import _graphic_word, caption_at
 from opentoolbook.field import (
     _book,
     _chars,
@@ -140,6 +140,9 @@ class Paint:
     layer: str = "page"
     enabled: bool = True
     disabled_id: int | None = None
+    # A button's caption, and its font as the face and the character height in page units.
+    caption: str | None = None
+    caption_font: tuple[str, int] | None = None
 
 
 @dataclass(frozen=True)
@@ -974,7 +977,7 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
         hotwords = _hotwords(data, segment, trailer, at, len(text))
         return Paint("field", object_id, name, bounds, text=text, runs=runs, sizes=sizes, hotwords=hotwords)
     if kind == _BUTTON:
-        return _button(data, segment, at, object_id, name, bounds)
+        return _button(data, segment, at, object_id, name, bounds, base, known)
     if kind == _PAINT_OBJECT:
         try:
             picture = paint_object_rgb(data, segment, at)
@@ -1091,7 +1094,7 @@ def _picture(data: bytes, picture_id: int | None):
         return None
 
 
-def _button(data, segment, at: int, object_id: int, name: str, bounds) -> Paint:
+def _button(data, segment, at: int, object_id: int, name: str, bounds, base: int = 0, known=frozenset()) -> Paint:
     up = _graphic_word(data, segment, at, 0x15)
     checked_id = _graphic_word(data, segment, at, 0x4B)
     disabled_id = _graphic_word(data, segment, at, 0x39)
@@ -1123,7 +1126,18 @@ def _button(data, segment, at: int, object_id: int, name: str, bounds) -> Paint:
         invert_id=_graphic_word(data, segment, at, 0x27) or None,
         enabled=bool(enabled),
         disabled_id=disabled_id or None,
+        caption=caption_at(data, segment, at),
+        caption_font=_caption_font(data, base, known, _u16(data, at + 0x24)),
     )
+
+
+def _caption_font(data: bytes, base: int, known, word: int) -> tuple[str, int] | None:
+    """The face and the character height of the font-table entry a button's ``+0x24`` names."""
+    height = font_height(data, base, known, word)
+    face = _cstring(data, base + word) if word in known else None
+    if face is None or height is None:
+        return None
+    return face, height
 
 
 def _frame(border: int, bounds) -> tuple[int, int, int, int] | None:
@@ -1432,6 +1446,10 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list, make_photo=None)
             fill="",
             outline=_rgb(item.stroke) if item.stroke is not None else "#000000",
         )
+    if item.kind == "button" and item.caption and item.bounds is not None:
+        _draw_caption(canvas, scale, item)
+        return
+    if item.kind == "button" and item.frame is not None:
         return
     if item.kind in ("button", "paint object"):
         return
@@ -1445,6 +1463,24 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list, make_photo=None)
         return
     if item.kind == "field" and item.text and item.bounds is not None:
         _draw_text(canvas, scale, item)
+
+
+def _draw_caption(canvas, scale: float, item: Paint) -> None:
+    """A button's caption, centered in its bounds, in its font, in its stroke color."""
+    left, top, right, bottom = _device_box(item.bounds, scale)
+    if item.caption_font is not None:
+        face, height = item.caption_font
+        font = (face, -max(1, round(unit_to_px(height, scale))))
+    else:
+        font = ("TkDefaultFont", -max(1, round(bottom - top)))
+    canvas.create_text(
+        (left + right) / 2,
+        (top + bottom) / 2,
+        text=item.caption,
+        anchor="center",
+        fill=_rgb(item.stroke) if item.stroke is not None else "#000000",
+        font=font,
+    )
 
 
 def _draw_text(canvas, scale: float, item: Paint) -> None:

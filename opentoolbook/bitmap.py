@@ -409,6 +409,54 @@ def stored_button_checked(data: bytes) -> tuple[int, ...]:
     return tuple((data[button + 0x26] >> 4) & 1 for _segment, button in _button_records(data))
 
 
+def button_caption(data: bytes, page_id: str, button_name: str) -> str | None:
+    """The caption of the named button, or ``None`` when it has none.
+
+    The word at ``+0x22`` is a near pointer in the button's segment to a
+    C string. 0 is no caption. The font is the entry the word at ``+0x24``
+    names in the list at the book record's ``+0x28``.
+    """
+    segments = _segments(data)
+    by_key = {segment.key: segment for segment in segments}
+    book_segment, book_record = _book(data, segments)
+    for handle in _page_handles(data, by_key, book_segment, book_record):
+        segment = by_key.get(handle >> 16)
+        if segment is None:
+            continue
+        record = segment.base + (handle & 0xFFFF)
+        if record < 2 or record + 8 > len(data) or _u16(data, record - 2) != PAGE:
+            continue
+        if _chars(data, record + 6, 32) != page_id:
+            continue
+        trailer = _trailer(data, segment)
+        parent = record - segment.base
+        for button in _buttons(data, segment):
+            if _u16(data, button + 4) != parent:
+                continue
+            if trailer is None or _name(trailer, _u16(data, button + 6)) != button_name:
+                continue
+            return caption_at(data, segment, button)
+    raise ValueError(f"no {button_name} button on {page_id}")
+
+
+def stored_button_captions(data: bytes) -> tuple[str | None, ...]:
+    """The caption of every class ``0x09`` button of this length, ``None`` where it has none."""
+    return tuple(caption_at(data, segment, button) for segment, button in _button_records(data))
+
+
+def caption_at(data: bytes, segment, button: int) -> str | None:
+    """The C string the word at ``+0x22`` names in the button's segment, or ``None``."""
+    pointer = _u16(data, button + 0x22)
+    if not pointer:
+        return None
+    start = segment.base + pointer
+    end = segment.file_at + segment.size
+    stop = data.find(b"\x00", start, end)
+    if start >= end or stop < start:
+        return None
+    return data[start:stop].decode("latin-1")
+
+
 def stored_button_bounds(data: bytes) -> tuple[tuple[int, int, int, int], ...]:
     """The rectangle at ``+0x0F`` of every class ``0x09`` button of this length."""
     return tuple(_bounds(data, button) for _segment, button in _button_records(data))
