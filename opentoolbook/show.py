@@ -134,6 +134,8 @@ class Paint:
     sizes: tuple[tuple[int, int | None], ...] = ()
 
     width: int = 1
+    # Tk's dash pattern for the stroke: (3, 3) for line style 2 (dotted), () for solid.
+    dash: tuple[int, ...] = ()
     # Names of the groups that hold this object, innermost first.
     groups: tuple[str, ...] = ()
     # ``background`` for an object of the page's background, else ``page``.
@@ -963,14 +965,16 @@ def _paint(data, segment, trailer, base, known, at: int, kind: int) -> Paint | N
         return Paint("class 0xD", object_id, name, bounds, fill, stroke, data[at + 0x25], width=width)
     if kind == _LINE:
         _fill, stroke, width = _stroked(data, at)
-        return Paint("line", object_id, name, bounds, None, stroke, None, _line_points(data, at), width=width)
+        return Paint("line", object_id, name, bounds, None, stroke, None, _line_points(data, at), width=width,
+                     dash=line_dash(data, at))
     if kind == _ANGLED:
         _fill, stroke, width = _stroked(data, at)
         try:
             points = _polyline(data, segment, at).points
         except ValueError:
             return None
-        return Paint("angled line", object_id, name, bounds, None, stroke, None, points, width=width)
+        return Paint("angled line", object_id, name, bounds, None, stroke, None, points, width=width,
+                     dash=line_dash(data, at))
     if kind == _FIELD:
         text, runs = _runs(data, trailer, base, known, at)
         sizes = _sizes(data, trailer, base, known, at)
@@ -1240,9 +1244,17 @@ def hotword_hit(canvas, x: float, y: float) -> str | None:
     return None
 
 # The line-style byte at +0x22 and the export's LineStyle: 1 is none, 2 is
-# dotted, and 4, 5, 6, 9 are widths 1, 2, 3, 8. Dotted draws solid at 1.
+# dotted, and 4, 5, 6, 9 are widths 1, 2, 3, 8. Dotted is 1 pixel, dashed.
 LINE_NONE = 1
+LINE_DOTTED = 2
 _LINE_WIDTHS = {2: 1, 4: 1, 5: 2, 6: 3, 9: 8}
+# Wine's cosmetic PS_DOT: 3 pixels on, 3 off (dlls/win32u/dibdrv/objects.c, dash_patterns_cosmetic).
+DOTTED_DASH = (3, 3)
+
+
+def line_dash(data: bytes, at: int) -> tuple[int, ...]:
+    """Tk's dash pattern for the line-style byte at ``+0x22``: (3, 3) for dotted, else ()."""
+    return DOTTED_DASH if data[at + 0x22] == LINE_DOTTED else ()
 
 
 def line_width(data: bytes, at: int) -> int:
@@ -1418,11 +1430,13 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list, make_photo=None)
         return
     if item.kind == "line" and len(item.points) == 2:
         flat = [unit_to_px(value, scale) for point in item.points for value in point]
-        canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000", width=width)
+        canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000", width=width,
+                           **_dash(item))
         return
     if item.kind == "angled line" and len(item.points) >= 2:
         flat = [unit_to_px(value, scale) for point in item.points for value in point]
-        canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000", width=width)
+        canvas.create_line(*flat, fill=_rgb(item.stroke) if item.stroke is not None else "#000000", width=width,
+                           **_dash(item))
         return
     if item.kind == "polygon" and len(item.points) >= 2:
         flat = [unit_to_px(value, scale) for point in item.points for value in point]
@@ -1463,6 +1477,11 @@ def _draw_item(canvas, scale: float, item: Paint, photos: list, make_photo=None)
         return
     if item.kind == "field" and item.text and item.bounds is not None:
         _draw_text(canvas, scale, item)
+
+
+def _dash(item: Paint) -> dict:
+    """Tk's ``dash`` option for a dotted stroke; no option for a solid one."""
+    return {"dash": item.dash} if item.dash else {}
 
 
 def _draw_caption(canvas, scale: float, item: Paint) -> None:
