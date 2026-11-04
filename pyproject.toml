@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opentoolbook"
-version = "0.2.0"
+version = "0.3.0"
 description = "ToolBook 8 reader: open a book, draw a page, and run part of its OpenScript"
 requires-python = ">=3.11"
 readme = "README.md"
