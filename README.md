@@ -10,7 +10,7 @@ A record is one object in the book's directory, with a file position and a lengt
 
 ## Commands
 
-`python3 -m opentoolbook path/to/book.tbk` opens the book, the way ToolBook opens it. The window shows the page the startup handlers land on. Those handlers are `enterSystem`, then `enterApplication`, and the calls they make: `enterapplication`, `entersystem`, `gotopagelist`, `opensession`, and the `initialize*` calls. A quoted `go to page` in a branch the reader takes is that page. A missing `sysLevel` is `reader`. When the handlers do not name a page, the window opens on the first page stored in the book. On Logic Families that first page's `enterPage` goes to `P0` of the book `getLogoBook` names, which is `nida81.tbk` unless `logo81.tbk` or `mrj81.tbk` is found by the same search as the report. `linkDLL` is not called. `forward` is not executed. `gotoPageList` walks names that are not quoted, and the session DLL is not called, so a resumed session is not the page that opens.
+`python3 -m opentoolbook path/to/book.tbk` opens the book, the way ToolBook opens it. The window shows the page the startup handlers land on. Those handlers are `enterSystem`, then `enterApplication`, and the calls they make: `enterapplication`, `entersystem`, `gotopagelist`, `opensession`, and the `initialize*` calls. A quoted `go to page` in a branch the reader takes is that page. A missing `sysLevel` is `reader`. When the handlers do not name a page, the window opens on the first page stored in the book. On Logic Families that first page's `enterPage` goes to `P0` of the book `getLogoBook` names, which is `nida81.tbk` unless `logo81.tbk` or `mrj81.tbk` is found by the same search as the report. `linkDLL` is not called. `forward` passes the message to the next object on the path (SETTLED "Forward"). `gotoPageList` walks names that are not quoted, and the session DLL is not called, so a resumed session is not the page that opens.
 
 `python3 -m opentoolbook path/to/book.tbk --report` prints the book report: the record count, the follow-up reads, the files the book names, and the startup call names. It does not open a window. `--report path/to/book.tbk` is the same report.
 
@@ -23,10 +23,23 @@ Companion books such as `nida81.tbk` and `nc81*.sbk` are looked up, for the repo
 - On `P10` the field `first` reads `Hello Student, this lesson is about:`.
 - On a quiz page opened with no quiz running, OK, Next, and Skip draw the next page, and Back draws the previous page.
 - A button that quotes a page opens that page. Next on `P300` opens `P400`. Selection1 names `P310` of `nida81.tbk`.
-- The background, rectangles, ellipses, lines, class `0x10` polygons, class `0x11` arcs, fields, and button pictures are painted. The page walk also finds classes `0xD`, `0x13`, `0x15`, and `0x19`, which the window paints as their settled shapes. A group is not a paint; its children are. Class `0x12` pies are on the walk and are not painted. Class `0x17` hotwords are not painted a second time. Pattern 254 is a solid fill. Pattern 253 paints no fill. Another pattern byte is not drawn as a hatch.
-- The OpenScript that runs is the subset in `SETTLED.md`: some `enterPage` field writes, a quoted `go to page`, `send next`, `send previous`, and the quiz-button cases. Opening the book follows that quoted `go to page` in the startup handlers and in the entry page's `enterPage`. `forward` has no body here. A `linkDLL` line is not called.
+- The background, rectangles, ellipses, lines, class `0x10` polygons, class `0x11` arcs, class `0x12` pie wedges, fields, button pictures, and button captions are painted. A line with style byte 2 (dotted) is drawn dashed. The page walk also finds classes `0xD`, `0x13`, `0x15`, and `0x19`, which the window paints as their settled shapes. A group is not a paint; its children are. Class `0x17` hotwords are not painted a second time. Pattern 254 is a solid fill. Pattern 253 paints no fill. Another pattern byte is not drawn as a hatch.
+- The OpenScript that runs is the subset in `SETTLED.md`: some `enterPage` field writes, a quoted `go to page`, `send next`, `send previous`, and the quiz-button cases. Opening the book follows that quoted `go to page` in the startup handlers and in the entry page's `enterPage`. `forward` passes the message on (SETTLED "Forward"). Back sends `leavePage` and then `enterPage` within one book (SETTLED "Viewer history"). A `linkDLL` line is not called.
 
 Also in this tree, and named in `SETTLED.md`: the object directory and the two-byte follow-up, the class-slot lookup for message `0xE` (index 0, not a DLL call), the install list (`toolbook.lst`), and the system books a book binds and pushes onto `sysBooks`. There is no authoring path.
+
+## Roadmap
+
+Tick a box when its PR merges. The issues hold the detail.
+
+- [x] [Roadmap #117](https://github.com/squirelworks/opentoolbook8/issues/117), O0 to O7: merged or settled, released as `v0.3.0`. O5 stopped with no PR because it needs a TB80RTM trace
+- [ ] Tests on every pull request: today only `cursor/*` branches run the suite (`merge-cursor.yml`, which also auto-merges them). Offered, not done
+- [ ] Wingdings and Symbol-font characters (bullets, π) through a symbol-font mapping
+- [ ] Metafile pictures played from their records (the same pictures stop neww in TBpipeline #221)
+- [ ] Back to another book sends `leavePage` / `enterPage` (needs a ToolBook 8 capture)
+- [ ] Preventing_Fraud.tbk diagnosed (RESEARCH "Preventing_Fraud.tbk (M3)")
+
+No release unless code changes have merged since the last tag. [CURSOR.md](CURSOR.md) is the handover note for Cursor (2026-11-08).
 
 ## Notes
 

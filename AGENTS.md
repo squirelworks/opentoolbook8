@@ -9,7 +9,7 @@ Work arrives as pull requests. A separate reviewer reads each one and merges it.
 - One settled behavior per pull request. If it is not in `SETTLED.md`, do not invent it. Add the behavior to `SETTLED.md` in the same pull request.
 - Write notes into the repo in the same pull request that produces them. Product and engine notes go in `RESEARCH.md`, with the source named. A behavior the reader implements goes in `SETTLED.md`.
 - OpenScript is the language. Book script is the source text in a `.sbk` or a `.tbk`. Core is the DLLs and EXEs.
-- `python3 -m opentoolbook book.tbk` opens the book on the page its startup handlers name, or on the first stored page when they do not. `--report` prints the report and does not open a window. `--show PAGE` draws that page id and does not follow those handlers. `linkDLL` and `forward` are not executed. `gotoPageList` does not name a quoted page, so a resumed session is not the page that opens.
+- `python3 -m opentoolbook book.tbk` opens the book on the page its startup handlers name, or on the first stored page when they do not. `--report` prints the report and does not open a window. `--show PAGE` draws that page id and does not follow those handlers. `linkDLL` is not executed. `forward` passes the message to the next object on the path (SETTLED "Forward"). `gotoPageList` does not name a quoted page, so a resumed session is not the page that opens.
 - The ToolBook 8.1 authoring installer is the one Denny Dedmore's reinstall page lists. That note is in `DENNY-RUNTIME.md`. Never record a serial number. Never commit a proprietary binary or DLL.
 - Do not force-disassemble unknown data. No `ForceDisassembleC8` and no `ForceDisassemblePrologues`. Describe code that a call path or a clean import reached. Do not run Ghidra.
 
